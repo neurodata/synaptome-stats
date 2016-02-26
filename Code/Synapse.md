@@ -1,23 +1,6 @@
----
-title: "Synapse Clustering"
-author: "YP, JLP"
-date: '2016-02-26'
-output:
-  html_document:
-    fig_caption: yes
-    fig_height: 4
-    fig_width: 4
-    highlight: pygments
-    keep_md: yes
-    number_sections: yes
-    theme: cerulean
-    toc: yes
-    toc_depth: 3
-  pdf_document:
-    fig_caption: yes
-    keep_tex: yes
-    number_sections: yes
----
+# Synapse Clustering
+YP, JLP  
+`r Sys.Date()`  
 
 # Introduction
 
@@ -59,7 +42,7 @@ dim(feat)
 ```
 
 ```
-## [1] 1119299     144
+# [1] 1119299     144
 ```
 
 ```r
@@ -99,11 +82,93 @@ nfeat <- ncol(feat) / nchannel
 ```
 
 
+```r
+#df <- melt(feat)
+#ggplot(df, aes(x=value)) + geom_density(aes(group=variable, colour=variable))
+mycol2 <- matlab.like(nchannel)
+plot(density(as.numeric(as.matrix(subset(feat,select=1))),from=0.000001),type="n",main="",log="xy",xlim=c(3e+6,3e+07))
+for (i in 1:nchannel) {
+    dat <- as.numeric(as.matrix(subset(feat,select=(i-1)*4+c(1:4))))
+    lines(density(dat,from=0.000001),col=mycol2[i],log="xy")
+}
+legend("topright",legend=channel,pch=19,col=mycol2,ncol=4,cex=0.7)
+```
+
+<figure><img src="figure/kden-1.png"><figcaption></figcaption></figure>
 
 
+```r
+pr <- prcomp(feat,scale=FALSE)
+elb <- getElbows(pr$x,3,plot=TRUE)
+```
 
+<figure><img src="figure/pca-1.png"><figcaption></figcaption></figure>
 
+```r
+X <- pr$x[,1:elb[3]]
 
+# idt
+out <- doIDT(as.matrix(X),
+             FUN="pamk",
+             Dmax=ncol(X),    # max dim for clustering
+             Kmax=10,         # max K for clustering 
+             maxsamp=nrow(X), # max n for clustering
+             samp=1,          # 1: no sampling, else n/sample sampling
+             maxdepth=5,      # termination, maximum depth for idt
+             minnum=100)      # termination, minimum observations per branch 
+```
+
+```
+# number of leaves (clusters) =  69
+```
+
+```r
+load("X-idt-d96-Kmax10-depth5-min100.Rbin")
+cat("number of leaves (clusters) = ",max(out$class),"\n")
+```
+
+```r
+idtlab <- out$class
+set.seed(2^13)
+plot(X[sample(dim(X)[1],1e4),], pch=".",col=idtlab)
+```
+
+<figure><img src="figure/idt-all-1.png"><figcaption></figcaption></figure>
+
+```r
+feat2 <- scale(feat,center=TRUE,scale=TRUE)
+feat2 <- aggregate(feat2, by=list(lab=idtlab), FUN=mean)
+feat2 <- feat2[,-1]
+#image(Matrix(as.matrix(feat2)),lwd=0,aspect="fill")
+
+# cluster rows and columns
+heatmap.2(as.matrix(feat2), trace="none", col=mycol, cexRow=0.2, cexCol=0.3, keysize=1, colCol=fcol,srtCol=90)
+```
+
+```
+#  [1] "#49FF00FF" "#49FF00FF" "#00FF92FF" "#00FF92FF" "#FF0000FF"
+#  [6] "#FF0000FF" "#FF0000FF" "#FF0000FF" "#FF0000FF" "#FF0000FF"
+# [11] "#FF0000FF" "#FF0000FF" "#FFDB00FF" "#FFDB00FF" "#FFDB00FF"
+# [16] "#FFDB00FF" "#FFDB00FF" "#FFDB00FF" "#FFDB00FF" "#FFDB00FF"
+# [21] "#00FF92FF" "#00FF92FF" "#FFDB00FF" "#FFDB00FF" "#FF0000FF"
+# [26] "#FF0000FF" "#00FF92FF" "#00FF92FF" "#49FF00FF" "#49FF00FF"
+# [31] "#49FF00FF" "#49FF00FF" "#00FF92FF" "#00FF92FF" "#49FF00FF"
+# [36] "#49FF00FF" "#49FF00FF" "#0092FFFF" "#0092FFFF" "#FF0000FF"
+# [41] "#FF0000FF" "#49FF00FF" "#49FF00FF" "#FFDB00FF" "#FFDB00FF"
+# [46] "#49FF00FF" "#FF0000FF" "#FF0000FF" "#FF0000FF" "#FF0000FF"
+# [51] "#FFDB00FF" "#FFDB00FF" "#FFDB00FF" "#FFDB00FF" "#FFDB00FF"
+# [56] "#FFDB00FF" "#FFDB00FF" "#FFDB00FF" "#00FF92FF" "#00FF92FF"
+# [61] "#FFDB00FF" "#FFDB00FF" "#0092FFFF" "#0092FFFF" "#00FF92FF"
+# [66] "#00FF92FF" "#0092FFFF" "#0092FFFF" "#FFDB00FF" "#FFDB00FF"
+# [71] "#49FF00FF" "#49FF00FF" "#00FF92FF" "#00FF92FF" "#00FF92FF"
+# [76] "#00FF92FF" "#FF0000FF" "#FF0000FF" "#FFDB00FF" "#FFDB00FF"
+# [81] "#FF0000FF" "#FF0000FF" "#FFDB00FF" "#FFDB00FF" "#FFDB00FF"
+# [86] "#FFDB00FF" "#00FF92FF" "#00FF92FF" "#49FF00FF" "#49FF00FF"
+# [91] "#49FF00FF" "#49FF00FF" "#FF0000FF" "#FF0000FF" "#FF0000FF"
+# [96] "#FF0000FF"
+```
+
+<figure><img src="figure/idt-all-heat-1.png"><figcaption></figcaption></figure>
 
 # Using "integrated brightness" features (`f0`) only
 
@@ -117,6 +182,9 @@ nfeat <- ncol(feat) / nchannel
 > and then just do iterated k-means.  
 
 
+```r
+source(url("http://www.cis.jhu.edu/~parky/Synapse/doidt.r"))
+```
 
 ```r
 f0 <- seq(1,ncol(feat),by=nfeat)
@@ -132,21 +200,17 @@ ggplot(df, aes(x=value)) +
     geom_density(aes(group=channel, colour=channel))
 ```
 
-```
-## Warning: Removed 24091 rows containing non-finite values (stat_density).
-```
-
-![<b>Figure 21: Kernel densities for each channels</b><br><br>](figure/ch1-1.png)
+<figure><img src="figure/ch1-1.png"><figcaption><b>Figure 1: Kernel densities for each channels</b><br><br></figcaption></figure>
 
 ```r
 pr2 <- prcomp(zfeat3)
 (elb <- getElbows(pr2$x,3,plot=TRUE))
 ```
 
-![<b>Figure 22: Scree plot with three potential 'elbows' with red dots. We use the third elbow as dhat.</b><br><br>](figure/pr2-1.png)
+<figure><img src="figure/pr2-1.png"><figcaption><b>Figure 2: Scree plot with three potential 'elbows' with red dots. We use the third elbow as dhat.</b><br><br></figcaption></figure>
 
 ```
-## [1]  3 18 21
+# [1]  3 18 21
 ```
 
 ```r
@@ -166,15 +230,16 @@ out <- doIDT(as.matrix(X),
 ```
 
 ```
-## number of leaves (clusters) =  194
+# number of leaves (clusters) =  194
 ```
 
 ```r
 idtlab <- out$class
-plot(X, pch=".",col=idtlab)
+set.seed(2^13)
+plot(X[sample(dim(X)[1],1e4),], pch=".",col=idtlab)
 ```
 
-![<b>Figure 23: Scatter plot of IDT clustering.</b><br><br>](figure/idt2-1.png)
+<figure><img src="figure/idt2-1.png"><figcaption><b>Figure 3: Scatter plot of IDT clustering.</b><br><br></figcaption></figure>
 
 ```r
 feat4 <- aggregate(zfeat3, by=list(lab=idtlab), FUN=mean)
@@ -186,14 +251,14 @@ heatmap.2(as.matrix(feat4), trace="none", col=mycol, cexRow=0.5, keysize=1, colC
 ```
 
 ```
-##  [1] "#0092FFFF" "#4900FFFF" "#FF0000FF" "#FF00DBFF" "#FF00DBFF"
-##  [6] "#FFDB00FF" "#0092FFFF" "#49FF00FF" "#00FF92FF" "#00FF92FF"
-## [11] "#49FF00FF" "#49FF00FF" "#FF0000FF" "#FF0000FF" "#FF00DBFF"
-## [16] "#00FF92FF" "#FF0000FF" "#4900FFFF" "#FFDB00FF" "#FFDB00FF"
-## [21] "#FFDB00FF" "#FFDB00FF" "#FF0000FF" "#FF0000FF"
+#  [1] "#0092FFFF" "#4900FFFF" "#FF0000FF" "#FF00DBFF" "#FF00DBFF"
+#  [6] "#FFDB00FF" "#0092FFFF" "#49FF00FF" "#00FF92FF" "#00FF92FF"
+# [11] "#49FF00FF" "#49FF00FF" "#FF0000FF" "#FF0000FF" "#FF00DBFF"
+# [16] "#00FF92FF" "#FF0000FF" "#4900FFFF" "#FFDB00FF" "#FFDB00FF"
+# [21] "#FFDB00FF" "#FFDB00FF" "#FF0000FF" "#FF0000FF"
 ```
 
-![<b>Figure 24: Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.</b><br><br>](figure/ch1-heat-1.png)
+<figure><img src="figure/ch1-heat-1.png"><figcaption><b>Figure 4: Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.</b><br><br></figcaption></figure>
 
 ## Level 1
 
@@ -208,15 +273,36 @@ tree1 <- idtall[qqq]
 ```
 
 ```
-## [1] 709107 277157 126907   6128
+# [1] 709107 277157 126907   6128
 ```
 
 ```r
 lab1 <- rep(1:length(n1), times=n1)
 ```
 
-![<b>Figure 25: Average silhouette width plot of the level 1 clustering.</b><br><br>](figure/depth1.4-1.png)
-![<b>Figure 26: Scatter plot of first level from the IDT clustering.</b><br><br>](figure/d1scatter-1.png)
+```r
+pr2 <- prcomp(X)
+X2 <- pr2$x[,1:13]
+set.seed(12346)
+pamout <- pamk(X2,krange=1:9,usepam=FALSE,critout=FALSE)
+```
+
+```r
+plot(pamout$crit,type="b")
+```
+
+<figure><img src="figure/depth1.4-1.png"><figcaption><b>Figure 5: Average silhouette width plot of the level 1 clustering.</b><br><br></figcaption></figure>
+
+```r
+set.seed(2^13)
+plot(X[sample(dim(X)[1],1e4),], pch=".",col=lab1+1)
+```
+
+<figure><img src="figure/d1scatter-1.png"><figcaption><b>Figure 6: Scatter plot of first level from the IDT clustering.</b><br><br></figcaption></figure>
+
+```r
+#pairs(X[,1:4], pch=".", col=lab1+1)
+```
 
 ```r
 feat5 <- aggregate(zfeat3, by=list(lab=lab1), FUN=mean)
@@ -229,29 +315,71 @@ heatmap.2(as.matrix(feat5), trace="none", col=mycol, keysize=1, colCol=ccol,srtC
 ```
 
 ```
-##  [1] "#FFDB00FF" "#FF0000FF" "#FFDB00FF" "#FFDB00FF" "#FF00DBFF"
-##  [6] "#FF0000FF" "#49FF00FF" "#FF0000FF" "#49FF00FF" "#FF0000FF"
-## [11] "#FFDB00FF" "#00FF92FF" "#4900FFFF" "#00FF92FF" "#00FF92FF"
-## [16] "#FF0000FF" "#49FF00FF" "#FF0000FF" "#0092FFFF" "#FF00DBFF"
-## [21] "#FFDB00FF" "#0092FFFF" "#4900FFFF" "#FF00DBFF"
+#  [1] "#FFDB00FF" "#FF0000FF" "#FFDB00FF" "#FFDB00FF" "#FF00DBFF"
+#  [6] "#FF0000FF" "#49FF00FF" "#FF0000FF" "#49FF00FF" "#FF0000FF"
+# [11] "#FFDB00FF" "#00FF92FF" "#4900FFFF" "#00FF92FF" "#00FF92FF"
+# [16] "#FF0000FF" "#49FF00FF" "#FF0000FF" "#0092FFFF" "#FF00DBFF"
+# [21] "#FFDB00FF" "#0092FFFF" "#4900FFFF" "#FF00DBFF"
 ```
 
-![<b>Figure 27: Heatmap of the first level cluster means vs channels. Rows and columns are rearranged according to hclust.</b><br><br>](figure/depth1.2-1.png)
-![<b>Figure 28: Pairwise correlation of the features.</b><br><br>](figure/depth1.3-1.png)
-![<b>Figure 29: Reordered based on the synapse type.</b><br><br>](figure/depth1.5-1.png)
+<figure><img src="figure/depth1.2-1.png"><figcaption><b>Figure 7: Heatmap of the first level cluster means vs channels. Rows and columns are rearranged according to hclust.</b><br><br></figcaption></figure>
+
+```r
+cmat <- cor(feat5)
+corrplot(cmat,method="color",tl.col=ccol)
+```
+
+<figure><img src="figure/depth1.3-1.png"><figcaption><b>Figure 8: Pairwise correlation of the features.</b><br><br></figcaption></figure>
+
+```r
+fchannel <- as.numeric(as.factor(channel.type))
+fcol <- rainbow(max(fchannel))
+ford <- order(fchannel)
+tmp <- as.numeric(table(fchannel))
+#plotmemb2(cmat,fchannel,lcol=lcol,lwdb=2)
+corrplot(cmat[ford,ford],method="color",tl.col=ccol[ford])
+corrRect(tmp,col=fcol,lwd=4)
+```
+
+<figure><img src="figure/depth1.5-1.png"><figcaption><b>Figure 9: Reordered based on the synapse type.</b><br><br></figcaption></figure>
 
 # Using "integrated brightness" features (`f0`) only and without "other"={`5HT1A`,`TH`,`VACht`} and "none"={`tubuli`,`DAPI`} channels
 
 
+```r
+source(("http://www.cis.jhu.edu/~parky/Synapse/doidt.r"))
+```
+
+```r
+cuse <- channel.type %in% c("other","none")
+channel.type2 <- channel.type[!cuse]
+#fchannel <- as.numeric(as.factor(channel.type2))
+fchannel <- fchannel[!cuse]
+fcol <- fcol[sort(unique(fchannel))]
+(nonsynapse <- channel[cuse])
+```
 
 ```
-## [1] "5HT1A"  "TH"     "VACht"  "tubuli" "DAPI"
+# [1] "5HT1A"  "TH"     "VACht"  "tubuli" "DAPI"
 ```
 
-![<b>Figure 30: Scree plot with three potential 'elbows' with red dots. We use the third elbow as dhat.</b><br><br>](figure/th1-1.png)
+```r
+nouse <- pmatch(nonsynapse,colnames(zfeat3))
+zfeat4 <- zfeat3[,-nouse]
+ccol <- ccol[-nouse] #rainbow(max(fchannel))[fchannel]
+
+pr3 <- prcomp(zfeat4)
+(elb <- getElbows(pr3$x,3,plot=TRUE))
+```
+
+<figure><img src="figure/th1-1.png"><figcaption><b>Figure 10: Scree plot with three potential 'elbows' with red dots. We use the third elbow as dhat.</b><br><br></figcaption></figure>
 
 ```
-## [1]  3 14 16
+# [1]  3 14 16
+```
+
+```r
+X <- pr3$x[,1:elb[3]]
 ```
 
 ```r
@@ -267,45 +395,121 @@ out <- doIDT(as.matrix(X),
 ```
 
 ```
-## number of leaves (clusters) =  74
+# number of leaves (clusters) =  74
 ```
 
 ```r
 idtlab <- out$class
-plot(X, pch=".",col=idtlab)
+set.seed(2^13)
+plot(X[sample(dim(X)[1],1e4),], pch=".",col=idtlab)
 ```
 
-![<b>Figure 31: Scatter plot of IDT clustering.</b><br><br>](figure/idt3-1.png)
+<figure><img src="figure/idt3-1.png"><figcaption><b>Figure 11: Scatter plot of IDT clustering.</b><br><br></figcaption></figure>
+
+```r
+feat4 <- aggregate(zfeat4, by=list(lab=idtlab), FUN=mean)
+feat4 <- feat4[,-1]
+#image(Matrix(as.matrix(feat4)),lwd=0, aspect="fill")
+
+# cluster rows and columns
+heatmap.2(as.matrix(feat4), trace="none", col=mycol, cexRow=0.5, keysize=1, colCol=ccol,srtCol=90)
+```
 
 ```
-##  [1] "#0092FFFF" "#49FF00FF" "#49FF00FF" "#49FF00FF" "#FFDB00FF"
-##  [6] "#0092FFFF" "#FFDB00FF" "#FFDB00FF" "#FF0000FF" "#FF0000FF"
-## [11] "#FF0000FF" "#FF0000FF" "#FF0000FF" "#FF0000FF" "#FFDB00FF"
-## [16] "#FFDB00FF" "#00FF92FF" "#00FF92FF" "#00FF92FF"
+#  [1] "#0092FFFF" "#49FF00FF" "#49FF00FF" "#49FF00FF" "#FFDB00FF"
+#  [6] "#0092FFFF" "#FFDB00FF" "#FFDB00FF" "#FF0000FF" "#FF0000FF"
+# [11] "#FF0000FF" "#FF0000FF" "#FF0000FF" "#FF0000FF" "#FFDB00FF"
+# [16] "#FFDB00FF" "#00FF92FF" "#00FF92FF" "#00FF92FF"
 ```
 
-![<b>Figure 32: Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.</b><br><br>](figure/ch2-heat-1.png)
+<figure><img src="figure/ch2-heat-1.png"><figcaption><b>Figure 12: Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.</b><br><br></figcaption></figure>
 
 ## Level 1
 
 
-```
-## [1] 790708 150883 172509   5199
-```
-![<b>Figure 33: Average silhouette width plot of the level 1 clustering.</b><br><br>](figure/elb2-1.png)
-
-![<b>Figure 34: Scatter plot of first level from the IDT clustering.</b><br><br>](figure/d1scatter-2-1.png)
-
-```
-##  [1] "#00FF92FF" "#00FF92FF" "#FFDB00FF" "#FF0000FF" "#FF0000FF"
-##  [6] "#49FF00FF" "#49FF00FF" "#FFDB00FF" "#0092FFFF" "#FF0000FF"
-## [11] "#0092FFFF" "#FF0000FF" "#FFDB00FF" "#FFDB00FF" "#FFDB00FF"
-## [16] "#FF0000FF" "#49FF00FF" "#FF0000FF" "#00FF92FF"
+```r
+# cut tree at level 1
+idtall <- out$idtall
+ppp <- sapply(idtall, function(x) x$depth==2)
+qqq <- which(ppp==TRUE)
+tree1 <- idtall[qqq]
+(n1 <- sapply(tree1, function(x) length(x$ids)))
 ```
 
-![<b>Figure 35: Scaled heatmap of the first level cluster means vs channels. Rows and columns are rearranged according to hclust.</b><br><br>](figure/depth1-heat-1.png)
-![<b>Figure 36: Pairwise correlation of the features.</b><br><br>](figure/depth1-corr-1.png)
-![<b>Figure 37: Reordered based on the synapse type.</b><br><br>](figure/depth1-corr2-1.png)
+```
+# [1] 790708 150883 172509   5199
+```
+
+```r
+lab1 <- rep(1:length(n1), times=n1)
+```
+
+```r
+pr2 <- prcomp(X)
+X2 <- pr2$x[,1:9] # elb[2]
+set.seed(12346)
+pamout <- pamk(X2,krange=1:9,usepam=FALSE,critout=FALSE)
+plot(pamout$crit,type="b")
+```
+
+<figure><img src="figure/elb2-1.png"><figcaption><b>Figure 13: Average silhouette width plot of the level 1 clustering.</b><br><br></figcaption></figure>
+
+```r
+#In this example, `idt` yields `r length(n1)` clusters while `pamk` claims `r pamout$nc` clusters.
+```
+
+
+```r
+set.seed(2^13)
+plot(X[sample(dim(X)[1],1e4),], pch=".",col=lab1+1)
+```
+
+<figure><img src="figure/d1scatter-2-1.png"><figcaption><b>Figure 14: Scatter plot of first level from the IDT clustering.</b><br><br></figcaption></figure>
+
+```r
+set.seed(2^13)
+pairs(X[sample(dim(X)[1],1e4),1:4], pch=".", col=lab1+1)
+```
+
+<figure><img src="figure/d1scatter-2-2.png"><figcaption><b>Figure 14: Scatter plot of first level from the IDT clustering.</b><br><br></figcaption></figure>
+
+```r
+feat5 <- aggregate(zfeat4, by=list(lab=lab1), FUN=mean)
+feat5 <- feat5[,-1]
+rownames(feat5) <- paste0("C",1:length(n1),", ",n1)
+#image(Matrix(as.matrix(feat4)),lwd=0, aspect="fill")
+
+# cluster rows and columns
+heatmap.2(as.matrix(feat5), trace="none", col=mycol, keysize=1,cexRow=0.7, colCol=ccol,srtCol=90,
+          symm=F,symkey=F,symbreaks=F,scale="none")
+```
+
+```
+#  [1] "#00FF92FF" "#00FF92FF" "#FFDB00FF" "#FF0000FF" "#FF0000FF"
+#  [6] "#49FF00FF" "#49FF00FF" "#FFDB00FF" "#0092FFFF" "#FF0000FF"
+# [11] "#0092FFFF" "#FF0000FF" "#FFDB00FF" "#FFDB00FF" "#FFDB00FF"
+# [16] "#FF0000FF" "#49FF00FF" "#FF0000FF" "#00FF92FF"
+```
+
+<figure><img src="figure/depth1-heat-1.png"><figcaption><b>Figure 15: Scaled heatmap of the first level cluster means vs channels. Rows and columns are rearranged according to hclust.</b><br><br></figcaption></figure>
+
+```r
+cmat <- cor(feat5)
+corrplot(cmat,method="color",tl.col=ccol)
+```
+
+<figure><img src="figure/depth1-corr-1.png"><figcaption><b>Figure 16: Pairwise correlation of the features.</b><br><br></figcaption></figure>
+
+```r
+lcol <- rainbow(max(fchannel))
+ford <- order(fchannel)
+tmp <- as.numeric(table(fchannel))
+#plotmemb2(cmat,fchannel,lcol=lcol,lwdb=2)
+corrplot(cmat[ford,ford],method="color",tl.col=ccol[ford])
+corrRect(tmp,col=lcol,lwd=4)
+```
+
+<figure><img src="figure/depth1-corr2-1.png"><figcaption><b>Figure 17: Reordered based on the synapse type.</b><br><br></figcaption></figure>
 
 ## Using "scaled" == "z-transformed"
 
@@ -320,16 +524,49 @@ groups you did, but no embedding.  and then plot the scaled means plot
 and correlations?
 
 
+```r
+#set.seed(123)
+kout <- kmeans(zfeat4,2)
+lab2 <- kout$cluster
+n2 <- as.vector(table(lab2))
+```
+
+```r
+feat6 <- aggregate(zfeat4, by=list(lab=lab2), FUN=mean)
+feat6 <- feat6[,-1]
+rownames(feat6) <- paste0("C",1:length(n2),", ",n2)
+#image(Matrix(as.matrix(feat4)),lwd=0, aspect="fill")
+
+# cluster rows and columns
+heatmap.2(as.matrix(feat6), trace="none", col=mycol, keysize=1,cexRow=0.7, colCol=ccol,srtCol=90,
+          symm=F,symkey=F,symbreaks=F,scale="none")
+```
 
 ```
-##  [1] "#00FF92FF" "#00FF92FF" "#00FF92FF" "#49FF00FF" "#FF0000FF"
-##  [6] "#49FF00FF" "#0092FFFF" "#0092FFFF" "#FF0000FF" "#FFDB00FF"
-## [11] "#FF0000FF" "#FF0000FF" "#FF0000FF" "#49FF00FF" "#FFDB00FF"
-## [16] "#FF0000FF" "#FFDB00FF" "#FFDB00FF" "#FFDB00FF"
+#  [1] "#00FF92FF" "#00FF92FF" "#00FF92FF" "#49FF00FF" "#FF0000FF"
+#  [6] "#49FF00FF" "#0092FFFF" "#0092FFFF" "#FF0000FF" "#FFDB00FF"
+# [11] "#FF0000FF" "#FF0000FF" "#FF0000FF" "#49FF00FF" "#FFDB00FF"
+# [16] "#FF0000FF" "#FFDB00FF" "#FFDB00FF" "#FFDB00FF"
 ```
 
-![<b>Figure 38: Scaled heatmap of the first level cluster means vs channels. Rows and columns are rearranged according to hclust.</b><br><br>](figure/depth1-heat2-1.png)
-![<b>Figure 39: Pairwise correlation of the features.</b><br><br>](figure/depth1-corr3-1.png)
-![<b>Figure 40: Reordered based on the synapse type.</b><br><br>](figure/depth1-corr4-1.png)
+<figure><img src="figure/depth1-heat2-1.png"><figcaption><b>Figure 18: Scaled heatmap of the first level cluster means vs channels. Rows and columns are rearranged according to hclust.</b><br><br></figcaption></figure>
+
+```r
+cmat <- cor(feat6)
+corrplot(cmat,method="color",tl.col=ccol)
+```
+
+<figure><img src="figure/depth1-corr3-1.png"><figcaption><b>Figure 19: Pairwise correlation of the features.</b><br><br></figcaption></figure>
+
+```r
+#lcol <- rainbow(max(fchannel))
+ford <- order(fchannel)
+tmp <- as.numeric(table(fchannel))
+#plotmemb2(cmat,fchannel,lcol=lcol,lwdb=2)
+corrplot(cmat[ford,ford],method="color",tl.col=ccol[ford])
+corrRect(tmp,col=fcol,lwd=4)
+```
+
+<figure><img src="figure/depth1-corr4-1.png"><figcaption><b>Figure 20: Reordered based on the synapse type.</b><br><br></figcaption></figure>
 
 
