@@ -1,0 +1,406 @@
+---
+title: "Synapse Clustering"
+author: "JLP"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 4
+    fig_width: 4
+    highlight: pygments
+    keep_md: yes
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+  pdf_document:
+    fig_caption: yes
+    keep_tex: yes
+    number_sections: yes
+---
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+rm(list=ls()); 
+rmarkdown::render("./hkmeans.Rmd")
+system('open hkmeans.html')
+```
+```{r setup,include=FALSE,results='asis'}
+suppressMessages(require(Matrix))
+suppressMessages(require(colorRamps))
+suppressMessages(require(corrplot))
+suppressMessages(require(gplots))
+suppressMessages(require(dplyr))
+suppressMessages(require(reshape2))
+suppressMessages(require(ggplot2))
+suppressMessages(require(parallel))
+suppressMessages(require(data.table))
+suppressMessages(require(fpc))
+suppressMessages(require(repr))
+suppressMessages(require(doMC))
+source("bic.r")
+source("http://www.cis.jhu.edu/~parky/Synapse/getElbows.R")
+registerDoMC(6)
+
+library(rmarkdown)
+library(knitr)
+
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
+dep_auto() # figure out dependencies automatically
+opts_chunk$set(cache=FALSE,echo=TRUE,warning=FALSE,message=FALSE,comment="#",fig.path='figure/',
+               dpi=100,dev=c('png','pdf'))
+
+opts_knit$set(aliases=c(h='fig.height', w='fig.width', cap='fig.cap', scap='fig.scap'))                                                                               
+opts_knit$set(eval.after = c('fig.cap','fig.scap'))                                                                            
+knit_hooks$set(document = function(x) {
+  gsub('(\\\\end\\{knitrout\\}[\n]+)', '\\1\\\\noindent ', x)                                                   })
+#opts_knit$set(animation.fun = hook_scianimator)
+
+knit_hooks$set(plot = function(x, options) {
+       paste('<figure><img src="',
+             opts_knit$get('base.url'), paste(x, collapse = '.'),
+             '"><figcaption>', options$fig.cap, '</figcaption></figure>',
+             sep = '')
+ })
+ 
+ fn = local({
+   i = 0
+   function(x) {
+     i <<- i + 1
+     paste('Figure ', i, ': ', x, sep = '')
+   }
+ })
+
+ fig <- local({
+    i <- 0
+    ref <- list()
+    list(
+        cap=function(refName, text) {
+            i <<- i + 1
+            ref[[refName]] <<- i
+            paste("<b>Figure ", i, ": ", text, "</b><br><br>", sep="")
+        },
+        ref=function(refName) {
+            ref[[refName]]
+        })
+})
+
+```
+
+Previous work by Youngser Park can be found
+[here.](http://www.cis.jhu.edu/~parky/Synapse/synapse.html)
+
+# Introduction
+
+> On Fri, Dec 11, 2015 at 11:53 AM, joshua vogelstein <jovo@jhu.edu> wrote:  
+> we will get n=10^6 points, each in d=25 dimensions.  
+> i want to hierarchically cluster them, in a ways:  
+
+1. recursive k-means on the data, maybe 5 levels
+2. compute approximate k-neighbors, svd in d=dimensions, and then #1
+3. maybe some other ways.
+
+# Data
+> The corresponds to 24 channels x 6 features per synapse, ordered like
+> c0f0,c0f1,c0f2,c0f3,c0f4,c0f5,c1f0,c1f1... etc
+>
+>f0 = integrated brightness  
+>f1 = local brightness  
+>f2 = distance to Center of Mass  
+>f3 = moment of inertia around synapsin maxima  
+>f4,f5 are features that I forget what they are.. would need to ask brad.   
+>i would throw them out, I did so in my kohonen code (which you have, its in matlab).
+
+and
+
+> On Feb 8, 2016, at 2:00 PM, Kristina Micheva <kmicheva@stanford.edu> wrote:
+
+* <FONT COLOR=#197300>_Excitatory presynaptic: 'Synap', 'Synap', 'VGlut1', 'VGlut1', 'VGlut2'_</FONT>,
+* <FONT COLOR=#5ed155>_Excitatory postsynaptic: 'psd', 'glur2', 'nmdar1', 'nr2b', 'NOS', 'Synapo'_</FONT> (but further away than PSD, gluR2, nmdar1 and nr2b)
+* <FONT COLOR=#990000>_Inhibitory presynaptic: 'gad', 'VGAT', 'PV'_</FONT>,
+* <FONT COLOR=#ff3333>_Inhibitory postsynaptic: 'Gephyr', 'GABAR1', 'GABABR', 'NOS'_</FONT>,
+* <FONT COLOR=#ff9933>_At a very small number of inhibitory: 'Vglut3' (presynaptic), 'CR1'(presynaptic)_</FONT>,
+* <FONT COLOR="mediumblue">_Other synapses:'5HT1A', 'TH', 'VACht'_</FONT>,
+* <FONT COLOR="gold">_Not at synapses: 'tubuli', 'DAPI'_</FONT>.
+
+and 
+
+> On March 10, 2016, 00:29:04 (UTC), Kristina Micheva <kmicheva@stanford.edu> wrote:
+
+There are 2 different Synap channels (2 different antibodies were
+used), so that part is fine.
+And 2 different VGluT1 channels (same antibody but done at different
+times)
+The NOS channel is the same, so count it as one even though it appears
+twice. It is listed two times because it can be found at both excitatory
+and inhibitory synapses. This is where your count of 25 comes, even
+though there are 24 channels.
+I would also add the 2 Synap channels to the Inhibitory presynaptic
+category - there is supposed to be synapsin there, but at lower levels
+compared to excitatory presynaptic category.
+
+- Note:  The order of the channels are given by line `227` in the `kohenen.m` file which can be found in the dropbox folder. 
+- `Synap` and `Synap` have been augmented to `Synap_1` and `Synap_2` for clarity. 
+- `VGlut1` and `VGlut1` have been augmented to `VGlut1_t1` and `VGlut1_t2` to distinguish between the different times (which are unknown).
+
+```{r cc_data, eval=FALSE}
+feat <- fread("../Data/synapsinR_7thA.tif.Pivots.txt.2011Features.txt",showProgress=FALSE)
+dim(feat)
+channel <- c('Synap_1','Synap_2','VGlut1_t1','VGlut1_t2','VGlut2','Vglut3',
+              'psd','glur2','nmdar1','nr2b','gad','VGAT',
+              'PV','Gephyr','GABAR1','GABABR','CR1','5HT1A',
+              'NOS','TH','VACht','Synapo','tubuli','DAPI')
+channel.type <- c('ex.pre','ex.pre','ex.pre','ex.pre','ex.pre','in.pre.small',
+                  'ex.post','ex.post','ex.post','ex.post','in.pre','in.pre',
+                  'in.pre','in.post','in.post','in.post','in.pre.small','other',
+                  'ex.post','other','other','ex.post','none','none')
+nchannel <- length(channel)
+nfeat <- ncol(feat) / nchannel
+fchannel <- as.numeric(factor(channel.type,
+    levels= c("ex.pre","ex.post","in.pre","in.post","in.pre.small","other","none")
+    ))
+ford <- order(fchannel)
+#ccol <- rainbow(max(fchannel))[fchannel]
+Syncol <- c("#197300","#5ed155","#990000","#cc0000","#ff9933","mediumblue","gold")
+ccol <- Syncol[fchannel]
+
+
+fname <- as.vector(sapply(channel,function(x) paste0(x,paste0("F",0:5))))
+names(feat) <- fname
+fcol <- rep(ccol, each=6)
+#mycol <- colorpanel(100,"blue","grey","red")
+#mycol <- redgreen(100)
+#mycol <- colorpanel(100, "purple", "black", "blue")
+mycol <- colorpanel(100, "purple", "black", "green")
+mycol2 <- matlab.like(nchannel)
+```
+
+## Transformations
+
+Each of the channels has an arbitrary independent linear transformation and thus
+converting to z-scores or quantiles is required.
+
+
+Selecting only the `f0` features, we will use both the raw data and a
+transformed version, transforming by adding 1 and taking
+the log base 10 for each column and scaling. 
+
+```{r cc_featF0, eval=FALSE}
+f0 <- seq(1,ncol(feat),by=nfeat)
+featF0 <- subset(feat, select=f0)
+flog <- apply(X=(featF0+1),2,log10)
+fs <- scale(flog, center=TRUE, scale=TRUE)
+```
+
+
+
+
+### Kernel Density Estimates of the marginals
+
+```{r cc_kde1, eval=TRUE, cache=TRUE,w=8,h=4,fig.cap=fig$cap("f0kde1","Kernel density estimates for each channel, on untransformed data.")}
+featKDE <- as.matrix(featF0)
+
+df <- melt(featKDE)
+names(df) <- c("ind","channel","value")
+ggplot(df, aes(x=value)) + 
+    scale_color_manual(values=ccol) +
+    #scale_x_log10(limits=c(1e+03,1e+06), breaks=c(1e+03,5e+03,1e+04,5e+04,1e+05,5e+05,1e+06))+
+    geom_density(aes(group=channel, colour=channel))
+```
+
+```{r cc_kde2, eval=TRUE, cache=TRUE,w=8,h=4,fig.cap=fig$cap("f0kde2","Kernel density estimates for each channel, on log transformed data.")}
+df <- melt(as.matrix(flog))
+names(df) <- c("ind","channel","value")
+ggplot(df, aes(x=value)) + 
+    scale_color_manual(values=ccol) +
+    geom_density(aes(group=channel, colour=channel))
+```
+
+```{r cc_kde3, eval=TRUE, cache=TRUE,w=8,h=4,fig.cap=fig$cap("f0kde3","Kernel density estimates for each channel, on log transformed scaled data.")}
+df <- melt(as.matrix(fs))
+names(df) <- c("ind","channel","value")
+ggplot(df, aes(x=value)) + 
+    scale_color_manual(values=ccol) +
+    geom_density(aes(group=channel, colour=channel))
+```
+
+
+
+
+
+
+## K-Means Level 1
+
+```{r cc_kmeans,eval=FALSE,echo=TRUE}
+K1 <- 12  ## Set the upperbound for k-means.
+
+## Run kmeans on the untransformed data
+kvecF0 <- foreach(i = 1:K1) %dopar% {
+    kmeans(featF0,centers=i)
+}
+
+## Run kmeans on the 
+## log \circ scale transformed data
+kvecfs <- foreach(i = 1:K1) %dopar% {
+    kmeans(fs,centers=i)
+}
+```
+
+```{r cc_bic2}
+bicF0 <- kbic(kvecF0)
+bicfs1 <- kbic(kvecfs)
+```
+
+```{r cc_plot-bic2,w=8,h=5}
+par(mfrow=c(1,2))
+plot(bicF0, type='b', main="BIC on raw data.")
+plot(bicfs1, type='b', main="BIC on scaled data.")
+```
+
+### Heat maps
+
+#### Untransformed data 
+
+Manualy choosing 2 clusters.  
+
+```{r cc_agg, eval=TRUE}
+## Formatting data for heatmap
+feat2 <- aggregate(featF0,by=list(lab=kvecF0[[2]]$cluster),FUN=mean)
+feat2 <- as.matrix(feat2[,-1])
+ford <- order(fchannel)
+```
+
+```{r cc_km1-heatmap,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
+heatmap.2(as.matrix(feat2), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
+```
+
+```{r cc_km1-heatmapSorted,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
+heatmap.2(as.matrix(feat2[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
+```
+
+
+## K-Means Level 2
+
+```{r cc_level21, eval=FALSE, echo=FALSE}
+fs11 <- fs[labs==1,]
+fs12 <- fs[labs==2,]
+
+dim(fs11)
+dim(fs12)
+```
+
+
+
+## PAMK: Level 1
+
+The `pamk` function performs something similar to K-means. 
+
+```{r cc_PAMkmeans1, eval=TRUE}
+pamout <- pamk(fs, krange=1:K1,usepam=FALSE,critout=FALSE)
+labs <- pamout$pamobject$clustering
+```
+
+```{r cc_depth1.4,eval=TRUE,echo=TRUE,fig.cap=fig$cap("pamk1", "Average silhouette width plot of the level 1 clustering.")}
+plot(pamout$crit,type="b")
+```
+
+```{r cc_f5, eval=TRUE}
+feat5 <- aggregate(fs,by=list(lab=pamout$pamo$clustering),FUN=mean)
+
+feat5 <- as.matrix(feat5[,-1])
+rownames(feat5) <- c(sprintf("C1, %.2g",sum(labs==1)/length(labs)),sprintf("C2, %.2g", sum(labs==2)/length(labs)))
+
+### Reordering based on synapse type.
+ford <- order(fchannel)
+```
+
+
+```{r cc_heat,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth1-heat", "Default Sorting")}
+heatmap.2(as.matrix(feat5), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
+```
+
+```{r cc_sorted,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth1-heat-sorted", "Sorted by Synapse type")}
+heatmap.2(as.matrix(feat5[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
+```
+
+## PAMK: Level 2
+
+### PAMK Level 2.1
+
+We begin by splitting the data into the two clusters as calculated
+above.
+
+```{r cc_fs-lv2, eval=TRUE}
+fs1 <- fs[pamout$pamobject$clustering==1,]
+fs2 <- fs[pamout$pamobject$clustering==2,]
+```
+
+```{r cc_PAMkmeans2, eval=TRUE}
+pamout21 <- pamk(fs1, krange=1:K1,usepam=FALSE,critout=FALSE)
+labs21 <- pamout21$pamobject$clustering
+```
+
+```{r cc_sil-level2,eval=TRUE,echo=TRUE,fig.cap=fig$cap("pamk2", "Average silhouette width plot of the level 2 clustering.")}
+plot(pamout21$crit,type="b")
+```
+
+```{r cc_f21, eval=TRUE}
+agg21 <- aggregate(fs1,by=list(lab=pamout21$pamo$clustering),FUN=mean)
+agg21 <- as.matrix(agg21[,-1])
+
+cs <- paste(paste0("C", 1:pamout21$nc),
+   foreach(i =1:pamout21$nc,.combine=c)%do%{(sprintf("%.2g",sum(labs21==i)/length(labs21)))})
+    
+rownames(agg21) <- cs
+```
+
+
+```{r cc_heat21,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth21-heat", "Default Sorting")}
+heatmap.2(as.matrix(agg21), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
+```
+
+```{r cc_sorted21,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth21-heat-sorted", "Sorted by Synapse type")}
+heatmap.2(as.matrix(agg21[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
+```
+
+
+### PAMK: Level 2.2
+
+
+```{r cc_PAMkmeans22, eval=TRUE}
+pamout22 <- pamk(fs2, krange=1:K1,usepam=FALSE,critout=FALSE)
+labs22 <- pamout22$pamobject$clustering
+```
+
+```{r cc_sil-level22,eval=TRUE,echo=TRUE,fig.cap=fig$cap("pamk2", "Average silhouette width plot of the level 2 clustering.")}
+plot(pamout22$crit,type="b")
+```
+
+```{r cc_f22, eval=TRUE}
+agg22 <- aggregate(fs2,by=list(lab=pamout22$pamo$clustering),FUN=mean)
+agg22 <- as.matrix(agg22[,-1])
+
+cs <- paste(paste0("C", 1:pamout22$nc),
+   foreach(i =1:pamout22$nc,.combine=c)%do%{(sprintf("%.2g",sum(labs22==i)/length(labs22)))})
+    
+rownames(agg22) <- cs
+```
+
+```{r cc_heat22,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth21-heat", "Default Sorting")}
+heatmap.2(as.matrix(agg22), trace="none",col=rev(mycol),colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
+```
+
+```{r cc_sorted22,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth21-heat-sorted", "Sorted by Synapse type")}
+heatmap.2(as.matrix(agg22[,ford]),dendrogram='row',Colv=NA,trace="none", col=rev(mycol),colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
+```
+
+
+
+
+
+
+
+
+
+
+
+
