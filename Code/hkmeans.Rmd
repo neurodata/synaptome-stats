@@ -37,8 +37,10 @@ suppressMessages(require(data.table))
 suppressMessages(require(fpc))
 suppressMessages(require(repr))
 suppressMessages(require(doMC))
-source("bic.r")
-source("http://www.cis.jhu.edu/~parky/Synapse/getElbows.R")
+source("./bic.r")
+source("./clusterFraction.r")
+#source("http://www.cis.jhu.edu/~parky/Synapse/getElbows.R")
+source("./getElbows.r")
 registerDoMC(6)
 
 library(rmarkdown)
@@ -142,7 +144,7 @@ compared to excitatory presynaptic category.
 - `Synap` and `Synap` have been augmented to `Synap_1` and `Synap_2` for clarity. 
 - `VGlut1` and `VGlut1` have been augmented to `VGlut1_t1` and `VGlut1_t2` to distinguish between the different times (which are unknown).
 
-```{r cc_data, eval=FALSE}
+```{r cc_data, eval=TRUE}
 feat <- fread("../Data/synapsinR_7thA.tif.Pivots.txt.2011Features.txt",showProgress=FALSE)
 dim(feat)
 channel <- c('Synap_1','Synap_2','VGlut1_t1','VGlut1_t2','VGlut2','Vglut3',
@@ -184,7 +186,7 @@ Selecting only the `f0` features, we will use both the raw data and a
 transformed version, transforming by adding 1 and taking
 the log base 10 for each column and scaling. 
 
-```{r cc_featF0, eval=FALSE}
+```{r cc_featF0, eval=TRUE}
 f0 <- seq(1,ncol(feat),by=nfeat)
 featF0 <- subset(feat, select=f0)
 flog <- apply(X=(featF0+1),2,log10)
@@ -230,42 +232,55 @@ ggplot(df, aes(x=value)) +
 
 ## K-Means Level 1
 
-```{r cc_kmeans,eval=FALSE,echo=TRUE}
+** <FONT COLOR=#ff3333> Note that a seed is being set for the random initialization of K-means. </FONT> **
+
+```{r cc_kmeans,eval=TRUE,echo=TRUE}
 K1 <- 12  ## Set the upperbound for k-means.
 
 ## Run kmeans on the untransformed data
 kvecF0 <- foreach(i = 1:K1) %dopar% {
+    set.seed(2^13 - 1)
     kmeans(featF0,centers=i)
 }
 
 ## Run kmeans on the 
 ## log \circ scale transformed data
 kvecfs <- foreach(i = 1:K1) %dopar% {
+    set.seed(2^13 - 1)
     kmeans(fs,centers=i)
 }
 ```
 
+Here we calculate the `bic` from a user defined function and 
+pick the maximum.
+
 ```{r cc_bic2}
 bicF0 <- kbic(kvecF0)
 bicfs1 <- kbic(kvecfs)
+mxF0 <- t(c(which(bicF0 == max(bicF0)), max(bicF0)))
+mxfs1 <- t(c(which(bicfs1 == max(bicfs1)), max(bicfs1)))
 ```
 
 ```{r cc_plot-bic2,w=8,h=5}
 par(mfrow=c(1,2))
 plot(bicF0, type='b', main="BIC on raw data.")
+points(mxF0[,1], mxF0[,2], col='red', pch=20)
 plot(bicfs1, type='b', main="BIC on scaled data.")
+points(mxfs1[,1], mxfs1[,2], col='red', pch=20)
 ```
 
-### Heat maps
+### Heat maps: Untransformed Data
 
-#### Untransformed data 
+For the following we manualy choose 2 clusters.
 
-Manualy choosing 2 clusters.  
 
 ```{r cc_agg, eval=TRUE}
 ## Formatting data for heatmap
 feat2 <- aggregate(featF0,by=list(lab=kvecF0[[2]]$cluster),FUN=mean)
 feat2 <- as.matrix(feat2[,-1])
+
+rownames(feat2) <- clusterFraction(kvecF0[[2]])
+
 ford <- order(fchannel)
 ```
 
@@ -277,7 +292,24 @@ heatmap.2(as.matrix(feat2), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysi
 heatmap.2(as.matrix(feat2[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
 ```
 
+### Heat maps: Transformed Data
 
+```{r cc_aggfs, eval=TRUE}
+## Formatting data for heatmap
+feat2fs <- aggregate(fs,by=list(lab=kvecfs[[2]]$cluster),FUN=mean)
+feat2fs <- as.matrix(feat2fs[,-1])
+
+rownames(feat2fs) <- clusterFraction(kvecfs[[2]])
+ford <- order(fchannel)
+```
+
+```{r cc_km1-heatmapFS,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
+heatmap.2(as.matrix(feat2fs), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
+```
+
+```{r cc_km1-heatmapSortedFS,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
+heatmap.2(as.matrix(feat2fs[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
+```
 ## K-Means Level 2
 
 ```{r cc_level21, eval=FALSE, echo=FALSE}
@@ -307,7 +339,7 @@ plot(pamout$crit,type="b")
 feat5 <- aggregate(fs,by=list(lab=pamout$pamo$clustering),FUN=mean)
 
 feat5 <- as.matrix(feat5[,-1])
-rownames(feat5) <- c(sprintf("C1, %.2g",sum(labs==1)/length(labs)),sprintf("C2, %.2g", sum(labs==2)/length(labs)))
+rownames(feat5) <- clusterFraction(labs)
 
 ### Reordering based on synapse type.
 ford <- order(fchannel)
@@ -326,8 +358,8 @@ heatmap.2(as.matrix(feat5[,ford]),dendrogram='row',Colv=NA,trace="none", col=myc
 
 ### PAMK Level 2.1
 
-We begin by splitting the data into the two clusters as calculated
-above.
+We begin by splitting the data into the two clusters as 
+calculated above.
 
 ```{r cc_fs-lv2, eval=TRUE}
 fs1 <- fs[pamout$pamobject$clustering==1,]
