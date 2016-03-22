@@ -189,6 +189,7 @@ the log base 10 for each column and scaling.
 ```{r cc_featF0, eval=TRUE}
 f0 <- seq(1,ncol(feat),by=nfeat)
 featF0 <- subset(feat, select=f0)
+featF0s <- scale(featF0, scale=TRUE, center=TRUE)
 flog <- apply(X=(featF0+1),2,log10)
 fs <- scale(flog, center=TRUE, scale=TRUE)
 ```
@@ -209,6 +210,14 @@ ggplot(df, aes(x=value)) +
     geom_density(aes(group=channel, colour=channel))
 ```
 
+```{r cc_kde1-2, eval=TRUE, cache=TRUE,w=8,h=4,fig.cap=fig$cap("f0kde1-2","Kernel density estimates for each channel, on scaled data.")}
+df <- melt(as.matrix(featF0s))
+names(df) <- c("ind","channel","value")
+ggplot(df, aes(x=value)) + 
+    scale_color_manual(values=ccol) +
+    geom_density(aes(group=channel, colour=channel))
+```
+
 ```{r cc_kde2, eval=TRUE, cache=TRUE,w=8,h=4,fig.cap=fig$cap("f0kde2","Kernel density estimates for each channel, on log transformed data.")}
 df <- melt(as.matrix(flog))
 names(df) <- c("ind","channel","value")
@@ -224,7 +233,6 @@ ggplot(df, aes(x=value)) +
     scale_color_manual(values=ccol) +
     geom_density(aes(group=channel, colour=channel))
 ```
-
 
 
 
@@ -310,16 +318,16 @@ heatmap.2(as.matrix(feat2fs), trace="none",col=mycol,colCol=ccol,cexRow=0.8, key
 ```{r cc_km1-heatmapSortedFS,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
 heatmap.2(as.matrix(feat2fs[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
 ```
+
 ## K-Means Level 2
 
 ```{r cc_level21, eval=FALSE, echo=FALSE}
-fs11 <- fs[labs==1,]
-fs12 <- fs[labs==2,]
+fs11 <- fs[kvecfs[[2]]$cluster==1,]
+fs12 <- fs[kvecfs[[2]]$cluster==2,]
 
 dim(fs11)
 dim(fs12)
 ```
-
 
 
 ## PAMK: Level 1
@@ -425,7 +433,12 @@ heatmap.2(as.matrix(agg22), trace="none",col=rev(mycol),colCol=ccol,cexRow=0.8, 
 heatmap.2(as.matrix(agg22[,ford]),dendrogram='row',Colv=NA,trace="none", col=rev(mycol),colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
 ```
 
-
+```{r cc_corFS, eval=TRUE, fig.cap=fig$cap("corFS", "Correlation on log º scaled data, reordered by synapse type.")}
+tmp <- as.numeric(table(fchannel))
+cmat <- cor(fs)
+corrplot(cmat[ford,ford],method="color",tl.col=ccol[ford])
+corrRect(tmp,col=Syncol,lwd=4)
+```
 
 
 
