@@ -321,13 +321,25 @@ heatmap.2(as.matrix(feat2fs[,ford]),dendrogram='row',Colv=NA,trace="none", col=m
 
 ## K-Means Level 2
 
-```{r cc_level21, eval=FALSE, echo=FALSE}
-fs11 <- fs[kvecfs[[2]]$cluster==1,]
-fs12 <- fs[kvecfs[[2]]$cluster==2,]
+```{r cc_level21, eval=TRUE, echo=TRUE}
+synOnly<-channel.type!= "none" & channel.type!="other"
+
+fs11 <- fs[kvecfs[[2]]$cluster==1,][,synOnly]
+fs12 <- fs[kvecfs[[2]]$cluster==2,][,synOnly]
+
 
 dim(fs11)
 dim(fs12)
+
+## Run kmeans on the untransformed data
+kvecL21synOnly <- foreach(i = 1:K1) %dopar% {
+    set.seed(2^13 - 1)
+    kmeans(fs11,centers=i)
+}
 ```
+
+
+
 
 
 ## PAMK: Level 1

@@ -37,6 +37,7 @@ suppressMessages(require(data.table))
 suppressMessages(require(fpc))
 suppressMessages(require(repr))
 suppressMessages(require(doMC))
+suppressMessages(require(mclust))
 source("./bic.r")
 source("./clusterFraction.r")
 source("http://www.cis.jhu.edu/~parky/Synapse/getElbows.R")
@@ -167,9 +168,6 @@ ccol <- Syncol[fchannel]
 fname <- as.vector(sapply(channel,function(x) paste0(x,paste0("F",0:5))))
 names(feat) <- fname
 fcol <- rep(ccol, each=6)
-#mycol <- colorpanel(100,"blue","grey","red")
-#mycol <- redgreen(100)
-#mycol <- colorpanel(100, "purple", "black", "blue")
 mycol <- colorpanel(100, "purple", "black", "green")
 mycol2 <- matlab.like(nchannel)
 ```
@@ -219,32 +217,43 @@ corrplot(cmatRank[ford,ford],method="color",tl.col=ccol[ford])
 corrRect(tmp,col=Syncol,lwd=4)
 ```
 
-# PCA and Scree Plots
+# PCA and Scree Plots on the Correlation Matrices
 
-```{r pcaRaw, eval=TRUE, fig.cap=fig$cap("pcaRaw","Scree plot: Raw data")}
-pcaRaw <- prcomp(fRaw,scale=FALSE, center=FALSE)
-elRaw <- getElbows(pcaRaw$sdev) 
-title("Scree plot: Raw data")
+Note that centering and scaling are set to `FALSE`.
+
+```{r pcaRaw, eval=TRUE}
+pcaRaw <- prcomp(cmatRaw,scale=FALSE, center=FALSE)
+elRaw <- getElbows(pcaRaw$sdev, plot=FALSE) 
 ```
-```{r pcaLog, eval=TRUE, fig.cap=fig$cap("pcaLog","Scree plot: Log data")}
-pcaLog <- prcomp(fLog,scale=FALSE, center=FALSE)
-elLog <- getElbows(pcaLog$sdev) 
-title("Scree plot: Log data")
+```{r pcaLog, eval=TRUE}
+pcaLog <- prcomp(cmatLog,scale=FALSE, center=FALSE)
+elLog <- getElbows(pcaLog$sdev, plot=FALSE) 
 ```
-```{r pcaRank, eval=TRUE, fig.cap=fig$cap("pcaRank","Scree plot: Rank data")}
-pcaRank <- prcomp(fRank,scale=FALSE, center=FALSE)
-elRank <- getElbows(pcaRank$sdev)
-title("Scree plot: Ranked data")
+```{r pcaRank, eval=TRUE}
+pcaRank <- prcomp(cmatRank,scale=FALSE, center=FALSE)
+elRank <- getElbows(pcaRank$sdev, plot=FALSE)
 ```
+
+```{r cc-scree-plots, eval=TRUE, w=8,h=4, fig.cap=fig$cap("scree-plots","Scree plots")}
+par(mfrow=c(1,3))
+plot(pcaRaw$sdev, type='b'); title("Scree plot: Raw Cor.  Matrix")
+points(cbind(elRaw,pcaRaw$sdev[elRaw]), col='red', pch=20)
+plot(pcaLog$sdev, type='b'); title("Scree plot: Log Cor. Matrix")
+points(cbind(elLog,pcaLog$sdev[elLog]), col='red', pch=20)
+plot(pcaRank$sdev, type='b'); title("Scree plot: Rank Cor. Matrix")
+points(cbind(elRank,pcaRank$sdev[elRank]), col='red', pch=20)
+```
+
+
 
 # PAMK
 
 Running `pamk` for $K = 5$.
 
 ## PAMK on Raw data
-
-```{r cc_pamkRaw, eval=TRUE}
-pamRaw5 <- pamk(pcaRaw$x[,1:elRaw[2]],krange=5,usepam=FALSE,critout=FALSE)
+```{r cc_pamkRaw, eval=TRUE, fig.cap=fig$cap("silRaw", "Average silhouette width plot on Raw Cor. Matrix")}
+K <- 7
+pamRaw5 <- pamk(pcaRaw$x[,1:elRaw[2]],krange=K,usepam=FALSE,critout=FALSE)
 ```
 
 
@@ -261,8 +270,9 @@ heatmap.2(as.matrix(aggRaw), trace="none",col=mycol,cexRow=0.8, keysize=1,symkey
 
 ## PAMK on Log Data
 
-```{r cc_pamkLog, eval=TRUE}
-pamLog5 <- pamk(pcaLog$x[,1:elLog[2]],krange=5,usepam=FALSE,critout=FALSE)
+```{r cc_pamkLog, eval=TRUE, fig.cap=fig$cap("silLog", "Average silhouette width plot on Log Cor. Matrix")}
+pamLog5 <- pamk(pcaLog$x[,1:elLog[2]],krange=K,usepam=FALSE,critout=FALSE)
+#plot(pamLog5$crit, type='b')
 ```
 
 ```{r cc_aggLog, eval=TRUE}
@@ -278,8 +288,9 @@ heatmap.2(as.matrix(aggLog), trace="none",col=mycol,cexRow=0.8, keysize=1,symkey
 
 ## PAMK on Ranked Data
 
-```{r cc_pamkRank, eval=TRUE}
-pamRank5 <- pamk(pcaRank$x[,1:elRank[2]],krange=5,usepam=FALSE,critout=FALSE)
+```{r cc_pamkRank, eval=TRUE, fig.cap=fig$cap("silRank", "Average silhouette width plot on Rank Cor. Matrix")}
+pamRank5 <- pamk(pcaRank$x[,1:elRank[2]],krange=K,usepam=FALSE,critout=FALSE)
+#plot(pamRank5$crit, type='b')
 ```
 
 ```{r cc_aggRank, eval=TRUE}
@@ -292,3 +303,58 @@ rownames(aggRank) <- clusterFraction(pamRank5$pamo$clustering)
 ```{r cc_heatmapRank,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("heat-rank", "Heat Map of Ranked Data")}
 heatmap.2(as.matrix(aggRank), trace="none",col=mycol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
 ```
+
+
+## ARI
+
+We are considering the channel types to be the "ground truth" here.
+
+```{r cc_truth}
+truth <- as.numeric(factor(channel.type))
+```
+
+Calculating the ARI for the raw data.
+
+```{r ariRaw}
+xRaw <- as.numeric(pamRaw5$pamo$clustering)
+ariRaw <- foreach(i = 1:1e4, .combine='c') %dopar%{
+    y <- sample(xRaw)
+    mclust::adjustedRandIndex(truth,y)
+    }
+```
+
+
+```{r ariLog}
+xLog <- as.numeric(pamLog5$pamo$clustering)
+ariLog <- foreach(i = 1:1e4, .combine='c') %dopar%{
+    y <- sample(xLog)
+    mclust::adjustedRandIndex(truth,y)
+    }
+```
+
+```{r ariRank}
+xRank <- as.numeric(pamRank5$pamo$clustering)
+ariRank <- foreach(i = 1:1e4, .combine='c') %dopar%{
+    y <- sample(xRank)
+    mclust::adjustedRandIndex(truth,y)
+    }
+```
+
+```{r cc_ariPlots, w=9,h=4, fig.cap=fig$cap("ariPlot","ARI plots")}
+par(mfrow=c(1,3))
+hist(ariRaw)
+abline(v = adjustedRandIndex(truth,xRaw), lwd=2, col='red')
+hist(ariLog)
+abline(v = adjustedRandIndex(truth,xLog), lwd=2, col='red')
+hist(ariRank)
+abline(v = adjustedRandIndex(truth,xRank), lwd=2, col='red')
+```
+
+```{r cc_ariNum}
+adjustedRandIndex(truth, xRaw)
+adjustedRandIndex(truth, xLog)
+adjustedRandIndex(truth, xRank)
+```
+
+
+
