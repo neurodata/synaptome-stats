@@ -21,8 +21,8 @@ output:
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 rm(list=ls()); 
-rmarkdown::render("./randomHalf.Rmd")
-system('open randomHalf.html')
+rmarkdown::render("./randomHalf.Rmd");
+system('open randomHalf.html');
 ```
 ```{r setup,include=FALSE,results='asis'}
 suppressMessages(require(Matrix))
@@ -357,4 +357,48 @@ adjustedRandIndex(truth, xRank)
 ```
 
 
+## ARI vs Embedding dimension.
 
+Here we investigeta how ARI varies with the embedding dimension.
+
+### Functions
+```{r cc_f1}
+avd <- function(pcaObj,elbow,truth){
+###
+### Given a pca object with an elbow as upperbound
+### compute the ARI of truth versus the pamk clustering for each
+### dimension from 1:elbow
+###
+require(foreach)
+
+out <- foreach(i = 1:elbow, .combine="rbind") %do% {
+    pmk <- pamk(pcaObj$x[,1:i], krange=K, usepam=FALSE, critout=FALSE)
+    data.frame(Embedding_Dimension=i,ARI=adjustedRandIndex(truth, pmk$pamo$clustering))
+    }
+return(out)
+}
+```
+
+### ARI Plots
+
+```{r arivdimRaw, eval=TRUE, w=9,h=4, fig.cap=fig$cap("ariVdim", "ARI vs DIM")}
+avdRaw <- avd(pcaRaw, elRaw[2], truth)
+avdLog <- avd(pcaLog, elLog[2], truth)
+avdRank <- avd(pcaRank, elRank[2], truth)
+
+avdRaw$group <- "Raw"
+avdLog$group <- "Log"
+avdRank$group <- "Rank"
+
+avdDat <- data.frame(rbind(avdRaw, avdLog, avdRank))
+#par(mfrow=c(1,3))
+#plot(avdRaw, type='b', main="Raw Data")
+#plot(avdLog, type='b', main="Log Data")
+#plot(avdRank, type='b', main="Rank Data")
+
+p1 <- ggplot(data=avdDat, aes(x=Embedding_Dimension, y=ARI,group=group,color=group)) + 
+        geom_line(size=1.5) + geom_point(size=3)
+print(p1)
+```
+
+# Conclusions
