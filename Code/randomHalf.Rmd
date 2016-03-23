@@ -21,8 +21,9 @@ output:
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 rm(list=ls()); 
+### SAVE DOCUMENT!!!
 rmarkdown::render("./randomHalf.Rmd");
-system('open randomHalf.html');
+system('open randomHalf.html')
 ```
 ```{r setup,include=FALSE,results='asis'}
 suppressMessages(require(Matrix))
@@ -38,6 +39,8 @@ suppressMessages(require(fpc))
 suppressMessages(require(repr))
 suppressMessages(require(doMC))
 suppressMessages(require(mclust))
+suppressMessages(require(rgl))
+suppressMessages(require(rglwidget))
 source("./bic.r")
 source("./clusterFraction.r")
 source("http://www.cis.jhu.edu/~parky/Synapse/getElbows.R")
@@ -57,6 +60,7 @@ knit_hooks$set(document = function(x) {
   gsub('(\\\\end\\{knitrout\\}[\n]+)', '\\1\\\\noindent ', x)                                                   })
 #opts_knit$set(animation.fun = hook_scianimator)
 
+knit_hooks$set(webgl=hook_webgl)
 knit_hooks$set(plot = function(x, options) {
        paste('<figure><img src="',
              opts_knit$get('base.url'), paste(x, collapse = '.'),
@@ -150,10 +154,18 @@ channel <- c('Synap_1','Synap_2','VGlut1_t1','VGlut1_t2','VGlut2','Vglut3',
               'psd','glur2','nmdar1','nr2b','gad','VGAT',
               'PV','Gephyr','GABAR1','GABABR','CR1','5HT1A',
               'NOS','TH','VACht','Synapo','tubuli','DAPI')
+
+## NOS as ex.post
+#channel.type <- c('ex.pre','ex.pre','ex.pre','ex.pre','ex.pre','in.pre.small',
+#                  'ex.post','ex.post','ex.post','ex.post','in.pre','in.pre',
+#                  'in.pre','in.post','in.post','in.post','in.pre.small','other',
+#                  'ex.post','other','other','ex.post','none','none')
+#
+## NOS as in.post
 channel.type <- c('ex.pre','ex.pre','ex.pre','ex.pre','ex.pre','in.pre.small',
                   'ex.post','ex.post','ex.post','ex.post','in.pre','in.pre',
                   'in.pre','in.post','in.post','in.post','in.pre.small','other',
-                  'ex.post','other','other','ex.post','none','none')
+                  'in.post','other','other','ex.post','none','none')
 nchannel <- length(channel)
 nfeat <- ncol(feat) / nchannel
 fchannel <- as.numeric(factor(channel.type,
@@ -164,6 +176,9 @@ ford <- order(fchannel)
 Syncol <- c("#197300","#5ed155","#990000","#cc0000","#ff9933","mediumblue","gold")
 ccol <- Syncol[fchannel]
 
+exType <- factor(c(rep("ex",11),rep("in",6),rep("other",7)),ordered=TRUE)
+exCol<-exType;levels(exCol) <- c("#197300","#990000","mediumblue");
+exCol <- as.character(exCol)
 
 fname <- as.vector(sapply(channel,function(x) paste0(x,paste0("F",0:5))))
 names(feat) <- fname
@@ -185,9 +200,13 @@ the log base 10 for each column and scaling.
 ```{r cc_featF0, eval=TRUE}
 f0 <- seq(1,ncol(feat),by=nfeat)
 fRaw <- subset(feat, select=f0)
-fLog <- apply(X=(fRaw+1),2,log10)
+#fLog <- apply(X=(fRaw+1),2,log10)
 #fLogScaled <- scale(flog, center=TRUE, scale=TRUE)
+
+eps <- 1e-8
+f01 <- apply(X=fRaw, 2, function(x){((x-min(x))/(max(x)-min(x)))})
 fRank <- apply(fRaw,2,rank,ties.method='average')
+fLog <- apply(f01,2,function(x){ log10(x+eps)})
 ```
 
 # Correlations 
@@ -248,20 +267,20 @@ points(cbind(elRank,pcaRank$sdev[elRank]), col='red', pch=20)
 
 # PAMK
 
-Running `pamk` for $K = 5$.
+Running `pamk` for $K = 7$.
 
 ## PAMK on Raw data
 ```{r cc_pamkRaw, eval=TRUE, fig.cap=fig$cap("silRaw", "Average silhouette width plot on Raw Cor. Matrix")}
 K <- 7
-pamRaw5 <- pamk(pcaRaw$x[,1:elRaw[2]],krange=K,usepam=FALSE,critout=FALSE)
+pamRaw7 <- pamk(pcaRaw$x[,1:elRaw[2]],krange=K,usepam=FALSE,critout=FALSE)
 ```
 
 
 ```{r cc_aggRaw, eval=TRUE}
-aggRaw <- aggregate(pcaRaw$x[,1:elRaw[2]],by=list(lab=pamRaw5$pamo$clustering),FUN=mean)
+aggRaw <- aggregate(pcaRaw$x[,1:elRaw[2]],by=list(lab=pamRaw7$pamo$clustering),FUN=mean)
 
 aggRaw <- as.matrix(aggRaw[,-1])
-rownames(aggRaw) <- clusterFraction(pamRaw5$pamo$clustering)
+rownames(aggRaw) <- clusterFraction(pamRaw7$pamo$clustering)
 ```
 
 ```{r cc_heatmapRaw,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("heat-raw", "Heat Map of Raw Data")}
@@ -316,7 +335,7 @@ truth <- as.numeric(factor(channel.type))
 Calculating the ARI for the raw data.
 
 ```{r ariRaw}
-xRaw <- as.numeric(pamRaw5$pamo$clustering)
+xRaw <- as.numeric(pamRaw7$pamo$clustering)
 ariRaw <- foreach(i = 1:1e4, .combine='c') %dopar%{
     y <- sample(xRaw)
     mclust::adjustedRandIndex(truth,y)
@@ -397,8 +416,43 @@ avdDat <- data.frame(rbind(avdRaw, avdLog, avdRank))
 #plot(avdRank, type='b', main="Rank Data")
 
 p1 <- ggplot(data=avdDat, aes(x=Embedding_Dimension, y=ARI,group=group,color=group)) + 
-        geom_line(size=1.5) + geom_point(size=3)
+        geom_line(size=1.5) + geom_point(size=3) +
+            theme(axis.text=element_text(size=18)) + ggtitle("ARI vs. DIM")
 print(p1)
 ```
 
-# Conclusions
+# Plots of embeddings
+
+First let's look at the 3-d embeddings and make some decisions from
+there.
+
+```{r cc_3dEmb, h=6,w=6}
+pairs(pcaRaw$x[,1:3],col=exCol,pch=as.numeric(exType)+15,cex=2,main="Raw")
+pairs(pcaLog$x[,1:3],col=exCol, pch=as.numeric(exType)+15,cex=2,main="Log")
+pairs(pcaRank$x[,1:3],col=exCol,pch=as.numeric(exType)+15,cex=2,main="Rank")
+```
+
+```{r cc_3dRaw}
+pca <- pcaRaw$x[,1:3]
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s', col=exCol, size=3, main="Raw")
+subid <- currentSubscene3d()
+rglwidget(elementId="plot3dRaw")
+```
+
+```{r cc_3dLog}
+pca <- pcaLog$x
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s', col=exCol, size=3, main="Log")
+subid <- currentSubscene3d()
+rglwidget(elementId="plot3dLog")
+```
+
+```{r cc_3dRank}
+pca <- pcaRank$x[,1:3]
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s', col=exCol, size=3, main="Rank")
+subid <- currentSubscene3d()
+rglwidget(elementId="plot3dRank")
+```
+
+
+# More to come  
+
