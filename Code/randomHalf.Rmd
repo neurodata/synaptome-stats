@@ -203,7 +203,7 @@ fRaw <- subset(feat, select=f0)
 #fLog <- apply(X=(fRaw+1),2,log10)
 #fLogScaled <- scale(flog, center=TRUE, scale=TRUE)
 
-eps <- 1e-8
+eps <- 2*.Machine$double.eps
 f01 <- apply(X=fRaw, 2, function(x){((x-min(x))/(max(x)-min(x)))})
 fRank <- apply(fRaw,2,rank,ties.method='average')
 fLog <- apply(f01,2,function(x){ log10(x+eps)})
@@ -290,15 +290,15 @@ heatmap.2(as.matrix(aggRaw), trace="none",col=mycol,cexRow=0.8, keysize=1,symkey
 ## PAMK on Log Data
 
 ```{r cc_pamkLog, eval=TRUE, fig.cap=fig$cap("silLog", "Average silhouette width plot on Log Cor. Matrix")}
-pamLog5 <- pamk(pcaLog$x[,1:elLog[2]],krange=K,usepam=FALSE,critout=FALSE)
+pamLog7 <- pamk(pcaLog$x[,1:elLog[2]],krange=K,usepam=FALSE,critout=FALSE)
 #plot(pamLog5$crit, type='b')
 ```
 
 ```{r cc_aggLog, eval=TRUE}
-aggLog <- aggregate(pcaLog$x[,1:elLog[2]],by=list(lab=pamLog5$pamo$clustering),FUN=mean)
+aggLog <- aggregate(pcaLog$x[,1:elLog[2]],by=list(lab=pamLog7$pamo$clustering),FUN=mean)
 
 aggLog <- as.matrix(aggLog[,-1])
-rownames(aggLog) <- clusterFraction(pamLog5$pamo$clustering)
+rownames(aggLog) <- clusterFraction(pamLog7$pamo$clustering)
 ```
 
 ```{r cc_heatmapLog,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("heat-log", "Heat Map of Log Data")}
@@ -308,15 +308,15 @@ heatmap.2(as.matrix(aggLog), trace="none",col=mycol,cexRow=0.8, keysize=1,symkey
 ## PAMK on Ranked Data
 
 ```{r cc_pamkRank, eval=TRUE, fig.cap=fig$cap("silRank", "Average silhouette width plot on Rank Cor. Matrix")}
-pamRank5 <- pamk(pcaRank$x[,1:elRank[2]],krange=K,usepam=FALSE,critout=FALSE)
+pamRank7 <- pamk(pcaRank$x[,1:elRank[2]],krange=K,usepam=FALSE,critout=FALSE)
 #plot(pamRank5$crit, type='b')
 ```
 
 ```{r cc_aggRank, eval=TRUE}
-aggRank <- aggregate(pcaRank$x[,1:elRank[2]],by=list(lab=pamRank5$pamo$clustering),FUN=mean)
+aggRank <- aggregate(pcaRank$x[,1:elRank[2]],by=list(lab=pamRank7$pamo$clustering),FUN=mean)
 
 aggRank <- as.matrix(aggRank[,-1])
-rownames(aggRank) <- clusterFraction(pamRank5$pamo$clustering)
+rownames(aggRank) <- clusterFraction(pamRank7$pamo$clustering)
 ```
 
 ```{r cc_heatmapRank,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("heat-rank", "Heat Map of Ranked Data")}
@@ -344,7 +344,7 @@ ariRaw <- foreach(i = 1:1e4, .combine='c') %dopar%{
 
 
 ```{r ariLog}
-xLog <- as.numeric(pamLog5$pamo$clustering)
+xLog <- as.numeric(pamLog7$pamo$clustering)
 ariLog <- foreach(i = 1:1e4, .combine='c') %dopar%{
     y <- sample(xLog)
     mclust::adjustedRandIndex(truth,y)
@@ -352,7 +352,7 @@ ariLog <- foreach(i = 1:1e4, .combine='c') %dopar%{
 ```
 
 ```{r ariRank}
-xRank <- as.numeric(pamRank5$pamo$clustering)
+xRank <- as.numeric(pamRank7$pamo$clustering)
 ariRank <- foreach(i = 1:1e4, .combine='c') %dopar%{
     y <- sample(xRank)
     mclust::adjustedRandIndex(truth,y)
@@ -434,25 +434,100 @@ pairs(pcaRank$x[,1:3],col=exCol,pch=as.numeric(exType)+15,cex=2,main="Rank")
 
 ```{r cc_3dRaw}
 pca <- pcaRaw$x[,1:3]
-rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s', col=exCol, size=3, main="Raw")
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s', col=exCol, size=1, main="Raw")
+rgl::rgl.texts(pca[,1],pca[,2],pca[,3], channel[ford], col=exCol, adj=c(0,1.5))
 subid <- currentSubscene3d()
 rglwidget(elementId="plot3dRaw")
 ```
 
 ```{r cc_3dLog}
 pca <- pcaLog$x
-rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s', col=exCol, size=3, main="Log")
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s', col=exCol, size=1, main="Log")
+rgl::rgl.texts(pca[,1],pca[,2],pca[,3], channel[ford], col=exCol, adj=c(0,1.5))
 subid <- currentSubscene3d()
 rglwidget(elementId="plot3dLog")
 ```
 
 ```{r cc_3dRank}
 pca <- pcaRank$x[,1:3]
-rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s', col=exCol, size=3, main="Rank")
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s', col=exCol, size=1, main="Rank")
+rgl::rgl.texts(pca[,1],pca[,2],pca[,3], channel[ford], col=exCol, adj=c(0,1.5))
 subid <- currentSubscene3d()
 rglwidget(elementId="plot3dRank")
 ```
 
 
-# More to come  
+# Pick $K=3$.
+
+## PAMK=3 on Raw data
+```{r cc_pamk3Raw, eval=TRUE, fig.cap=fig$cap("silRaw", "Average silhouette width plot on Raw Cor. Matrix")}
+K <- 3
+pamRaw3 <- pamk(pcaRaw$x[,1:elRaw[2]],krange=K,usepam=FALSE,critout=FALSE)
+```
+
+```{r cc_agg3Raw, eval=TRUE}
+agg3Raw <- aggregate(pcaRaw$x[,1:elRaw[2]],by=list(lab=pamRaw3$pamo$clustering),FUN=mean)
+
+agg3Raw <- as.matrix(agg3Raw[,-1])
+rownames(agg3Raw) <- clusterFraction(pamRaw3$pamo$clustering)
+```
+
+```{r cc_heatmap3Raw,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("heat-3raw", "Heat Map of Raw Data")}
+heatmap.2(as.matrix(agg3Raw), trace="none",col=mycol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
+```
+
+## PAMK=3 on Log Data
+
+```{r cc_pamk3Log, eval=TRUE, fig.cap=fig$cap("silLog", "Average silhouette width plot on Log Cor. Matrix")}
+pamLog3 <- pamk(pcaLog$x[,1:elLog[2]],krange=K,usepam=FALSE,critout=FALSE)
+#plot(pamLog5$crit, type='b')
+```
+
+```{r cc_agg3Log, eval=TRUE}
+agg3Log <- aggregate(pcaLog$x[,1:elLog[2]],by=list(lab=pamLog3$pamo$clustering),FUN=mean)
+
+agg3Log <- as.matrix(agg3Log[,-1])
+rownames(agg3Log) <- clusterFraction(pamLog3$pamo$clustering)
+```
+
+```{r cc_heatmap3Log,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("heat-3log", "Heat Map of Log Data")}
+heatmap.2(as.matrix(agg3Log), trace="none",col=mycol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
+```
+
+## PAMK=3 on Ranked Data
+
+```{r cc_pamk3Rank, eval=TRUE, fig.cap=fig$cap("silRank", "Average silhouette width plot on Rank Cor. Matrix")}
+pamRank3 <- pamk(pcaRank$x[,1:elRank[2]],krange=K,usepam=FALSE,critout=FALSE)
+#plot(pamRank5$crit, type='b')
+```
+
+```{r cc_agg3Rank, eval=TRUE}
+agg3Rank <- aggregate(pcaRank$x[,1:elRank[2]],by=list(lab=pamRank3$pamo$clustering),FUN=mean)
+
+agg3Rank <- as.matrix(agg3Rank[,-1])
+rownames(agg3Rank) <- clusterFraction(pamRank3$pamo$clustering)
+```
+
+```{r cc_heatmap3Rank,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("heat-3rank", "Heat Map of Ranked Data")}
+heatmap.2(as.matrix(agg3Rank), trace="none",col=mycol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
+```
+
+## ARI Plots for $K=3$
+
+```{r arivdim3Raw, eval=TRUE, w=9,h=4, fig.cap=fig$cap("ariVdim", "ARI vs DIM")}
+avd3Raw <- avd(pcaRaw,elRaw[2],truth)
+avd3Log <- avd(pcaLog,elLog[2],truth)
+avd3Rank <- avd(pcaRank,elRank[2],truth)
+
+avd3Raw$group <- "Raw"
+avd3Log$group <- "Log"
+avd3Rank$group <- "Rank"
+
+avd3Dat <- data.frame(rbind(avd3Raw, avd3Log, avd3Rank))
+
+p2 <- ggplot(data=avd3Dat, aes(x=Embedding_Dimension, y=ARI,group=group,color=group)) + 
+        geom_line(size=1.5) + geom_point(size=3) +
+            theme(axis.text=element_text(size=18)) + ggtitle("ARI vs. DIM")
+print(p2)
+```
 
