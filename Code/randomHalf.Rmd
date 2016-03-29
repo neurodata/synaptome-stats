@@ -92,8 +92,10 @@ knit_hooks$set(plot = function(x, options) {
 
 ```
 
-Previous work by Youngser Park can be found
-[here.](http://www.cis.jhu.edu/~parky/Synapse/synapse.html)
+The formatted source code for this file is [here](https://github.com/neurodata/synaptome-stats/blob/gh-pages/Code/randomHalf.Rmd).  
+And a [raw version here](https://raw.githubusercontent.com/neurodata/synaptome-stats/gh-pages/Code/randomHalf.Rmd).  
+Previous work by Youngser Park can be found [here](http://www.cis.jhu.edu/~parky/Synapse/synapse.html).  
+
 
 # Introduction
 
@@ -530,4 +532,9 @@ p2 <- ggplot(data=avd3Dat, aes(x=Embedding_Dimension, y=ARI,group=group,color=gr
             theme(axis.text=element_text(size=18)) + ggtitle("ARI vs. DIM")
 print(p2)
 ```
+
+
+<footer>
+<p> [Back to top][Introduction]</p>
+</footer>
 

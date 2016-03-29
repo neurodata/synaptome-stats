@@ -11,7 +11,7 @@
 
 <meta name="author" content="JLP" />
 
-<meta name="date" content="2016-03-22" />
+<meta name="date" content="2016-03-29" />
 
 <title>Synapse Clustering</title>
 
@@ -139,7 +139,7 @@ $(document).ready(function () {
 
 <h1 class="title">Synapse Clustering</h1>
 <h4 class="author"><em>JLP</em></h4>
-<h4 class="date"><em>2016-03-22</em></h4>
+<h4 class="date"><em>2016-03-29</em></h4>
 
 </div>
 
@@ -157,14 +157,16 @@ $(document).ready(function () {
 <li><a href="#k-means-level-2"><span class="toc-section-number">2.3</span> K-Means Level 2</a></li>
 <li><a href="#pamk-level-1"><span class="toc-section-number">2.4</span> PAMK: Level 1</a></li>
 <li><a href="#pamk-level-2"><span class="toc-section-number">2.5</span> PAMK: Level 2</a><ul>
-<li><a href="#pamk-level-2.1"><span class="toc-section-number">2.5.1</span> PAMK Level 2.1</a></li>
+<li><a href="#pamk-level-2.1"><span class="toc-section-number">2.5.1</span> PAMK: Level 2.1</a></li>
 <li><a href="#pamk-level-2.2"><span class="toc-section-number">2.5.2</span> PAMK: Level 2.2</a></li>
 </ul></li>
 </ul></li>
 </ul>
 </div>
 
-<p>Previous work by Youngser Park can be found <a href="http://www.cis.jhu.edu/~parky/Synapse/synapse.html">here.</a></p>
+<p>The formatted source code for this file is <a href="https://github.com/neurodata/synaptome-stats/blob/gh-pages/Code/hkmeans.Rmd">here</a>.<br />
+And a <a href="https://raw.githubusercontent.com/neurodata/synaptome-stats/gh-pages/Code/hkmeans.Rmd">raw version here</a>.<br />
+Previous work by Youngser Park can be found <a href="http://www.cis.jhu.edu/~parky/Synapse/synapse.html">here</a>.</p>
 <div id="introduction" class="section level1">
 <h1><span class="header-section-number">1</span> Introduction</h1>
 <blockquote>
@@ -405,6 +407,21 @@ ford &lt;-<span class="st"> </span><span class="kw">order</span>(fchannel)</code
 </div>
 <div id="k-means-level-2" class="section level2">
 <h2><span class="header-section-number">2.3</span> K-Means Level 2</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">synOnly&lt;-channel.type!=<span class="st"> &quot;none&quot;</span> &amp;<span class="st"> </span>channel.type!=<span class="st">&quot;other&quot;</span>
+
+fs11 &lt;-<span class="st"> </span>fs[kvecfs[[<span class="dv">2</span>]]$cluster==<span class="dv">1</span>,][,synOnly]
+fs12 &lt;-<span class="st"> </span>fs[kvecfs[[<span class="dv">2</span>]]$cluster==<span class="dv">2</span>,][,synOnly]
+
+
+<span class="kw">dim</span>(fs11)</code></pre></div>
+<pre><code># [1] 500640     19</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">dim</span>(fs12)</code></pre></div>
+<pre><code># [1] 618659     19</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## Run kmeans on the untransformed data
+kvecL21synOnly &lt;-<span class="st"> </span><span class="kw">foreach</span>(<span class="dt">i =</span> <span class="dv">1</span>:K1) %dopar%<span class="st"> </span>{
+    <span class="kw">set.seed</span>(<span class="dv">2</span>^<span class="dv">13</span> -<span class="st"> </span><span class="dv">1</span>)
+    <span class="kw">kmeans</span>(fs11,<span class="dt">centers=</span>i)
+}</code></pre></div>
 </div>
 <div id="pamk-level-1" class="section level2">
 <h2><span class="header-section-number">2.4</span> PAMK: Level 1</h2>
@@ -453,7 +470,7 @@ ford &lt;-<span class="st"> </span><span class="kw">order</span>(fchannel)</code
 <div id="pamk-level-2" class="section level2">
 <h2><span class="header-section-number">2.5</span> PAMK: Level 2</h2>
 <div id="pamk-level-2.1" class="section level3">
-<h3><span class="header-section-number">2.5.1</span> PAMK Level 2.1</h3>
+<h3><span class="header-section-number">2.5.1</span> PAMK: Level 2.1</h3>
 <p>We begin by splitting the data into the two clusters as calculated above.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">fs1 &lt;-<span class="st"> </span>fs[pamout$pamobject$clustering==<span class="dv">1</span>,]
 fs2 &lt;-<span class="st"> </span>fs[pamout$pamobject$clustering==<span class="dv">2</span>,]</code></pre></div>
@@ -550,6 +567,11 @@ cmat &lt;-<span class="st"> </span><span class="kw">cor</span>(fs)
 <b>Figure 14: Correlation on log º scaled data, reordered by synapse type.</b><br><br>
 </figcaption>
 </figure>
+<footer>
+<p>
+<a href="http://docs.neurodata.io/synaptome-stats/Code/randomHalf.html#introduction">Back to top</a>
+</p>
+</footer>
 </div>
 </div>
 </div>

@@ -13,6 +13,7 @@ output:
     theme: cerulean
     toc: yes
     toc_depth: 3
+    mode: standalone
   pdf_document:
     fig_caption: yes
     keep_tex: yes
@@ -88,8 +89,9 @@ knit_hooks$set(plot = function(x, options) {
 
 ```
 
-Previous work by Youngser Park can be found
-[here.](http://www.cis.jhu.edu/~parky/Synapse/synapse.html)
+The formatted source code for this file is [here](https://github.com/neurodata/synaptome-stats/blob/gh-pages/Code/hkmeans.Rmd).  
+And a [raw version here](https://raw.githubusercontent.com/neurodata/synaptome-stats/gh-pages/Code/hkmeans.Rmd).    
+Previous work by Youngser Park can be found [here](http://www.cis.jhu.edu/~parky/Synapse/synapse.html).  
 
 # Introduction
 
@@ -376,7 +378,7 @@ heatmap.2(as.matrix(feat5[,ford]),dendrogram='row',Colv=NA,trace="none", col=myc
 
 ## PAMK: Level 2
 
-### PAMK Level 2.1
+### PAMK: Level 2.1
 
 We begin by splitting the data into the two clusters as 
 calculated above.
@@ -455,9 +457,6 @@ corrRect(tmp,col=Syncol,lwd=4)
 
 
 
-
-
-
-
-
-
+<footer>
+<p> [Back to top][Introduction]</p>
+</footer>
