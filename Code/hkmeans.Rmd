@@ -89,6 +89,7 @@ knit_hooks$set(plot = function(x, options) {
 
 ```
 
+[Homepage](http://docs.neurodata.io/synaptome-stats/)  
 The formatted source code for this file is [here](https://github.com/neurodata/synaptome-stats/blob/gh-pages/Code/hkmeans.Rmd).  
 And a [raw version here](https://raw.githubusercontent.com/neurodata/synaptome-stats/gh-pages/Code/hkmeans.Rmd).    
 Previous work by Youngser Park can be found [here](http://www.cis.jhu.edu/~parky/Synapse/synapse.html).  
