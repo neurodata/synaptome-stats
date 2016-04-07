@@ -17,3 +17,28 @@ vignettes/*.pdf
 
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
+
+## Core latex/pdflatex auxiliary files:
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+
+## Intermediate documents:
+*.dvi
+*-converted-to.*
+
+# these rules might exclude image files for figures etc.
+*.ps
+*.eps
+*.pdf
+
+## Vim generated files
+.*.swp
+.*.swo
+.*.swn
+*.project.vim
+*_aux

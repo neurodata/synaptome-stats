@@ -49,7 +49,7 @@ library(knitr)
 
 knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
 dep_auto() # figure out dependencies automatically
-opts_chunk$set(cache=FALSE,echo=TRUE,warning=FALSE,message=FALSE,comment="#",fig.path='figure/',
+opts_chunk$set(cache=FALSE,echo=TRUE,warning=FALSE,message=FALSE,comment="#",fig.path='hkmeans_figure/',
                dpi=100,dev=c('png','pdf'))
 
 opts_knit$set(aliases=c(h='fig.height', w='fig.width', cap='fig.cap', scap='fig.scap'))                                                                               
@@ -195,6 +195,8 @@ featF0 <- subset(feat, select=f0)
 featF0s <- scale(featF0, scale=TRUE, center=TRUE)
 flog <- apply(X=(featF0+1),2,log10)
 fs <- scale(flog, center=TRUE, scale=TRUE)
+
+tmp <- 
 ```
 
 
@@ -202,34 +204,52 @@ fs <- scale(flog, center=TRUE, scale=TRUE)
 
 ### Kernel Density Estimates of the marginals
 
-```{r cc_kde1, eval=TRUE, cache=TRUE,w=8,h=4,fig.cap=fig$cap("f0kde1","Kernel density estimates for each channel, on untransformed data.")}
+```{r cc_kde1, eval=TRUE, cache=FALSE,w=8,h=4,fig.cap=fig$cap("f0kde1","Kernel density estimates for each channel, on untransformed data.")}
 featKDE <- as.matrix(featF0)
 
 df <- melt(featKDE)
 names(df) <- c("ind","channel","value")
-ggplot(df, aes(x=value)) + 
+gg1 <- ggplot(df, aes(x=value)) + 
     scale_color_manual(values=ccol) +
-    #scale_x_log10(limits=c(1e+03,1e+06), breaks=c(1e+03,5e+03,1e+04,5e+04,1e+05,5e+05,1e+06))+
-    geom_density(aes(group=channel, colour=channel))
+    #scale_x_log10() + 
+    geom_density(aes(group=channel, colour=channel)) + 
+    ggtitle("Kernel Density Estimates, untransformed data on log scale.")
+
+print(gg1)
+
+featKDE <- as.matrix(featF0[,1:2])
+
+df <- melt(featKDE)
+gg1 <- ggplot(df, aes(x=value)) + 
+    scale_color_manual(values=ccol) +
+    #scale_x_log10() + 
+    geom_density(aes(group=channel, colour=channel)) + 
+    ggtitle("Kernel Density Estimates, untransformed data on log scale.")
+
+print(gg1)
+
 ```
 
-```{r cc_kde1-2, eval=TRUE, cache=TRUE,w=8,h=4,fig.cap=fig$cap("f0kde1-2","Kernel density estimates for each channel, on scaled data.")}
+```{r cc_kde1-2, eval=TRUE, cache=FALSE,w=8,h=4,fig.cap=fig$cap("f0kde1-2","Kernel density estimates for each channel, on scaled data.")}
 df <- melt(as.matrix(featF0s))
 names(df) <- c("ind","channel","value")
 ggplot(df, aes(x=value)) + 
     scale_color_manual(values=ccol) +
-    geom_density(aes(group=channel, colour=channel))
+    scale_x_log10() +
+    geom_density(aes(group=channel, colour=channel)) +
+    ggtitle("Kernel Density Estimates on scaled data, log scale.")
 ```
 
-```{r cc_kde2, eval=TRUE, cache=TRUE,w=8,h=4,fig.cap=fig$cap("f0kde2","Kernel density estimates for each channel, on log transformed data.")}
+```{r cc_kde2, eval=TRUE, cache=FALSE,w=8,h=4,fig.cap=fig$cap("f0kde2","Kernel density estimates for each channel, on log transformed data.")}
 df <- melt(as.matrix(flog))
 names(df) <- c("ind","channel","value")
 ggplot(df, aes(x=value)) + 
     scale_color_manual(values=ccol) +
-    geom_density(aes(group=channel, colour=channel))
+    geom_density(aes(group=channel, colour=channel))+
+    ggtitle("Kernel Density Estimates on log transformed data.")
 ```
 
-```{r cc_kde3, eval=TRUE, cache=TRUE,w=8,h=4,fig.cap=fig$cap("f0kde3","Kernel density estimates for each channel, on log transformed scaled data.")}
+```{r cc_kde3, eval=TRUE, cache=FALSE,w=8,h=4,fig.cap=fig$cap("f0kde3","Kernel density estimates for each channel, on log transformed scaled data.")}
 df <- melt(as.matrix(fs))
 names(df) <- c("ind","channel","value")
 ggplot(df, aes(x=value)) + 
@@ -456,7 +476,30 @@ corrRect(tmp,col=Syncol,lwd=4)
 ```
 
 
+```{r cc_linreg1, eval=FALSE}
+set.seed(2^13)
+s1 <- sample(dim(featF0s)[1],1e4)
+d1 <- data.frame(featF0s[s1,])
+st1 <- stack(d1)
 
+c1 <- combn(24,2)
+
+for(i in 1:dim(c1)[2]){
+tmp <- d1[,c1[,i]]
+
+lm1 <- ggplot(data=tmp,aes(x=tmp[,1], y=tmp[,2])) +
+        geom_point() + 
+        geom_smooth(method='lm', se=TRUE) +
+        xlab(colnames(tmp)[1]) + 
+        ylab(colnames(tmp)[2])
+print(lm1)
+Sys.sleep(1)
+}
+
+        geom_smooth(aes(y=Synap_2F0), method='lm',se=TRUE)
+lm1 +geom_abline(slope=1,intercept=0,colour='red',size=1.5)
+lm1
+```
 
 <footer>
 <p> [Back to top][Introduction]</p>
