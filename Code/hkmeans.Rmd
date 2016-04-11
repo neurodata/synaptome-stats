@@ -33,11 +33,13 @@ suppressMessages(require(gplots))
 suppressMessages(require(dplyr))
 suppressMessages(require(reshape2))
 suppressMessages(require(ggplot2))
+suppressMessages(require(lattice))
 suppressMessages(require(parallel))
 suppressMessages(require(data.table))
 suppressMessages(require(fpc))
 suppressMessages(require(repr))
 suppressMessages(require(doMC))
+suppressMessages(require(aplpack))
 source("./bic.r")
 source("./clusterFraction.r")
 #source("http://www.cis.jhu.edu/~parky/Synapse/getElbows.R")
@@ -46,11 +48,12 @@ registerDoMC(6)
 
 library(rmarkdown)
 library(knitr)
-
+```
+```{r knitr-setup, results='asis'}
 knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
 dep_auto() # figure out dependencies automatically
 opts_chunk$set(cache=FALSE,echo=TRUE,warning=FALSE,message=FALSE,comment="#",fig.path='hkmeans_figure/',
-               dpi=100,dev=c('png','pdf'))
+               dpi=227,dev=c('pdf'))
 
 opts_knit$set(aliases=c(h='fig.height', w='fig.width', cap='fig.cap', scap='fig.scap'))                                                                               
 opts_knit$set(eval.after = c('fig.cap','fig.scap'))                                                                            
@@ -121,7 +124,7 @@ and
 
 * <FONT COLOR=#197300>_Excitatory presynaptic: 'Synap', 'Synap', 'VGlut1', 'VGlut1', 'VGlut2'_</FONT>,
 * <FONT COLOR=#5ed155>_Excitatory postsynaptic: 'psd', 'glur2', 'nmdar1', 'nr2b', 'NOS', 'Synapo'_</FONT> (but further away than PSD, gluR2, nmdar1 and nr2b)
-* <FONT COLOR=#990000>_Inhibitory presynaptic: 'gad', 'VGAT', 'PV'_</FONT>,
+* <FONT COLOR=#660000>_Inhibitory presynaptic: 'gad', 'VGAT', 'PV'_</FONT>,
 * <FONT COLOR=#ff3333>_Inhibitory postsynaptic: 'Gephyr', 'GABAR1', 'GABABR', 'NOS'_</FONT>,
 * <FONT COLOR=#ff9933>_At a very small number of inhibitory: 'Vglut3' (presynaptic), 'CR1'(presynaptic)_</FONT>,
 * <FONT COLOR="mediumblue">_Other synapses:'5HT1A', 'TH', 'VACht'_</FONT>,
@@ -165,7 +168,7 @@ fchannel <- as.numeric(factor(channel.type,
     ))
 ford <- order(fchannel)
 #ccol <- rainbow(max(fchannel))[fchannel]
-Syncol <- c("#197300","#5ed155","#990000","#cc0000","#ff9933","mediumblue","gold")
+Syncol <- c("#197300","#5ed155","#660000","#cc0000","#ff9933","mediumblue","gold")
 ccol <- Syncol[fchannel]
 
 
@@ -192,61 +195,85 @@ the log base 10 for each column and scaling.
 ```{r cc_featF0, eval=TRUE}
 f0 <- seq(1,ncol(feat),by=nfeat)
 featF0 <- subset(feat, select=f0)
-featF0s <- scale(featF0, scale=TRUE, center=TRUE)
-flog <- apply(X=(featF0+1),2,log10)
-fs <- scale(flog, center=TRUE, scale=TRUE)
 
-tmp <- 
+#featF0s <- scale(featF0, scale=TRUE, center=TRUE)
+#flog <- apply(X=(featF0+1),2,log10)
+#fs <- scale(flog, center=TRUE, scale=TRUE)
+#f01 <- data.table(apply(X=featF0, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
+
+#qs <- apply(f01, 2, quantile, probs=c(.025,.5,.75,.99))
+
+### Tunrcating to the inner 98%
+tmpG <- featF0[,lapply(.SD,function(x){x >= quantile(x,prob=.01)})]
+tmpL <- featF0[,lapply(.SD,function(x){x <= quantile(x,prob=1 - 0.01)})]
+ind <- apply(tmpG,1,all)
+ind2 <- apply(tmpL,1,all)
+fil98F0 <- featF0[ind & ind2,]
+
+### taking log_10
+flog <- log10(fil98F0)
+
+### scaling between [0,1]
+f01 <- data.table(apply(X=flog, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
 ```
 
+The data
 
 
 
 ### Kernel Density Estimates of the marginals
 
-```{r cc_kde1, eval=TRUE, cache=FALSE,w=8,h=4,fig.cap=fig$cap("f0kde1","Kernel density estimates for each channel, on untransformed data.")}
-featKDE <- as.matrix(featF0)
-
-df <- melt(featKDE)
-names(df) <- c("ind","channel","value")
-gg1 <- ggplot(df, aes(x=value)) + 
-    scale_color_manual(values=ccol) +
-    #scale_x_log10() + 
-    geom_density(aes(group=channel, colour=channel)) + 
-    ggtitle("Kernel Density Estimates, untransformed data on log scale.")
-
-print(gg1)
-
-featKDE <- as.matrix(featF0[,1:2])
-
-df <- melt(featKDE)
-gg1 <- ggplot(df, aes(x=value)) + 
-    scale_color_manual(values=ccol) +
-    #scale_x_log10() + 
-    geom_density(aes(group=channel, colour=channel)) + 
-    ggtitle("Kernel Density Estimates, untransformed data on log scale.")
-
-print(gg1)
-
-```
-
-```{r cc_kde1-2, eval=TRUE, cache=FALSE,w=8,h=4,fig.cap=fig$cap("f0kde1-2","Kernel density estimates for each channel, on scaled data.")}
-df <- melt(as.matrix(featF0s))
-names(df) <- c("ind","channel","value")
-ggplot(df, aes(x=value)) + 
-    scale_color_manual(values=ccol) +
-    scale_x_log10() +
-    geom_density(aes(group=channel, colour=channel)) +
-    ggtitle("Kernel Density Estimates on scaled data, log scale.")
-```
-
-```{r cc_kde2, eval=TRUE, cache=FALSE,w=8,h=4,fig.cap=fig$cap("f0kde2","Kernel density estimates for each channel, on log transformed data.")}
+```{r cc_kde1, eval=TRUE, cache=FALSE,w=4,h=8,fig.cap=fig$cap("f0kde1","Kernel density estimates for each channel, on scaled data.")}
 df <- melt(as.matrix(flog))
 names(df) <- c("ind","channel","value")
-ggplot(df, aes(x=value)) + 
+ts <- 22
+gg1 <- ggplot(df, aes(x=value)) + 
+    scale_color_manual(values=ccol) +
+    scale_fill_manual(values=ccol) +
+    geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=100) +
+    geom_density(aes(group=channel, color=channel),size=1.5) +
+    facet_wrap(~ channel, scale='fixed') +
+    theme(plot.title=element_text(size=ts),
+          axis.title.x=element_text(size=ts),
+          axis.title.y=element_text(size=ts),
+          legend.title=element_text(size=ts),
+          legend.text=element_text(size=ts-2),
+          axis.text=element_text(size=ts-2),
+          strip.text=element_text(size=ts))+
+    ggtitle("Kernel Density Estimates of f01 transformed data ")
+
+print(gg1)
+```
+
+```{r cc_kde2, eval=TRUE, cache=FALSE,w=8,h=6,fig.cap=fig$cap("f0kde2","Kernel density estimates for each channel, on f01 data.")}
+df <- melt(as.matrix(f01))
+names(df) <- c("ind","channel","value")
+ts <- 22
+gg2 <- ggplot(df, aes(x=value)) + 
+    scale_color_manual(values=ccol) +
+    scale_fill_manual(values=ccol) +
+    geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=21) +
+    geom_density(aes(group=channel, color=channel),size=1.5) +
+    facet_wrap(~ channel, scale='fixed') +
+    theme(plot.title=element_text(size=ts),
+          axis.title.x=element_text(size=ts),
+          axis.title.y=element_text(size=ts),
+          legend.title=element_text(size=ts),
+          legend.text=element_text(size=ts-2),
+          axis.text=element_text(size=ts-2),
+          strip.text=element_text(size=ts))+
+    ggtitle("Kernel Density Estimates of f01 transformed data ")
+
+print(gg2)
+df <- melt(as.matrix(flog))
+names(df) <- c("ind","channel","value")
+gg3 <- ggplot(df, aes(x=value)) + 
     scale_color_manual(values=ccol) +
     geom_density(aes(group=channel, colour=channel))+
+    facet_wrap( ~ channel, scale='free')+
     ggtitle("Kernel Density Estimates on log transformed data.")
+
+print(gg3)
 ```
 
 ```{r cc_kde3, eval=TRUE, cache=FALSE,w=8,h=4,fig.cap=fig$cap("f0kde3","Kernel density estimates for each channel, on log transformed scaled data.")}
@@ -476,30 +503,47 @@ corrRect(tmp,col=Syncol,lwd=4)
 ```
 
 
-```{r cc_linreg1, eval=FALSE}
+# Exploring pair-wise relationships
+
+```{r lattice1, eval=FALSE,w=25,h=25, fig.cap=fig$cap("lat", "Lattice Regression plots.")}
 set.seed(2^13)
-s1 <- sample(dim(featF0s)[1],1e4)
-d1 <- data.frame(featF0s[s1,])
-st1 <- stack(d1)
+s1 <- sample(1e6,1e4)
+dm <- as.matrix(f01[s1,])
 
 c1 <- combn(24,2)
-
-for(i in 1:dim(c1)[2]){
-tmp <- d1[,c1[,i]]
-
-lm1 <- ggplot(data=tmp,aes(x=tmp[,1], y=tmp[,2])) +
-        geom_point() + 
-        geom_smooth(method='lm', se=TRUE) +
-        xlab(colnames(tmp)[1]) + 
-        ylab(colnames(tmp)[2])
-print(lm1)
-Sys.sleep(1)
+d2 <- foreach(i = 1:dim(c1)[2],.combine=rbind)%do%{
+    colset1 <- as.matrix(dm[,c1[,i]])
+    colnames(colset1) <- NULL
+    l <- paste(channel[c1[,i]][2],channel[c1[,i][1]],sep='~')
+        
+    data.frame(colset1,l,check.names=FALSE)
 }
 
-        geom_smooth(aes(y=Synap_2F0), method='lm',se=TRUE)
-lm1 +geom_abline(slope=1,intercept=0,colour='red',size=1.5)
-lm1
+colnames(d2) <- c("x", "y", "g")
+
+p1 <- xyplot(y ~ x | g, data=d2, 
+       panel=function(x,y,...){
+           panel.xyplot(x,y,...)
+           fit <- lm(y ~ x)
+           panel.lines(x,fitted(fit), col.line='red', lwd=2)
+       })
+
+print(p1)
+p2 <- xyplot(y ~ x | g, data=d2, type=c('p', 'smooth'), col.line='red',lwd=3,pch='.',scales = list(y = list(relation = "free"),x = list(relation = "free")))
+
+pdf('~/Desktop/tmp1.pdf', height=40,width=60) 
+print(p1) 
+dev.off()
+
+tmp <- as.matrix(f01[s1,])
+plot(Synap_2F0 ~ Synap_1F0, data=f01)
+chull(tmp)
+polygon(tmp[chull(tmp),])
+
+bagplot(tmp[,c(1,2)])
 ```
+
+
 
 <footer>
 <p> [Back to top][Introduction]</p>
