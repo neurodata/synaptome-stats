@@ -51,8 +51,8 @@ library(knitr)
 
 knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
 dep_auto() # figure out dependencies automatically
-opts_chunk$set(cache=FALSE,echo=TRUE,warning=FALSE,message=FALSE,comment="#",fig.path='randonHalf_figure/',
-               dpi=100,dev=c('png','pdf'))
+opts_chunk$set(cache=FALSE,echo=TRUE,warning=FALSE,message=FALSE,comment="#",fig.path='../Figures/randonHalf_figure/',
+               dpi=227,dev=c('pdf'))
 
 opts_knit$set(aliases=c(h='fig.height', w='fig.width', cap='fig.cap', scap='fig.scap'))                                                                               
 opts_knit$set(eval.after = c('fig.cap','fig.scap'))                                                                            
