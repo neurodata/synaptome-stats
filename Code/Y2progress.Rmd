@@ -23,8 +23,8 @@ output:
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 rm(list=ls()); 
-rmarkdown::render("./hkmeans.Rmd")
-system('open hkmeans.html')
+rmarkdown::render("./Y2progress.Rmd")
+system('open Y2progress.html')
 ```
 ```{r setup,include=TRUE,results='asis',message=FALSE,warning=FALSE}
 suppressMessages(require(Matrix))
@@ -36,12 +36,15 @@ suppressMessages(require(reshape2))
 suppressMessages(require(ggplot2))
 suppressMessages(require(lattice))
 suppressMessages(require(latticeExtra))
+suppressMessages(require(hexbin))
 suppressMessages(require(parallel))
 suppressMessages(require(data.table))
 suppressMessages(require(fpc))
 suppressMessages(require(repr))
 suppressMessages(require(doMC))
 suppressMessages(require(aplpack))
+suppressMessages(require(rgl))
+suppressMessages(require(rglwidget))
 source("./bic.r")
 source("./clusterFraction.r")
 #source("http://www.cis.jhu.edu/~parky/Synapse/getElbows.R")
@@ -169,6 +172,9 @@ ford <- order(fchannel)
 Syncol <- c("#197300","#5ed155","#660000","#cc0000","#ff9933","mediumblue","gold")
 ccol <- Syncol[fchannel]
 
+exType <- factor(c(rep("ex",11),rep("in",6),rep("other",7)),ordered=TRUE)
+exCol<-exType;levels(exCol) <- c("#197300","#990000","mediumblue");
+exCol <- as.character(exCol)
 
 fname <- as.vector(sapply(channel,function(x) paste0(x,paste0("F",0:5))))
 names(feat) <- fname
@@ -182,37 +188,29 @@ mycol2 <- matlab.like(nchannel)
 We will consider only the `f0` (integrated brightness) features, and will transform the raw data by
 filtering 
 Each of the channels has an arbitrary independent linear transformation and thus
-converting to z-scores or quantiles is required.  Also the data will be
-filtered to the inner 98%.
+converting to z-scores or quantiles is required.
 
 
 ```{r cc_featF0, eval=TRUE}
 f0 <- seq(1,ncol(feat),by=nfeat)
 featF0 <- subset(feat, select=f0)
+f01e3 <- 1e3*data.table(apply(X=featF0, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
 
-### Tunrcating to the inner 98%
-tmpG <- featF0[,lapply(.SD,function(x){x >= quantile(x,prob=.01)})]
-tmpL <- featF0[,lapply(.SD,function(x){x <= quantile(x,prob=1 - 0.01)})]
-ind <- apply(tmpG,1,all)
-ind2 <- apply(tmpL,1,all)
-fil98F0 <- featF0[ind & ind2,]
-
-### Taking log_10 on filtered data.
-flog <- log10(fil98F0)
-flogs <- scale(flog, center=TRUE, scale=TRUE)
-f01 <- data.table(apply(X=flog, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
+fs <- f01e3
+### Taking log_10 on data + 1.
+flog <- log10(f01e3 + 1)
 ```
 
 We now have the following data sets:
 
 - `featF0`: Raw data looking only at the integrated brightness features.
-- `fs`: Raw data scaled by subtracting mean and dividing by sample standard deviation, by column. 
-- `flog`: $log_{10}$ of the scaled data.
+- `fs`: Raw data scaled between $[0,1000]$.
+- `flog`: $log_{10}$ of `fs`
 
 ### Kernel Density Estimates of the marginals
 
-```{r cc_kde1, eval=TRUE, cache=FALSE,w=8,h=5,fig.cap=fig$cap("f0kde1","Kernel density estimates for each channel, on log_10 data.")}
-df <- melt(as.matrix(flog))
+```{r cc_kde1, eval=TRUE, cache=FALSE,w=20,h=10,fig.cap=fig$cap("flogKDE","Kernel density estimates for each channel, on log_10 data.")}
+df <- melt(as.matrix(fs))
 names(df) <- c("ind","channel","value")
 lvo <- c(1:5,7:10,19,22,11:16,6,17,18,20,21,23,24)
 levels(df$channel)<-levels(df$channel)[lvo]
@@ -231,13 +229,13 @@ gg1 <- ggplot(df, aes(x=value)) +
           axis.text=element_text(size=ts-2),
           strip.text=element_text(size=ts), 
           legend.position='none')+
-    ggtitle("Kernel Density Estimates of log_10 data ")
+    ggtitle("Kernel Density Estimates of scaled[0,1e3] data ")
 
 print(gg1)
 ```
 
-```{r cc_kde2, eval=FALSE, cache=FALSE,w=8,h=5,fig.cap=fig$cap("f0kde2","Kernel density estimates for each channel, on scaled º log_10 data.")}
-df <- melt(as.matrix(flogs)) ## remove
+```{r cc_kde2, eval=FALSE,echo=FALSE,cache=FALSE,w=20,h=10,fig.cap=fig$cap("flogsKDE","Kernel density estimates for each channel, on log_10 º scaled[0,1e3]+1 data.")}
+df <- melt(as.matrix(flog))
 names(df) <- c("ind","channel","value")
 ts <- 22
 gg2 <- ggplot(df, aes(x=value)) + 
@@ -254,25 +252,61 @@ gg2 <- ggplot(df, aes(x=value)) +
           axis.text=element_text(size=ts-2),
           strip.text=element_text(size=ts), 
           legend.position='none')+
-    ggtitle("Kernel Density Estimates of scaled º log_10 transformed data ")
+    ggtitle("Kernel Density Estimates of log_10 º scaled[0,1e3]+1 data ")
 
 print(gg2)
 ```
 
+## Correlations
+
 ```{r cc_corLog, eval=TRUE,fig.cap=fig$cap("corLOG","Correlation on log_10  data, reordered by synapse type.")}
 tmp <- as.numeric(table(fchannel))
-cmat <- cor(flog)
-corrplot(cmat[ford,ford],method="color",tl.col=ccol[ford])
+cmatflog <- cor(flog)
+corrplot(cmatflog[ford,ford],method="color",tl.col=ccol[ford])
 corrRect(tmp,col=Syncol,lwd=4)
+```
+
+### PCA on the Correlation Matrix
+
+```{r pcaLog, eval=TRUE}
+pcaLog <- prcomp(cmatflog,scale=TRUE, center=TRUE)
+elLog <- getElbows(pcaLog$sdev, plot=FALSE) 
+```
+
+### Plots of embeddings
+
+```{r cc_2dEmb, h=5,w=5}
+plot(pcaLog$x[,1:2],
+     col=ccol,
+     pch=as.numeric(exType)+15,
+     cex=2,
+     xlim=c(min(pcaLog$x[,1])-0.5,max(pcaLog$x[,1])+0.5),
+     main="Embedding of PCA log_10 correlation data")
+text(pcaLog$x[,1:2],col=ccol,label=abbreviate(channel),offset=1, pos=4)
+```
+
+```{r cc_3dLog}
+pca <- pcaLog$x
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s', col=ccol, size=1, main="Log")
+rgl::rgl.texts(pca[,1],pca[,2],pca[,3], abbreviate(channel[ford]), col=ccol, adj=c(0,1.5))
+subid <- currentSubscene3d()
+rglwidget(elementId="plot3dLog")
 ```
 
 ## K-Means Level 1
 
+Next we run the K-means algorithm to cluster the data into K clusters.
+
 ** <FONT COLOR=#ff3333> Note that a seed is being set for the random initialization of K-means. </FONT> **
 
 ```{r cc_kmeans,eval=TRUE,echo=TRUE}
-K1 <- 12  ## Set the upperbound for k-means.
+K1 <- 9  ## Set the upperbound for k-means.
 
+## Run kmeans on the scaled data
+kvecfs <- foreach(i = 1:K1) %dopar% {
+    set.seed(2^13 - 1)
+    kmeans(fs,centers=i)
+}
 ## Run kmeans on the untransformed data
 kvecflog <- foreach(i = 1:K1) %dopar% {
     set.seed(2^13 - 1)
@@ -280,285 +314,92 @@ kvecflog <- foreach(i = 1:K1) %dopar% {
 }
 ```
 
-Here we calculate the `bic` from a user defined function and 
-pick the maximum.
 
-```{r cc_bic2}
-bicflog <- kbic(kvecflog)
-mxflog <- t(c(which(bicflog == max(bicflog)), max(bicflog)))
-```
-
-```{r cc_plot-bic2}
-plot(bicflog, type='b', main="BIC on flog data.")
-points(mxflog[,1], mxflog[,2], col='red', pch=20)
-```
-
-### Heat maps: log_10 data.
+### Heat maps: scaled data.
 
 For the following we manualy choose 2 clusters.
 
 ```{r cc_agg, eval=TRUE}
 ## Formatting data for heatmap
-feat2 <- aggregate(flog,by=list(lab=kvecflog[[2]]$cluster),FUN=mean)
-feat2 <- as.matrix(feat2[,-1])
+aggfs <- aggregate(fs,by=list(lab=kvecfs[[2]]$cluster),FUN=mean)
+aggfs <- as.matrix(aggfs[,-1])
+rownames(aggfs) <- clusterFraction(kvecfs[[2]])
 
-rownames(feat2) <- clusterFraction(kvecflog[[2]])
+aggflog <- aggregate(flog,by=list(lab=kvecflog[[2]]$cluster),FUN=mean)
+aggflog <- as.matrix(aggflog[,-1])
+rownames(aggflog) <- clusterFraction(kvecflog[[2]])
 
 ford <- order(fchannel)
 ```
 
-```{r cc_km1-heatmap,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
-heatmap.2(as.matrix(feat2), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
+```{r cc_km1-heatmap,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
+heatmap.2(as.matrix(aggfs), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
 ```
 
-```{r cc_km1-heatmapSorted,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
-heatmap.2(as.matrix(feat2[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
+```{r cc_km1-heatmapSorted,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatFS1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
+heatmap.2(as.matrix(aggfs[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of scaled data.") 
 ```
 
-# Exploring pair-wise relationships
+```{r cc_km2-heatmapSorted,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatFLOG1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
+heatmap.2(as.matrix(aggflog[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of log_10 data.") 
+```
 
-```{r lattice1, eval=FALSE}
-set.seed(2^13)
-s1 <- sample(dim(f01)[1],1e4)
-dm <- as.matrix(f01[s1,])
+
+# Exploring pair-wise relationships with `GABABR`
+
+```{r gabLat}
+set.seed(2^13 - 2)
+s1 <- sample(dim(fs)[1],1e5)
+dfs <- as.matrix(fs[s1,])
+dflog <- as.matrix(flog[s1,])
 
 ## re-formatting data for use in lattice 
 c1 <- combn(24,2)
-d2 <- foreach(i = 1:dim(c1)[2],.combine=rbind)%do%{
-    colset1 <- as.matrix(dm[,c1[,i]])
+gc1 <- which(c1 == 16, arr.ind=TRUE)[,2]
+
+
+dfs2 <- foreach(i = gc1,.combine=rbind)%do%{
+    colset1 <- as.matrix(dfs[,c1[,i]])
     colnames(colset1) <- NULL
     l <- paste(channel[c1[,i]][2],channel[c1[,i][1]],sep='~')
     data.frame(colset1,l,check.names=FALSE)
 }
+colnames(dfs2) <- c("x", "y", "g")
 
-colnames(d2) <- c("x", "y", "g")
-
-## Linear regression
-p1 <- xyplot(y ~ x | g, data=d2, type=c('p', 'r'), col.line='red',lwd=3,pch='.',scales = list(y = list(relation = "free"),x = list(relation = "free")),layout=c(24,12))
-#print(p1)
-
-## Non-linear regression
-p2 <- xyplot(y ~ x | g, data=d2, type=c('p', 'smooth'), col.line='red',lwd=3,pch='.',scales = list(y = list(relation = "free"),x = list(relation = "free")),layout=c(24,12))
-#print(p2)
-
-Cmat <- outer(1:6,1:6,function(i,j) rainbow(11, start=.12, end=.5)[i+j-1])
- 
-## all axes the same
-xyplot(y ~ x | labels, data=d2, 
-       panel=function(x,y,...){
-           panel.xyplot(x,y,...)
-           fit <- lm(y ~ x)
-           panel.lines(x,fitted(fit), col.line='red', lwd=2)
-       })
-require(solr)
-
-sp1 <- splom( ~ dm,
- #panel=panel.hexbinplot,
- colramp=BTC,
- panel=function(x,y,...){
-	panel.xyplot(x,y,pch='.',...)
-	},
- diag.panel = function(x, ...){
- yrng <- current.panel.limits()$ylim
- d <- density(x, na.rm=TRUE)
- d$y <- with(d, yrng[1] + 0.95 * diff(yrng) * y / max(y) )
- panel.lines(d)
- diag.panel.splom(x, ...)
- },
- upper.panel = function(x,y,...){
- 	panel.hexbinplot(x,y,...)
-	#panel.xyplot(x,y,pch='.',...) 
- 	#panel.loess(x,y,...)
- 	panel.smoother(x,y,form=y ~ x,col='red',lwd=2,alpha.se=0.5)
- 	},
- pscale=0, varname.cex=1.2
- )
-
-print(sp1)
-
-sp2 <- splom(~dm[1:100,1:3],
-	panel=function(x,y,...){
-	      	panel.xyplot(x,y,...)
-	      	panel.smoother(x,y,form=y~ x) 
-		})
-
-print(sp2)
-
-xyplot(y ~ x | g,data= d2[s1,],
-	panel=function(x,y,...){
-		panel.xyplot(x,y,pch='.',...)
-		panel.smoother(x,y,...)
-		})
-
-
-pdf('~/Desktop/sp1.pdf', height=48,width=48) 
-print(sp1)
-#print(p1) 
-dev.off()
-
-png('~/Desktop/sp1.png', height=2*2560,width=2*2560, res=227) 
-print(sp1)
-dev.off()
-
-pdf('~/Desktop/tmp2.pdf', height=40,width=40) 
-print(p2) 
-dev.off()
-
-tmp <- as.matrix(f01[s1,])
-plot(Synap_2F0 ~ Synap_1F0, data=f01)
-chull(tmp)
-polygon(tmp[chull(tmp),])
-
-bagplot(tmp[,c(1,2)])
-```
-### Heat maps: Transformed Data
-
-```{r cc_aggfs, eval=TRUE}
-## Formatting data for heatmap
-feat3 <- aggregate(fs,by=list(lab=kvecfs[[3]]$cluster),FUN=mean)
-feat2fs <- as.matrix(feat2fs[,-1])
-
-rownames(feat2fs) <- clusterFraction(kvecfs[[2]])
-ford <- order(fchannel)
-```
-
-```{r cc_km1-heatmapFS,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
-heatmap.2(as.matrix(feat2fs), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
-```
-
-```{r cc_km1-heatmapSortedFS,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
-heatmap.2(as.matrix(feat2fs[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
-```
-
-## K-Means Level 2
-
-```{r cc_level21, eval=TRUE, echo=TRUE}
-synOnly<-channel.type!= "none" & channel.type!="other"
-
-fs11 <- fs[kvecfs[[2]]$cluster==1,][,synOnly]
-fs12 <- fs[kvecfs[[2]]$cluster==2,][,synOnly]
-
-
-dim(fs11)
-dim(fs12)
-
-## Run kmeans on the untransformed data
-kvecL21synOnly <- foreach(i = 1:K1) %dopar% {
-    set.seed(2^13 - 1)
-    kmeans(fs11,centers=i)
+dflog2 <- foreach(i = gc1,.combine=rbind)%do%{
+    colset1 <- as.matrix(dflog[,c1[,i]])
+    colnames(colset1) <- NULL
+    l <- paste(channel[c1[,i]][2],channel[c1[,i][1]],sep='~')
+    data.frame(colset1,l,check.names=FALSE)
 }
+colnames(dflog2) <- c("x", "y", "g")
+
+rg1 <- xyplot(y ~ x | g, data=dfs2,
+       as.table=TRUE,
+       colramp=BTC,
+       pch='.',
+       scales = list(y = list(relation = "free"),x = list(relation = "free")),
+       panel=function(x,y,...){
+           panel.hexbinplot(x,y,...)
+           panel.loess(x,y,col='red', lwd=2,...)
+        }
+       )
+
+rg2 <- xyplot(y ~ x | g, data=dflog2,
+       as.table=TRUE,
+       colramp=BTC,
+       pch='.',
+       scales = list(y = list(relation = "free"),x = list(relation = "free")),
+       panel=function(x,y,...){
+           panel.hexbinplot(x,y,...)
+           panel.loess(x,y,col='red', lwd=2,...)
+        }
+       )
 ```
 
-
-
-
-
-## PAMK: Level 1
-
-The `pamk` function performs something similar to K-means. 
-
-```{r cc_PAMkmeans1, eval=TRUE}
-pamout <- pamk(f01, krange=1:K1,usepam=FALSE,critout=FALSE)
-labs <- pamout$pamobject$clustering
+```{r rg2,eval=TRUE,echo=FALSE,w=10,h=10,fig.cap=fig$cap("rg2", "Lattice plot of pairwise regressions")}
+print(rg2)
 ```
-
-```{r cc_depth1.4,eval=TRUE,echo=TRUE,fig.cap=fig$cap("pamk1", "Average silhouette width plot of the level 1 clustering.")}
-plot(pamout$crit,type="b")
-```
-
-```{r cc_f5, eval=TRUE}
-feat5 <- aggregate(fs,by=list(lab=pamout$pamo$clustering),FUN=mean)
-
-feat5 <- as.matrix(feat5[,-1])
-rownames(feat5) <- clusterFraction(labs)
-
-### Reordering based on synapse type.
-ford <- order(fchannel)
-```
-
-
-```{r cc_heat,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth1-heat", "Default Sorting")}
-heatmap.2(as.matrix(feat5), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
-```
-
-```{r cc_sorted,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth1-heat-sorted", "Sorted by Synapse type")}
-heatmap.2(as.matrix(feat5[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
-```
-
-## PAMK: Level 2
-
-### PAMK: Level 2.1
-
-We begin by splitting the data into the two clusters as 
-calculated above.
-
-```{r cc_fs-lv2, eval=TRUE}
-fs1 <- fs[pamout$pamobject$clustering==1,]
-fs2 <- fs[pamout$pamobject$clustering==2,]
-```
-
-```{r cc_PAMkmeans2, eval=TRUE}
-pamout21 <- pamk(fs1, krange=1:K1,usepam=FALSE,critout=FALSE)
-labs21 <- pamout21$pamobject$clustering
-```
-
-```{r cc_sil-level2,eval=TRUE,echo=TRUE,fig.cap=fig$cap("pamk2", "Average silhouette width plot of the level 2 clustering.")}
-plot(pamout21$crit,type="b")
-```
-
-```{r cc_f21, eval=TRUE}
-agg21 <- aggregate(fs1,by=list(lab=pamout21$pamo$clustering),FUN=mean)
-agg21 <- as.matrix(agg21[,-1])
-
-cs <- paste(paste0("C", 1:pamout21$nc),
-   foreach(i =1:pamout21$nc,.combine=c)%do%{(sprintf("%.2g",sum(labs21==i)/length(labs21)))})
-    
-rownames(agg21) <- cs
-```
-
-
-```{r cc_heat21,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth21-heat", "Default Sorting")}
-heatmap.2(as.matrix(agg21), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
-```
-
-```{r cc_sorted21,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth21-heat-sorted", "Sorted by Synapse type")}
-heatmap.2(as.matrix(agg21[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
-```
-
-
-### PAMK: Level 2.2
-
-
-```{r cc_PAMkmeans22, eval=TRUE}
-pamout22 <- pamk(fs2, krange=1:K1,usepam=FALSE,critout=FALSE)
-labs22 <- pamout22$pamobject$clustering
-```
-
-```{r cc_sil-level22,eval=TRUE,echo=TRUE,fig.cap=fig$cap("pamk2", "Average silhouette width plot of the level 2 clustering.")}
-plot(pamout22$crit,type="b")
-```
-
-```{r cc_f22, eval=TRUE}
-agg22 <- aggregate(fs2,by=list(lab=pamout22$pamo$clustering),FUN=mean)
-agg22 <- as.matrix(agg22[,-1])
-
-cs <- paste(paste0("C", 1:pamout22$nc),
-   foreach(i =1:pamout22$nc,.combine=c)%do%{(sprintf("%.2g",sum(labs22==i)/length(labs22)))})
-    
-rownames(agg22) <- cs
-```
-
-```{r cc_heat22,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth21-heat", "Default Sorting")}
-heatmap.2(as.matrix(agg22), trace="none",col=rev(mycol),colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) # 
-```
-
-```{r cc_sorted22,eval=TRUE,w=6,h=6,echo=TRUE,fig.cap=fig$cap("depth21-heat-sorted", "Sorted by Synapse type")}
-heatmap.2(as.matrix(agg22[,ford]),dendrogram='row',Colv=NA,trace="none", col=rev(mycol),colCol=ccol[ford],cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90) 
-```
-
-
-
-
 
 
 <footer>
