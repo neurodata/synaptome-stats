@@ -195,6 +195,7 @@ featF0 <- subset(feat, select=f0)
 f01e3 <- 1e3*data.table(apply(X=featF0, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
 
 fs <- f01e3
+
 ### Taking log_10 on data + 1.
 log1f <- log10(featF0 + 1)
 slog1f <- scale(log1f, center=TRUE,scale=TRUE)
@@ -204,13 +205,12 @@ We now have the following data sets:
 
 - `featF0`: Raw data looking only at the integrated brightness features.
 - `fs`: Raw data scaled between $[0,1000]$.
-- `log1f`: The raw data, plus one, then $log_{10}$.
 - `slog1f`: The raw data, plus one, $log_{10}$, then scaled by
   subtractng mean and dividing by statndard deviation.
 
 ### Kernel Density Estimates of the marginals
 
-```{r cc_kde1, eval=TRUE,echo=TRUE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("logKDE","Kernel density estimates for each channel, on `log` data.")}
+```{r cc_kde1, eval=FALSE,echo=FALSE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("logKDE","Kernel density estimates for each channel, on `log` data.")}
 df <- melt(as.matrix(log1f))
 names(df) <- c("ind","channel","value")
 df$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
@@ -234,12 +234,12 @@ gg1 <- ggplot(df, aes(x=value)) +
           axis.text=element_text(size=ts-2),
           strip.text=element_text(size=ts), 
           legend.position='none')+
-    ggtitle("Kernel Density Estimates of `log1f` data ")
+    ggtitle("Kernel Density Estimates of `log1f` data.")
 
 print(gg1)
 ```
 
-```{r cc_kde2, eval=FALSE,echo=FALSE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("flogsKDE","Kernel density estimates for each channel, on `slog1f` data.")}
+```{r cc_kde2, eval=TRUE,echo=TRUE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("flogsKDE","Kernel density estimates for each channel, on `slog1f` data.")}
 df2 <- melt(as.matrix(slog1f))
 names(df2) <- c("ind","channel","value")
 df2$type <- factor(rep(ffchannel,each=dim(slog1f)[1]),levels=levels(ffchannel))
@@ -263,7 +263,8 @@ gg2 <- ggplot(df2, aes(x=value)) +
           axis.text=element_text(size=ts-2),
           strip.text=element_text(size=ts), 
           legend.position='none')+
-    ggtitle("Kernel Density Estimates of z-scored º log_10 º raw+1 data ")
+    #ggtitle("Kernel Density Estimates of z-scored º log_10 º raw+1 data ")
+    ggtitle("Kernel Density Estimates of `slog1f` data.")
 
 print(gg2)
 ```
@@ -313,11 +314,6 @@ Next we run the K-means algorithm to cluster the data into K clusters.
 ```{r cc_kmeans,eval=TRUE,echo=TRUE}
 K1 <- c(2)  ## The set of K's.
 
-## Run kmeans on the scaled data
-kveclog1f <- foreach(i = K1) %dopar% {
-    set.seed(2^13 - 1)
-    kmeans(log1f,centers=i)
-}
 ## Run kmeans on the untransformed data
 kvecslog1f <- foreach(i = K1) %dopar% {
     set.seed(2^13 - 1)
@@ -332,10 +328,6 @@ For the following we manualy choose 2 clusters.
 
 ```{r cc_agg, eval=TRUE}
 ## Formatting data for heatmap
-agglog1f <- aggregate(log1f,by=list(lab=kveclog1f[[1]]$cluster),FUN=mean)
-agglog1f <- as.matrix(agglog1f[,-1])
-rownames(agglog1f) <- clusterFraction(kveclog1f[[1]])
-
 aggslog1f <- aggregate(slog1f,by=list(lab=kvecslog1f[[1]]$cluster),FUN=mean)
 aggslog1f <- as.matrix(aggslog1f[,-1])
 rownames(aggslog1f) <- clusterFraction(kvecslog1f[[1]])
@@ -343,18 +335,8 @@ rownames(aggslog1f) <- clusterFraction(kvecslog1f[[1]])
 ford <- order(fchannel)
 ```
 
-
-
-
-
-
-
 ```{r cc_km1-heatmap,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
-heatmap.2(as.matrix(agglog1f), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `log1f` data") # 
-```
-
-```{r cc_km1-heatmapSorted,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatFS1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
-heatmap.2(as.matrix(agglog1f[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `log1f` data.") 
+heatmap.2(as.matrix(aggslog1f), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `slog1f` data") # 
 ```
 
 ```{r cc_km2-heatmapSorted,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatFLOG1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
@@ -365,25 +347,26 @@ heatmap.2(as.matrix(aggslog1f[,ford]),dendrogram='row',Colv=NA,trace="none", col
 # Exploring pair-wise relationships with `GABABR`
 
 ```{r gabLat}
+### Sampling to reduce size
 set.seed(2^13 - 2)
 s1 <- sample(dim(slog1f)[1],2.5e5)
-dlog1f <- as.matrix(log1f[s1,])
+dslog1f <- data.table(slog1f[s1,])
 
 ## re-formatting data for use in lattice 
-c1 <- combn(24,2)
-gc1 <- which(c1 == 16, arr.ind=TRUE)[,2]
+dslog1f2 <- data.table(stack(dslog1f, select=-GABABRF0))[,.(values)]
+dslog1f2$GABABR <- dslog1f$GABABRF0
 
+### Adding relationship factor variables
+nd <- paste0("GABABR","~",abbreviate(channel[-16]))
 
-dlog1f2 <- foreach(i = gc1,.combine=rbind)%do%{
-    colset1 <- as.matrix(dlog1f[,c1[,i]])
-    colnames(colset1) <- NULL
-    l <- paste(channel[c1[,i]][2],channel[c1[,i][1]],sep='~')
-    data.frame(colset1,l,check.names=FALSE)
-}
-colnames(dlog1f2) <- c("x", "y", "g")
+dslog1f2$ind <- factor(rep(nd,each=dim(dslog1f)[1]), ordered=TRUE,levels=nd)
+head(dslog1f2$ind)
+names(dslog1f2) <- c("x","y","g")
 
+str(dslog1f2)
+levels(dslog1f2$g)
 
-rg1 <- xyplot(y ~ x | g, data=dlog1f2,
+rg1 <- xyplot(y ~ x | g, data=dslog1f2,
        as.table=TRUE,
        colramp=BTC,
        pch='.',
