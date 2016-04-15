@@ -40,16 +40,15 @@ suppressMessages(require(hexbin))
 suppressMessages(require(parallel))
 suppressMessages(require(data.table))
 suppressMessages(require(fpc))
-suppressMessages(require(repr))
 suppressMessages(require(doMC))
-suppressMessages(require(aplpack))
 suppressMessages(require(rgl))
 suppressMessages(require(rglwidget))
+suppressMessages(require(iterators))
 source("./bic.r")
 source("./clusterFraction.r")
 #source("http://www.cis.jhu.edu/~parky/Synapse/getElbows.R")
 source("./getElbows.r")
-registerDoMC(6)
+registerDoMC(8)
 
 library(rmarkdown)
 library(knitr)
@@ -210,7 +209,7 @@ We now have the following data sets:
 
 ### Kernel Density Estimates of the marginals
 
-```{r cc_kde1, eval=FALSE,echo=FALSE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("logKDE","Kernel density estimates for each channel, on `log` data.")}
+```{r cc_kde1, eval=TRUE,echo=TRUE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("logKDE","Kernel density estimates for each channel, on `log` data.")}
 df <- melt(as.matrix(log1f))
 names(df) <- c("ind","channel","value")
 df$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
@@ -239,7 +238,7 @@ gg1 <- ggplot(df, aes(x=value)) +
 print(gg1)
 ```
 
-```{r cc_kde2, eval=TRUE,echo=TRUE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("flogsKDE","Kernel density estimates for each channel, on `slog1f` data.")}
+```{r cc_kde2, eval=FALSE,echo=FALSE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("flogsKDE","Kernel density estimates for each channel, on `slog1f` data.")}
 df2 <- melt(as.matrix(slog1f))
 names(df2) <- c("ind","channel","value")
 df2$type <- factor(rep(ffchannel,each=dim(slog1f)[1]),levels=levels(ffchannel))
@@ -273,18 +272,28 @@ print(gg2)
 
 ```{r cc_corLog,w=5,h=5, eval=TRUE,fig.cap=fig$cap("corLOG","Correlation on log_10  data, reordered by synapse type.")}
 tmp <- as.numeric(table(fchannel))
-cmatlog1f <- cor(log1f)
-corrplot(cmatlog1f[ford,ford],method="color",tl.col=ccol[ford], tl.cex=0.8)
+cmatslog1f <- cor(slog1f)
+corrplot(cmatslog1f[ford,ford],method="color",tl.col=ccol[ford], tl.cex=0.8)
 corrRect(tmp,col=Syncol,lwd=4)
 ```
-
 ### PCA on the Correlation Matrix
 
 ```{r pcaLog, eval=TRUE}
-pcaLog <- prcomp(cmatlog1f,scale=TRUE, center=TRUE)
+pcaLog <- prcomp(cmatslog1f,scale=TRUE, center=TRUE)
 elLog <- getElbows(pcaLog$sdev, plot=FALSE) 
 ```
 
+We run K-means for $K=3$ on the PCA embedded in $\mathbb{R}^3$ of the correlation matrix.
+
+```{r cc_Corkmeans,eval=TRUE,echo=TRUE}
+K1 <- c(3)  ## The set of K's.
+
+## Run kmeans on the untransformed data
+kvecCor <- foreach(i = K1) %dopar% {
+    set.seed(2^13 - 1)
+    kmeans(pcaLog$x[,1:3],centers=i)
+}
+```
 ### Plots of embeddings
 
 ```{r cc_2dEmb, h=6,w=6}
@@ -298,7 +307,7 @@ text(pcaLog$x[,1:2],col=ccol,label=abbreviate(channel),offset=1, pos=4)
 ```
 
 ```{r cc_3dLog}
-pca <- pcaLog$x
+pca <- pcaLog$x[,1:3]
 rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol, size=1, main="Log")
 rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(channel), col=ccol, adj=c(0,1.5))
 subid <- currentSubscene3d()
@@ -307,15 +316,15 @@ rglwidget(elementId="plot3dLog")
 
 ## K-Means Level 1
 
-Next we run the K-means algorithm to cluster the data into K clusters.
+Next we run K-means with $K=3$.
 
 ** <FONT COLOR=#ff3333> Note that a seed is being set for the random initialization of K-means. </FONT> **
 
 ```{r cc_kmeans,eval=TRUE,echo=TRUE}
-K1 <- c(2)  ## The set of K's.
+K2 <- c(2)  ## The set of K's.
 
 ## Run kmeans on the untransformed data
-kvecslog1f <- foreach(i = K1) %dopar% {
+kvecslog1f <- foreach(i = K2) %dopar% {
     set.seed(2^13 - 1)
     kmeans(slog1f,centers=i)
 }
@@ -343,6 +352,8 @@ heatmap.2(as.matrix(aggslog1f), trace="none",col=mycol,colCol=ccol,cexRow=0.8, k
 heatmap.2(as.matrix(aggslog1f[,ford]),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `slog1f` data.") 
 ```
 
+Percentage of data within cluster is presented on the right side of the heatmap.
+
 
 # Exploring pair-wise relationships with `GABABR`
 
@@ -350,23 +361,20 @@ heatmap.2(as.matrix(aggslog1f[,ford]),dendrogram='row',Colv=NA,trace="none", col
 ### Sampling to reduce size
 set.seed(2^13 - 2)
 s1 <- sample(dim(slog1f)[1],2.5e5)
-dslog1f <- data.table(slog1f[s1,])
+dlog1f <- data.table(log1f[s1,])
 
 ## re-formatting data for use in lattice 
-dslog1f2 <- data.table(stack(dslog1f, select=-GABABRF0))[,.(values)]
-dslog1f2$GABABR <- dslog1f$GABABRF0
+dlog1f2 <- data.table(stack(dlog1f, select=-GABABRF0))[,.(values)]
+dlog1f2$GABABR <- dlog1f$GABABRF0
 
 ### Adding relationship factor variables
 nd <- paste0("GABABR","~",abbreviate(channel[-16]))
 
-dslog1f2$ind <- factor(rep(nd,each=dim(dslog1f)[1]), ordered=TRUE,levels=nd)
-head(dslog1f2$ind)
-names(dslog1f2) <- c("x","y","g")
+dlog1f2$ind <- factor(rep(nd,each=dim(dlog1f)[1]), ordered=TRUE,levels=nd)
+head(dlog1f2$ind)
+names(dlog1f2) <- c("x","y","g")
 
-str(dslog1f2)
-levels(dslog1f2$g)
-
-rg1 <- xyplot(y ~ x | g, data=dslog1f2,
+rg1 <- xyplot(y ~ x | g, data=dlog1f2,
        as.table=TRUE,
        colramp=BTC,
        pch='.',
@@ -380,6 +388,72 @@ rg1 <- xyplot(y ~ x | g, data=dslog1f2,
 
 ```{r rg1,eval=TRUE,echo=FALSE,w=10,h=10,fig.cap=fig$cap("rg1", "Lattice plot of pairwise regressions involving `GABABR`")}
 print(rg1)
+```
+
+
+# ARI
+```{r cc_f1, eval=TRUE, echo=FALSE}
+avd <- function(pcaObj,elbow,truth){
+###
+### Given a pca object with an elbow as upperbound
+### compute the ARI of truth versus the pamk clustering for each
+### dimension from 1:elbow
+###
+require(foreach)
+
+out <- foreach(i = 1:elbow,.combine='rbind') %:% 
+       foreach(j = 1:25e4,.combine='rbind') %dopar% {
+           set.seed(j)
+           kv <- as.numeric(kmeans(pcaObj$x[,1:i],centers=K1)$cluster)
+           
+           data.frame(Embedding_Dimension=i,ARI=mclust::adjustedRandIndex(truth,kv))
+           }
+return(out)
+}
+```
+
+Here we consider the channel types to be the "ground truth" and computer
+the Adjusted Rand Index of between that and the output from k-means.
+
+```{r cc_truth}
+levels(ffchannel) <- c(rep("ex", 2), rep("in", 2), rep("other", 3))
+levels(ffchannel)
+
+truth <- as.numeric(ffchannel)
+avdLog <- avd(pcaLog, elLog[2], truth)
+avdLog$group <- "Log"
+```
+
+## Approximate permutation test.
+
+```{r arislog1f}
+kcl <- as.numeric(kvecCor[[1]]$cluster)
+
+v1 <- mclust::adjustedRandIndex(truth,kcl)
+ariCor <- foreach(j=1:1e5,.combine='c') %dopar%{
+    set.seed(j*2^8-3)  # for reproducibility 
+    y <- sample(kcl)
+    mclust::adjustedRandIndex(truth,y)
+    }
+
+N <- length(ariCor)
+(phat <- sum(ariCor >= v1)/N)
+```
+
+```{r cc_ariPlots, w=4,h=4, fig.cap=fig$cap("ariPlot","ARI plot")}
+h1 <- hist(ariCor,xlim=c(min(ariCor),v1+v1/2), prob=TRUE, breaks='Sc',plot=TRUE,main=NULL, xlab="ARI")
+title("Approx. permutation test.")
+abline(v = v1, lwd=2, col='darkred')
+text(median(h1$breaks),quantile(h1$density,.98),col='darkred',labels=mtext(bquote(hat(p) == .(phat))))
+```
+
+```{r cc-ariVdim}
+avdLog <- avd(pcaLog, elLog[2], truth)
+avdLog$Embedding_Dimension <- as.factor(avdLog$Embedding_Dimension)
+gg3 <- ggplot(data=avdLog, aes(x=ARI, y=..density..,color=Embedding_Dimension)) + 
+        geom_histogram(binwidth=3.49*sd(avdLog$ARI)*length(avdLog$ARI)^(-1/3)) +
+        facet_wrap(~Embedding_Dimension, scale='free')
+print(gg3)
 ```
 
 
