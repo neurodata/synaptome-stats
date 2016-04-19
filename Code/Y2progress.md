@@ -5,6 +5,12 @@ Jesse Leigh Patsolic
 
 
 
+[Homepage](http://docs.neurodata.io/synaptome-stats/)  
+The formatted source code for this file is [here](https://github.com/neurodata/synaptome-stats/blob/gh-pages/Code/Y2progress.Rmd).  
+And a [raw version here](https://raw.githubusercontent.com/neurodata/synaptome-stats/gh-pages/Code/Y2progress.Rmd).    
+Previous work by Youngser Park can be found [here](http://www.cis.jhu.edu/~parky/Synapse/synapse.html).  
+
+
 # Introduction
 
 > On Fri, Dec 11, 2015 at 11:53 AM, joshua vogelstein <jovo@jhu.edu> wrote:  
@@ -189,7 +195,7 @@ K1 <- c(3)  ## The set of K's.
 
 ## Run kmeans on the untransformed data
 kvecCor <- foreach(i = K1) %dopar% {
-    set.seed(2^13 - 1)
+    set.seed(2^4 - 1)
     kmeans(pcaLog$x[,1:3],centers=i)
 }
 ```
@@ -197,12 +203,22 @@ kvecCor <- foreach(i = K1) %dopar% {
 
 
 ```r
+par(mfrow=c(1,2))
 plot(pcaLog$x[,1:2],
      col=ccol,
      pch=as.numeric(exType)+15,
      cex=1.5,
      xlim=c(min(pcaLog$x[,1])-0.2,max(pcaLog$x[,1])+0.7),
      main="Embedding of PCA log_10 correlation data")
+text(pcaLog$x[,1:2],col=ccol,label=abbreviate(channel),offset=1, pos=4)
+
+kf <- 
+plot(pcaLog$x[,1:2],
+     col=ccol,
+     pch=as.numeric(kvecCor[[1]]$cluster)+14,
+     cex=1.5,
+     xlim=c(min(pcaLog$x[,1])-0.2,max(pcaLog$x[,1])+0.7),
+     main="Embedding of PCA log_10 correlation data \ncolred according to truth and \nshape based on clustering from 3-means")
 text(pcaLog$x[,1:2],col=ccol,label=abbreviate(channel),offset=1, pos=4)
 ```
 
@@ -232,7 +248,7 @@ K2 <- c(2)  ## The set of K's.
 
 ## Run kmeans on the untransformed data
 kvecslog1f <- foreach(i = K2) %dopar% {
-    set.seed(2^13 - 1)
+    set.seed(2^4 - 1)
     kmeans(slog1f,centers=i)
 }
 ```
@@ -341,29 +357,31 @@ truth <- as.numeric(ffchannel)
 
 
 
-
 Makeing a data.table of the permutation data for ggplot.
 
 ```r
 DT <- data.table(avd(pcaLog, elLog[2], truth),key='Embedding_Dimension') 
 
-DT <- DT[,phat := sum(permARI>=ari)/length(permARI),by=Embedding_Dimension]
+DT <- DT[,pval := sum(permARI>=ari)/length(permARI),by=Embedding_Dimension]
 
 ua <- DT[,unique(ari),by=Embedding_Dimension]
 arid <- data.frame(Embedding_Dimension=as.numeric(ua$Emb),
                    ARI=ua$V1,
-                   phat=DT[,unique(phat),by=Embedding_Dimension]$V1)
+                   pval=DT[,unique(pval),by=Embedding_Dimension]$V1)
 ```
 
 
 
 ```r
-gg3 <- ggplot(data=DT,aes(x=permARI, y=..density..,color=Embedding_Dimension,label=phat)) + 
+gg3 <- ggplot(data=DT,aes(x=permARI, y=..density..,color=Embedding_Dimension,label=pval)) + 
         #geom_histogram(binwidth=3.49*sd(DT$permARI)*length(DT$permARI)^(-1/3)) +
         geom_histogram(bins=25)+
         geom_vline(aes(xintercept=ari),colour='darkred',size=1.2)+
         #geom_text(aes(x=(ari-ari/2),y=7))+
-        facet_wrap(~Embedding_Dimension+phat,scale='free',labeller=label_both)
+        theme(axis.text=element_text(size=18),
+                  title=element_text(size=16),  
+                  strip.text.x=element_text(size=16)) + 
+        facet_wrap(~Embedding_Dimension+pval,scale='free',labeller=label_both)
 print(gg3)
 ```
 
@@ -371,18 +389,29 @@ print(gg3)
 
 
 ```r
-gg5 <- ggplot(data=arid,aes(x=Embedding_Dimension,y=ARI,label=phat)) + 
+gg5 <- ggplot(data=arid,aes(x=Embedding_Dimension,y=ARI,label=pval,colour=pval)) + 
         geom_line(size=1.5,colour='salmon') + geom_point(size=3) +
-            geom_text(hjust='right',vjust='top',nudge_x=0.5,nudge_y=0.01,size=5)+
+            #geom_text(hjust='right',vjust='top',nudge_x=0.5,nudge_y=0.01,size=5)+
             theme(axis.text=element_text(size=18),
                   title=element_text(size=16)) + 
             ggtitle("ARI vs. DIM with estimated p-values")
-print(gg5)
+
+gg6 <- 
+    ggplot(data=arid, aes(x=Embedding_Dimension, y=pval, colour=pval))+
+        geom_line(size=1.5, colour='salmon') + 
+        geom_point(size=3) + 
+       # geom_hline(yintercept=0.05, 
+       #            colour='forestgreen',
+       #            size=1.5) +
+        scale_y_log10(breaks=c(1e-4,1.53-4,1e-3), na.value=0) +
+        theme(axis.text=element_text(size=18),
+                  title=element_text(size=16)) + 
+        ggtitle("P-values")
+
+grid.arrange(gg5,gg6,nrow=2)
 ```
 
-<figure><img src="../Figures/Y2progress_figure/pvals-1.png"><figcaption></figcaption></figure>
-
-
+<figure><img src="../Figures/Y2progress_figure/arivDim-1.png"><figcaption><b>Figure 6: ARI and P-Values</b><br><br></figcaption></figure>
 
 
 <footer>
