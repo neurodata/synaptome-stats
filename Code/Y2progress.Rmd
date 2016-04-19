@@ -303,7 +303,7 @@ kvecCor <- foreach(i = K1) %dopar% {
 ```
 ### Plots of embeddings
 
-```{r cc_2dEmb, h=6,w=11}
+```{r cc_2dEmb,h=6,w=11,fig.cap=fig$cap("pca2dEm", "2d Embeddings.")}
 par(mfrow=c(1,2))
 plot(pcaLog$x[,1:2],
      col=ccol,
@@ -313,7 +313,7 @@ plot(pcaLog$x[,1:2],
      main="Embedding of PCA log_10 correlation data")
 text(pcaLog$x[,1:2],col=ccol,label=abbreviate(channel),offset=1, pos=4)
 
-kf <- 
+
 plot(pcaLog$x[,1:2],
      col=ccol,
      pch=as.numeric(kvecCor[[1]]$cluster)+14,
