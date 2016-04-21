@@ -7,6 +7,7 @@ output:
     fig_caption: yes
     fig_height: 5
     fig_width: 5
+    fig_retina: 2
     highlight: pygments
     keep_md: yes
     number_sections: yes
@@ -51,8 +52,7 @@ library(knitr)
 
 knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
 dep_auto() # figure out dependencies automatically
-opts_chunk$set(cache=FALSE,echo=TRUE,warning=FALSE,message=FALSE,comment="#",fig.path='../Figures/randonHalf_figure/',
-               dpi=227,dev=c('pdf'))
+opts_chunk$set(cache=FALSE,echo=TRUE,warning=FALSE,message=FALSE,comment="#",fig.path='../Figures/randomHalf_figure/', dpi=100,dev=c('png','pdf'))
 
 opts_knit$set(aliases=c(h='fig.height', w='fig.width', cap='fig.cap', scap='fig.scap'))                                                                               
 opts_knit$set(eval.after = c('fig.cap','fig.scap'))                                                                            
@@ -195,7 +195,7 @@ Each of the channels has an arbitrary independent linear transformation and thus
 converting to z-scores or quantiles is required.
 
 
-Selecting only the `f0` features, we will use both the raw data and a
+Selecting only the `f0` features, we will use both the feature vector and a
 transformed version, transforming by adding 1 and taking
 the log base 10 for each column and scaling. 
 
@@ -557,4 +557,3 @@ rglwidget(elementId="plot3dRank")
 <footer>
 <p> [Back to top](http://docs.neurodata.io/synaptome-stats/Code/randomHalf.html#introduction)</p>
 </footer>
-
