@@ -152,7 +152,7 @@ category - there is supposed to be synapsin there, but at lower levels
 compared to excitatory presynaptic category.
 
 - Note:  The order of the channels are given by line `227` in the `kohenen.m` file which can be found in the dropbox folder. 
-- `Synap` and `Synap` have been augmented to `Synap_1` and `Synap_2` for clarity. 
+- `datatransSynap` and `Synap` have been augmented to `Synap_1` and `Synap_2` for clarity. 
 - `VGlut1` and `VGlut1` have been augmented to `VGlut1_t1` and `VGlut1_t2` to distinguish between the different times of collection (which are unknown).
 
 ## Potential Filtering 

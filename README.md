@@ -15,3 +15,4 @@ knit        : slidify::knit2slides
 - [Clustering with PAMK and K-Means](http://docs.neurodata.io/synaptome-stats/Code/hkmeans.html)
 - [Correlation matrices on a random half](http://docs.neurodata.io/synaptome-stats/Code/randomHalf.html)
 - [Y2 Progress Report](http://docs.neurodata.io/synaptome-stats/Code/Y2progress.html)
+- [Y3 Progress Report](http://docs.neurodata.io/synaptome-stats/Code/Y3progress.html)

@@ -4,6 +4,8 @@ Jesse Leigh Patsolic
 
 
 
+
+
 # Outline
 
 1. data  
@@ -33,8 +35,7 @@ Jesse Leigh Patsolic
 
 ## The Data Set
 This report deals with the exploratory and statistical analysis of the
-Kristina15 data set.  <FONT COLOR=#ff0000>Put a link to the data here. </FONT>  
-
+Kristina15 data set.  <FONT COLOR=#ff0000>Put a link to the data here and maybe a citation? </FONT>  
 
 ## Definition of Markers
 
@@ -71,10 +72,12 @@ and
 - `Synap` and `Synap` have been augmented to `Synap_1` and `Synap_2` for clarity. 
 - `VGlut1` and `VGlut1` have been augmented to `VGlut1_t1` and `VGlut1_t2` to distinguish between the different times of collection (which are unknown).
 
-## How did the puncta get to us (what computer vision)
+## Processing of puncta: computer vision
 
-The data were gathered as array tomogray images and processed.  
-<FONT COLOR=#ff0000> How were the puncta processed.</FONT>  
+<FONT COLOR=#ff0000> How were the puncta processed?</FONT>  
+Array tomography images, then what?
+
+## Definition of features
 
 > The [sic] corresponds to 24 channels x 6 features per synapse, ordered like
 > c0f0,c0f1,c0f2,c0f3,c0f4,c0f5,c1f0,c1f1... etc
@@ -85,6 +88,240 @@ The data were gathered as array tomogray images and processed.
 >f3 = moment of inertia around synapsin maxima  
 >f4,f5 are features that I forget what they are.. would need to ask brad.   
 >i would throw them out, I did so in my kohonen code (which you have, its in matlab).
+
+
+
+Here we read in the data and select a random half of it for exploration. 
+
+
+```r
+featFull <- fread("../data/synapsinR_7thA.tif.Pivots.txt.2011Features.txt",showProgress=FALSE)
+
+### Setting a seed and creating an index vector
+### to select half of the data
+set.seed(2^10)
+half1 <- sample(dim(featFull)[1],dim(featFull)[1]/2)
+half2 <- setdiff(1:dim(featFull)[1],half1)
+
+feat <- featFull[half1,]
+dim(feat)
+```
+
+```
+# [1] 559649    144
+```
+
+```r
+## Setting the channel names
+channel <- c('Synap_1','Synap_2','VGlut1_t1','VGlut1_t2','VGlut2','Vglut3',
+              'psd','glur2','nmdar1','nr2b','gad','VGAT',
+              'PV','Gephyr','GABAR1','GABABR','CR1','5HT1A',
+              'NOS','TH','VACht','Synapo','tubuli','DAPI')
+
+## Setting the channel types
+channel.type <- c('ex.pre','ex.pre','ex.pre','ex.pre','ex.pre','in.pre.small',
+                  'ex.post','ex.post','ex.post','ex.post','in.pre','in.pre',
+                  'in.pre','in.post','in.post','in.post','in.pre.small','other',
+                  'ex.post','other','other','ex.post','none','none')
+
+nchannel <- length(channel)
+nfeat <- ncol(feat) / nchannel
+
+## Createing factor variables for channel and channel type sorted properly
+ffchannel <- (factor(channel.type,
+    levels= c("ex.pre","ex.post","in.pre","in.post","in.pre.small","other","none")
+    ))
+fchannel <- as.numeric(factor(channel.type,
+    levels= c("ex.pre","ex.post","in.pre","in.post","in.pre.small","other","none")
+    ))
+ford <- order(fchannel)
+
+
+## Setting up colors for channel types
+Syncol <- c("#197300","#5ed155","#660000","#cc0000","#ff9933","mediumblue","gold")
+ccol <- Syncol[fchannel]
+
+exType <- factor(c(rep("ex",11),rep("in",6),rep("other",7)),ordered=TRUE)
+exCol<-exType;levels(exCol) <- c("#197300","#990000","mediumblue");
+exCol <- as.character(exCol)
+
+fname <- as.vector(sapply(channel,function(x) paste0(x,paste0("F",0:5))))
+names(feat) <- fname
+fcol <- rep(ccol, each=6)
+mycol <- colorpanel(100, "purple", "black", "green")
+mycol2 <- matlab.like(nchannel)
+```
+
+## Data transformations
+
+
+```r
+f0 <- seq(1,ncol(feat),by=nfeat)
+featF0 <- subset(feat, select=f0)
+f01e3 <- 1e3*data.table(apply(X=featF0, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
+
+fs <- f01e3
+
+### Taking log_10 on data + 1.
+log1f <- log10(featF0 + 1)
+slog1f <- data.table(scale(log1f, center=TRUE,scale=TRUE))
+```
+
+We now have the following data sets:
+
+- `featF0`: The feature vector looking only at the integrated brightness features.
+- `fs`:  The feature vector scaled between $[0,1000]$.
+- `logf1`: The feature vector, plus one, then $log_{10}$ is applied. 
+- `slog1f`: The feature vector, plus one, $log_{10}$, then scaled by
+  subtracting the mean and dividing by the sample standard deviation.
+
+# Feature Exploration
+
+## Synapsin1 Vs. Synapsin2
+
+
+```r
+gg1 <- ggplot(data=featF0,aes(x=Synap_1F0,y=Synap_2F0)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features.")
+        
+gg2 <- ggplot(data=slog1f,aes(x=Synap_1F0,y=Synap_2F0)) +
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features.")
+
+
+grid.arrange(gg1,gg2,nrow=1)
+```
+
+<figure><img src="../Figures/Y3progress_figure/cc-syn-1.png"><figcaption><b>Figure 1: Scatter plots of Synap1F0 and Synap2F0 on linear and log scale.)</b><br><br></figcaption></figure>
+
+## VGlut1_t1 Vs. VGlut1_t2
+
+
+```r
+gg3 <- ggplot(data=featF0,aes(x=VGlut1_t1F0,y=VGlut1_t2F0)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features.")
+        
+gg4 <- ggplot(data=slog1f,aes(x=VGlut1_t1F0,y=VGlut1_t2F0)) +   
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features.")
+
+
+grid.arrange(gg3,gg4,nrow=1)
+```
+
+<figure><img src="../Figures/Y3progress_figure/cc-vglut-1.png"><figcaption><b>Figure 2: Scatter plots of VGlut1_t1F0 and VGlut1_t2F0 on linear and log scale.)</b><br><br></figcaption></figure>
+
+## Repeated for each of the features
+
+
+```r
+synF <- feat[, grep("Synap_", names(feat)),with=FALSE]
+lsynF <- synF[, lapply(.SD, function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+
+
+gg5 <- ggplot(data=synF,aes(x=Synap_1F1,y=Synap_2F1)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F1")
+        
+gg6 <- ggplot(data=lsynF,aes(x=Synap_1F1,y=Synap_2F1)) +   
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F1")
+
+#grid.arrange(gg5,gg6,nrow=1)
+```
+
+
+```r
+gg7 <- ggplot(data=synF,aes(x=Synap_1F2,y=Synap_2F2)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F2")
+        
+gg8 <- ggplot(data=lsynF,aes(x=Synap_1F2,y=Synap_2F2)) +   
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F2")
+
+#grid.arrange(gg7,gg8,nrow=1)
+```
+
+
+```r
+gg09 <- ggplot(data=synF,aes(x=Synap_1F3,y=Synap_2F3)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F3")
+        
+gg10 <- ggplot(data=lsynF,aes(x=Synap_1F3,y=Synap_2F3)) +   
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F3")
+
+#grid.arrange(gg09,gg10,nrow=1)
+```
+
+
+```r
+gg11 <- ggplot(data=synF,aes(x=Synap_1F4,y=Synap_2F4)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F4")
+        
+gg12 <- ggplot(data=lsynF,aes(x=Synap_1F4,y=Synap_2F4)) +   
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F4")
+
+#grid.arrange(gg11,gg12,nrow=1)
+```
+
+
+```r
+gg13 <- ggplot(data=synF,aes(x=Synap_1F5,y=Synap_2F5)) +   
+        geom_point(pch='.',alpha=0.2,position='jitter') + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F5")
+        
+gg14 <- ggplot(data=lsynF,aes(x=Synap_1F5,y=Synap_2F5)) +   
+        geom_point(pch='.',alpha=0.2, position='jitter') +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F5")
+
+#grid.arrange(gg13,gg14,nrow=1)
+```
+
+
+
+```r
+grid.arrange(gg5,gg6,gg7,gg8,gg09,gg10,gg11,gg12,gg13,gg14,ncol=2)
+```
+
+<figure><img src="../Figures/Y3progress_figure/cc-F1-5-1.png"><figcaption><b>Figure 8: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.)</b><br><br></figcaption></figure>
+## KDE plots of chosen transformation/feature pair
+
+## Distance Covariance Test
+
+
+
+
+
+# Marker Exploration 
+
+## Correlation Matrix
+
+## 2D scatter plot colored by truth
+
+## 
+# Synapse Explotation 
+
 
 
 <footer>
