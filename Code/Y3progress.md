@@ -177,135 +177,175 @@ We now have the following data sets:
 
 # Feature Exploration
 
-## Synapsin1 Vs. Synapsin2
-
-
-```r
-gg1 <- ggplot(data=featF0,aes(x=Synap_1F0,y=Synap_2F0)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_smooth()+
-        ggtitle("Untransformed Features.")
-        
-gg2 <- ggplot(data=slog1f,aes(x=Synap_1F0,y=Synap_2F0)) +
-        geom_point(pch='.',alpha=0.2) +
-        geom_smooth()+
-        ggtitle("Scaled Logged Features.")
-
-
-grid.arrange(gg1,gg2,nrow=1)
-```
-
-<figure><img src="../Figures/Y3progress_figure/cc-syn-1.png"><figcaption><b>Figure 1: Scatter plots of Synap1F0 and Synap2F0 on linear and log scale.)</b><br><br></figcaption></figure>
-
-## VGlut1_t1 Vs. VGlut1_t2
-
-
-```r
-gg3 <- ggplot(data=featF0,aes(x=VGlut1_t1F0,y=VGlut1_t2F0)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_smooth()+
-        ggtitle("Untransformed Features.")
-        
-gg4 <- ggplot(data=slog1f,aes(x=VGlut1_t1F0,y=VGlut1_t2F0)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_smooth()+
-        ggtitle("Scaled Logged Features.")
-
-
-grid.arrange(gg3,gg4,nrow=1)
-```
-
-<figure><img src="../Figures/Y3progress_figure/cc-vglut-1.png"><figcaption><b>Figure 2: Scatter plots of VGlut1_t1F0 and VGlut1_t2F0 on linear and log scale.)</b><br><br></figcaption></figure>
-
-## Repeated for each of the features
+## Synapsin1 Vs. Synapsin2 for all features
 
 
 ```r
 synF <- feat[, grep("Synap_", names(feat)),with=FALSE]
 lsynF <- synF[, lapply(.SD, function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
 
+gg1 <- ggplot(data=synF,aes(x=Synap_1F0,y=Synap_2F0)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F0")
+        
+gg2 <- ggplot(data=lsynF,aes(x=Synap_1F0,y=Synap_2F0)) +
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F0")
 
-gg5 <- ggplot(data=synF,aes(x=Synap_1F1,y=Synap_2F1)) +   
+gg3 <- ggplot(data=synF,aes(x=Synap_1F1,y=Synap_2F1)) +   
         geom_point(pch='.',alpha=0.2) + 
         geom_smooth()+
         ggtitle("Untransformed Features: F1")
         
-gg6 <- ggplot(data=lsynF,aes(x=Synap_1F1,y=Synap_2F1)) +   
+gg4 <- ggplot(data=lsynF,aes(x=Synap_1F1,y=Synap_2F1)) +   
         geom_point(pch='.',alpha=0.2) +
         geom_smooth()+
         ggtitle("Scaled Logged Features: F1")
 
-#grid.arrange(gg5,gg6,nrow=1)
-```
-
-
-```r
-gg7 <- ggplot(data=synF,aes(x=Synap_1F2,y=Synap_2F2)) +   
+gg5 <- ggplot(data=synF,aes(x=Synap_1F2,y=Synap_2F2)) +   
         geom_point(pch='.',alpha=0.2) + 
-        geom_smooth()+
+        geom_smooth() +
         ggtitle("Untransformed Features: F2")
         
-gg8 <- ggplot(data=lsynF,aes(x=Synap_1F2,y=Synap_2F2)) +   
+gg6 <- ggplot(data=lsynF,aes(x=Synap_1F2,y=Synap_2F2)) +   
         geom_point(pch='.',alpha=0.2) +
-        geom_smooth()+
+        geom_smooth() +
         ggtitle("Scaled Logged Features: F2")
 
-#grid.arrange(gg7,gg8,nrow=1)
-```
-
-
-```r
-gg09 <- ggplot(data=synF,aes(x=Synap_1F3,y=Synap_2F3)) +   
+gg7 <- ggplot(data=synF,aes(x=Synap_1F3,y=Synap_2F3)) +   
         geom_point(pch='.',alpha=0.2) + 
         geom_smooth()+
         ggtitle("Untransformed Features: F3")
         
-gg10 <- ggplot(data=lsynF,aes(x=Synap_1F3,y=Synap_2F3)) +   
+gg8 <- ggplot(data=lsynF,aes(x=Synap_1F3,y=Synap_2F3)) +   
         geom_point(pch='.',alpha=0.2) +
         geom_smooth()+
         ggtitle("Scaled Logged Features: F3")
 
-#grid.arrange(gg09,gg10,nrow=1)
-```
-
-
-```r
-gg11 <- ggplot(data=synF,aes(x=Synap_1F4,y=Synap_2F4)) +   
+gg09 <- ggplot(data=synF,aes(x=Synap_1F4,y=Synap_2F4)) +   
         geom_point(pch='.',alpha=0.2) + 
         geom_smooth()+
         ggtitle("Untransformed Features: F4")
         
-gg12 <- ggplot(data=lsynF,aes(x=Synap_1F4,y=Synap_2F4)) +   
+gg10 <- ggplot(data=lsynF,aes(x=Synap_1F4,y=Synap_2F4)) +   
         geom_point(pch='.',alpha=0.2) +
         geom_smooth()+
         ggtitle("Scaled Logged Features: F4")
 
-#grid.arrange(gg11,gg12,nrow=1)
-```
-
-
-```r
-gg13 <- ggplot(data=synF,aes(x=Synap_1F5,y=Synap_2F5)) +   
+gg11 <- ggplot(data=synF,aes(x=Synap_1F5,y=Synap_2F5)) +   
         geom_point(pch='.',alpha=0.2,position='jitter') + 
         geom_smooth()+
         ggtitle("Untransformed Features: F5")
         
-gg14 <- ggplot(data=lsynF,aes(x=Synap_1F5,y=Synap_2F5)) +   
+gg12 <- ggplot(data=lsynF,aes(x=Synap_1F5,y=Synap_2F5)) +   
         geom_point(pch='.',alpha=0.2, position='jitter') +
         geom_smooth()+
         ggtitle("Scaled Logged Features: F5")
-
-#grid.arrange(gg13,gg14,nrow=1)
 ```
 
 
 
 ```r
-grid.arrange(gg5,gg6,gg7,gg8,gg09,gg10,gg11,gg12,gg13,gg14,ncol=2)
+grid.arrange(gg1,gg2,gg3,gg4,gg5,gg6,gg7,gg8,gg09,gg10, gg11, gg12, ncol=2)
 ```
 
-<figure><img src="../Figures/Y3progress_figure/cc-F1-5-1.png"><figcaption><b>Figure 8: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.)</b><br><br></figcaption></figure>
+<figure><img src="../Figures/Y3progress_figure/cc-F1-5-1.png"><figcaption><b>Figure 2: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
+
+## VGlut1_t1 Vs. VGlut1_t2
+
+
+```r
+vglutF <- feat[,grep("VGlut", names(feat)),with=FALSE]
+lvglutF <- vglutF[,lapply(.SD, function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+
+gg13 <- ggplot(data=vglutF,aes(x=VGlut1_t1F0,y=VGlut1_t2F0)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F0")
+        
+gg14 <- ggplot(data=lvglutF,aes(x=VGlut1_t1F0,y=VGlut1_t2F0)) +   
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F0")
+
+gg15 <- ggplot(data=vglutF,aes(x=VGlut1_t1F1,y=VGlut1_t2F1)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F1")
+        
+gg16 <- ggplot(data=lvglutF,aes(x=VGlut1_t1F1,y=VGlut1_t2F1)) +   
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F1")
+
+gg17 <- ggplot(data=vglutF,aes(x=VGlut1_t1F2,y=VGlut1_t2F2)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F2")
+        
+gg18 <- ggplot(data=lvglutF,aes(x=VGlut1_t1F2,y=VGlut1_t2F2)) +   
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F2")
+
+gg19 <- ggplot(data=vglutF,aes(x=VGlut1_t1F3,y=VGlut1_t2F3)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F3")
+        
+gg20 <- ggplot(data=lvglutF,aes(x=VGlut1_t1F3,y=VGlut1_t2F3)) +   
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F3")
+
+gg21 <- ggplot(data=vglutF,aes(x=VGlut1_t1F4,y=VGlut1_t2F4)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F4")
+        
+gg22 <- ggplot(data=lvglutF,aes(x=VGlut1_t1F4,y=VGlut1_t2F4)) +   
+        geom_point(pch='.',alpha=0.2) +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F4")
+
+gg23 <- ggplot(data=vglutF,aes(x=VGlut1_t1F5,y=VGlut1_t2F5)) +   
+        geom_point(pch='.',alpha=0.2, position='jitter') + 
+        geom_smooth()+
+        ggtitle("Untransformed Features: F5")
+        
+gg24 <- ggplot(data=lvglutF,aes(x=VGlut1_t1F5,y=VGlut1_t2F5)) +   
+        geom_point(pch='.',alpha=0.2, position='jitter') +
+        geom_smooth()+
+        ggtitle("Scaled Logged Features: F5")
+```
+
+
+```r
+grid.arrange(gg13, gg14, gg15, gg16, gg17, gg18, gg19, gg20,gg21,gg22,gg23,gg24, ncol=2)
+```
+
+<figure><img src="../Figures/Y3progress_figure/cc-vglutF1-5-1.png"><figcaption><b>Figure 4: Scatter plots of VGlut1_t1 and VGlut1_t2 on linear and log scale for all features.</b><br><br></figcaption></figure>
+
 ## KDE plots of chosen transformation/feature pair
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Distance Covariance Test
 
@@ -319,8 +359,7 @@ grid.arrange(gg5,gg6,gg7,gg8,gg09,gg10,gg11,gg12,gg13,gg14,ncol=2)
 
 ## 2D scatter plot colored by truth
 
-## 
-# Synapse Explotation 
+# Synapse Exploration 
 
 
 
