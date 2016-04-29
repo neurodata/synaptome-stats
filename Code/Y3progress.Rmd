@@ -7,7 +7,7 @@ output:
     fig_caption: yes
     fig_height: 5
     fig_width: 5
-    fig_retina: 2
+    fig_retina: 2.7
     highlight: pygments
     keep_md: yes
     number_sections: yes
@@ -37,6 +37,7 @@ require(dplyr)
 require(energy)
 require(lattice)
 require(colorRamps)
+require(corrplot)
 require(doMC); registerDoMC(4)
 require(foreach)
 ```
@@ -226,8 +227,10 @@ mycol2 <- matlab.like(nchannel)
 ## Data transformations
 
 ```{r cc-datatrans, eval=TRUE}
-f0 <- seq(1,ncol(feat),by=nfeat)
-featF0 <- subset(feat, select=f0)
+f <- lapply(1:6,function(x){seq(x,ncol(feat),by=nfeat)})
+featF <- lapply(f,function(x){subset(feat,select=x)})
+
+featF0 <- featF[[1]]
 f01e3 <- 1e3*data.table(apply(X=featF0, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
 
 fs <- f01e3
@@ -319,7 +322,7 @@ gg12 <- ggplot(data=lsynF,aes(x=Synap_1F5,y=Synap_2F5)) +
 grid.arrange(gg1,gg2,gg3,gg4,gg5,gg6,gg7,gg8,gg09,gg10, gg11, gg12, ncol=2)
 ```
 
-## VGlut1_t1 Vs. VGlut1_t2
+## VGlut1_t1 Vs. VGlut1_t2 for all features
 
 ```{r cc-vglut,w=9,h=6,fig.cap=fig$cap("Vglut1v2F","Scatter plots of VGlut1_t1F0 and VGlut1_t2F0 on linear and log scale for all features.")}
 vglutF <- feat[,grep("VGlut", names(feat)),with=FALSE]
@@ -392,27 +395,33 @@ grid.arrange(gg13, gg14, gg15, gg16, gg17, gg18, gg19, gg20,gg21,gg22,gg23,gg24,
 
 ## KDE plots of chosen transformation/feature pair
 
-```{r cc-kde, eval=FALSE,echo=FALSE}
-syn1F <- feat[, grep("Synap_1", names(feat)),with=FALSE]
-lsyn1F <- synF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+```{r cc-kde-data}
+synF <- feat[, grep("Synap_", names(feat)),with=FALSE]
+lsynF <- synF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+names(synF) <- paste0(names(synF), "_linear")
+names(lsynF) <- paste0(names(lsynF), "_logscale")
 
-df <- melt(as.matrix(syn1F))
-ggplot(data=df,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2))+ geom_density() + facet_grid(. ~ Var2, scales='free')
+vglutF <- feat[,grep("VGlut1_t",names(feat)),with=FALSE]
+lvglutF <- vglutF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+names(vglutF) <- paste0(names(vglutF), "_linear")
+names(lvglutF) <- paste0(names(lvglutF),"_logscale")
 ```
 
+```{r cc-kde-syn, w=14,h=8,fig.cap=fig$cap("synKDE", "KDE for Synapsin1 and Synapsin2 accross all features.")}
+df1 <- melt(as.matrix(cbind(synF,lsynF)))
+levels(df1$Var2)<-levels(df1$Var2)[c(1:6,13:18,7:12,19:24)]
+ggplot(data=df1,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
+    geom_density() + 
+    facet_wrap( ~ Var2,scales='free',ncol=6)
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
+```{r cc-kde-vglut, w=14,h=8,fig.cap=fig$cap("vglutKDE", "KDE for VGlut1_t1 and VGlut1_t2 accross all features.")}
+df2 <- melt(as.matrix(cbind(vglutF,lvglutF)))
+levels(df2$Var2)<-levels(df2$Var2)[c(1:6,13:18,7:12,19:24)]
+ggplot(data=df2,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
+    geom_density() + 
+    facet_wrap( ~ Var2,scales='free', ncol=6)
+```
 
 
 ## Distance Covariance Test
@@ -446,15 +455,15 @@ rownames(mp) <- colnames(featF0)
 colnames(ms) <- colnames(featF0)
 colnames(mp) <- colnames(featF0)
 
-diag(ms) <- as.numeric(NULL)
-diag(mp) <- as.numeric(NULL
+diag(ms) <- as.numeric(10)
+diag(mp) <- as.numeric(1)
 
 
 tmp <- as.numeric(table(fchannel))
 par(mfrow=c(1,2))
-corrplot(log10(mp+.Machine$double.eps)[ford,ford],is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
+corrplot(log10(mp)[ford,ford],is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
 corrRect(tmp,col=Syncol,lwd=4)
-corrplot(ms,is.corr=FALSE,method="color",tl.col=ccol, tl.cex=0.8)
+corrplot(ms[ford,ford],is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
 corrRect(tmp,col=Syncol,lwd=4)
 ```
 
@@ -462,7 +471,21 @@ corrRect(tmp,col=Syncol,lwd=4)
 
 # Marker Exploration 
 
-## Correlation Matrix
+## Correlation Matrix of markers 
+
+```{r cc_corRawF0,w=7,h=7, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed F0 data, reordered by synapse type.")}
+tmp <- as.numeric(table(fchannel))
+corrf <- cor(featF0)[ford,ford]
+corrplot(corrf,method="color",tl.col=ccol[ford], tl.cex=0.8)
+```
+
+```{r cc_corRawF0-5,w=24,h=24, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed data F0-5, reordered by synapse type.")}
+tmp <- as.numeric(table(fchannel))
+bford <- order(rep(fchannel,each=6))
+cr <- rep(ccol, each=6)
+corrf <- cor(feat)[bford,bford]
+corrplot(corrf,method="color",tl.col=cr[bford],tl.cex=0.8)
+```
 
 ## 2D scatter plot colored by truth
 

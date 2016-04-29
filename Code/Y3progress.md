@@ -156,8 +156,10 @@ mycol2 <- matlab.like(nchannel)
 
 
 ```r
-f0 <- seq(1,ncol(feat),by=nfeat)
-featF0 <- subset(feat, select=f0)
+f <- lapply(1:6,function(x){seq(x,ncol(feat),by=nfeat)})
+featF <- lapply(f,function(x){subset(feat,select=x)})
+
+featF0 <- featF[[1]]
 f01e3 <- 1e3*data.table(apply(X=featF0, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
 
 fs <- f01e3
@@ -253,7 +255,7 @@ grid.arrange(gg1,gg2,gg3,gg4,gg5,gg6,gg7,gg8,gg09,gg10, gg11, gg12, ncol=2)
 
 <figure><img src="../Figures/Y3progress_figure/cc-F1-5-1.png"><figcaption><b>Figure 2: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
 
-## VGlut1_t1 Vs. VGlut1_t2
+## VGlut1_t1 Vs. VGlut1_t2 for all features
 
 
 ```r
@@ -331,20 +333,39 @@ grid.arrange(gg13, gg14, gg15, gg16, gg17, gg18, gg19, gg20,gg21,gg22,gg23,gg24,
 ## KDE plots of chosen transformation/feature pair
 
 
+```r
+synF <- feat[, grep("Synap_", names(feat)),with=FALSE]
+lsynF <- synF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+names(synF) <- paste0(names(synF), "_linear")
+names(lsynF) <- paste0(names(lsynF), "_logscale")
+
+vglutF <- feat[,grep("VGlut1_t",names(feat)),with=FALSE]
+lvglutF <- vglutF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+names(vglutF) <- paste0(names(vglutF), "_linear")
+names(lvglutF) <- paste0(names(lvglutF),"_logscale")
+```
 
 
+```r
+df1 <- melt(as.matrix(cbind(synF,lsynF)))
+levels(df1$Var2)<-levels(df1$Var2)[c(1:6,13:18,7:12,19:24)]
+ggplot(data=df1,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
+    geom_density() + 
+    facet_wrap( ~ Var2,scales='free',ncol=6)
+```
+
+<figure><img src="../Figures/Y3progress_figure/cc-kde-syn-1.png"><figcaption><b>Figure 5: KDE for Synapsin1 and Synapsin2 accross all features.</b><br><br></figcaption></figure>
 
 
+```r
+df2 <- melt(as.matrix(cbind(vglutF,lvglutF)))
+levels(df2$Var2)<-levels(df2$Var2)[c(1:6,13:18,7:12,19:24)]
+ggplot(data=df2,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
+    geom_density() + 
+    facet_wrap( ~ Var2,scales='free', ncol=6)
+```
 
-
-
-
-
-
-
-
-
-
+<figure><img src="../Figures/Y3progress_figure/cc-kde-vglut-1.png"><figcaption><b>Figure 6: KDE for VGlut1_t1 and VGlut1_t2 accross all features.</b><br><br></figcaption></figure>
 
 
 ## Distance Covariance Test
@@ -355,7 +376,27 @@ grid.arrange(gg13, gg14, gg15, gg16, gg17, gg18, gg19, gg20,gg21,gg22,gg23,gg24,
 
 # Marker Exploration 
 
-## Correlation Matrix
+## Correlation Matrix of markers 
+
+
+```r
+tmp <- as.numeric(table(fchannel))
+corrf <- cor(featF0)[ford,ford]
+corrplot(corrf,method="color",tl.col=ccol[ford], tl.cex=0.8)
+```
+
+<figure><img src="../Figures/Y3progress_figure/cc_corRawF0-1.png"><figcaption><b>Figure 7: Correlation on untransformed F0 data, reordered by synapse type.</b><br><br></figcaption></figure>
+
+
+```r
+tmp <- as.numeric(table(fchannel))
+bford <- order(rep(fchannel,each=6))
+cr <- rep(ccol, each=6)
+corrf <- cor(feat)[bford,bford]
+corrplot(corrf,method="color",tl.col=cr[bford],tl.cex=0.8)
+```
+
+<figure><img src="../Figures/Y3progress_figure/cc_corRawF0-5-1.png"><figcaption><b>Figure 8: Correlation on untransformed data F0-5, reordered by synapse type.</b><br><br></figcaption></figure>
 
 ## 2D scatter plot colored by truth
 
