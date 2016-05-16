@@ -13,7 +13,6 @@ Previous work by Youngser Park can be found [here](http://www.cis.jhu.edu/~parky
 
 # Data 
 
-
 Here we read in the data and select a random half of it for exploration. 
 
 
@@ -226,13 +225,7 @@ rglwidget(elementId="rgl-pca1",width=720,height=720)
 ```r
 top1synap1F0 <- slog1f[Synap_1F0 > quantile(Synap_1F0, 0.99),]
 dim(top1synap1F0)
-```
 
-```
-# [1] 5597   24
-```
-
-```r
 lp1 <- splom(~top1synap1F0,
 	panel=panel.hexbinplot, colramp=BTC, 
 	diag.panel = function(x, ...){
@@ -252,11 +245,6 @@ lp1 <- splom(~top1synap1F0,
 pdf("../Figures/MarkerExploration_figure/cc-top1synap1F0.pdf",height=25,width=25)
 print(lp1)
 dev.off()
-```
-
-```
-# pdf 
-#   2
 ```
 
 Note that when we select only the top 1% of Synap_1F0 levels we end up with only 5597 
@@ -292,6 +280,8 @@ print(lp2)
 dev.off()
 ```
 
+Note that when we select only the top 1% of gadF0 levels we end up with only 5597 
+observations.  
 This plot is too large to show inline, you can view it here:
 [F0 Lattice Plot conditioned on top 1% of gadF0](../Figures/MarkerExploration_figure/cc-top1gadF0.pdf)
 
@@ -299,5 +289,5 @@ This plot is too large to show inline, you can view it here:
 
 
 <footer>
-<p> [Back to Top][Outline]</p>
+<p> [Back to Top][Data]</p>
 </footer>
