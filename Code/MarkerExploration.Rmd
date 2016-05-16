@@ -40,6 +40,8 @@ require(energy)
 require(lattice)
 require(colorRamps)
 require(corrplot)
+require(rgl)
+require(rglwidget)
 require(doMC); registerDoMC(4)
 require(foreach)
 ```
@@ -87,6 +89,11 @@ knit_hooks$set(plot = function(x, options) {
 })
 ```
 
+[Homepage](http://docs.neurodata.io/synaptome-stats/)  
+The formatted source code for this file is [here](https://github.com/neurodata/synaptome-stats/blob/gh-pages/Code/MarkerExploration.Rmd).  
+And a raw version [here](https://raw.githubusercontent.com/neurodata/synaptome-stats/gh-pages/Code/MarkerExploration.Rmd).    
+Previous work by Youngser Park can be found [here](http://www.cis.jhu.edu/~parky/Synapse/synapse.html).  
+
 # Data 
 
 
@@ -130,11 +137,11 @@ ford <- order(fchannel)
 
 
 ## Setting up colors for channel types
-Syncol <- c("#197300","#5ed155","#660000","#cc0000","#ff9933","mediumblue","gold")
+Syncol <- c("#197300","#5ed155","#660000","#cc0000","#ff9933","#0000cd","#ffd700")
 ccol <- Syncol[fchannel]
 
 exType <- factor(c(rep("ex",11),rep("in",6),rep("other",7)),ordered=TRUE)
-exCol<-exType;levels(exCol) <- c("#197300","#990000","mediumblue");
+exCol<-exType;levels(exCol) <- c("#197300","#990000","#0000cd");
 exCol <- as.character(exCol)
 
 fname <- as.vector(sapply(channel,function(x) paste0(x,paste0("F",0:5))))
@@ -142,6 +149,7 @@ names(feat) <- fname
 fcol <- rep(ccol, each=6)
 mycol <- colorpanel(100, "purple", "black", "green")
 mycol2 <- matlab.like(nchannel)
+mycol3 <- colorpanel(100, "blue","white","red")
 ```
 
 ## Data transformations
@@ -170,9 +178,105 @@ We now have the following data sets:
 
 # Marker Exploration 
 
+## Correlation Matrix of markers 
 
-## Top 1% of Synap_1
+```{r cc_corRawF0,w=7,h=7, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed F0 data, reordered by synapse type.")}
+corrf <- cor(featF0)[ford,ford]
+corrplot(corrf,method="color",tl.col=ccol[ford], tl.cex=0.8)
+```
 
+```{r cc_corRawF0-5,w=24,h=24, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed data F0-5, reordered by synapse type.")}
+bford <- order(rep(fchannel,each=6))
+nord <- Reduce('c', f)
+cr <- rep(ccol, each=6)
+corrfB <- cor(feat)[bford,bford]
+#corrfB <- cor(feat)[nord,nord]
+corrplot(corrfB,method="color",tl.col=cr[bford],tl.cex=0.8)
+#corrplot(corrfB,method="color",tl.col=cr[nord],tl.cex=0.8)
+```
+
+## Energy Matrix: Distance Covariance Test
+
+```{r cc-dcov,eval=TRUE,echo=TRUE}
+set.seed(317)
+sam1 <- sample(dim(featF0)[1], 1e3)
+tmp <- as.data.frame((featF0[sam1,]))
+
+set.seed(331)
+combcols <- t(combn(24,2))
+
+dc <- foreach(i = 1:dim(combcols)[1]) %dopar% {
+      dcov.test(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
+        }
+
+ms <- matrix(as.numeric(0),24,24)
+mp <- matrix(as.numeric(0),24,24)
+
+for(i in 1:length(dc)){
+    ms[combcols[i,1],combcols[i,2]] <- dc[[i]]$statistic
+    ms[combcols[i,2],combcols[i,1]] <- dc[[i]]$statistic
+    mp[combcols[i,1],combcols[i,2]] <- dc[[i]]$p
+    mp[combcols[i,2],combcols[i,1]] <- dc[[i]]$p
+}
+
+rownames(ms) <- colnames(featF0)
+rownames(mp) <- colnames(featF0)
+colnames(ms) <- colnames(featF0)
+colnames(mp) <- colnames(featF0)
+
+diag(ms) <- as.numeric(10)
+diag(mp) <- as.numeric(1)
+```
+
+```{r cc-energyplot,h=7,w=7,fig.cap=fig$cap("enplt","Energy Matrix for F0: p-values in log10 scale")}
+#par(mfrow=c(1,2))
+#corrplot(1/1e10*(ms[ford,ford]),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
+#corrRect(tmp,col=Syncol,lwd=4; rm(tmp))
+corrplot(log10(mp[ford,ford]),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8,col=mycol3[-c(1:2)])
+tmp <- as.numeric(table(fchannel))
+corrRect(tmp,col=Syncol,lwd=8);rm(tmp)
+```
+
+
+
+## Scatterplots 
+
+We will run PCA on the untransformed correlation matrix so the data can be viewed in 2-dimensions.  The colors correspond to synapse type.
+
+```{r cc-pca1,h=7,w=7,fig.cap=fig$cap("pairs1","PCA of untransformed correlation matrix")}
+pca1 <- prcomp(corrf,center=TRUE, scale=TRUE)
+pairs(pca1$x[,1:3], col=ccol,pch=20, cex=2)
+```
+
+
+```{r cc_3dLog}
+pca <- pca1$x
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol, size=1)
+rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(channel), col=ccol, adj=c(0,2))
+subid <- currentSubscene3d()
+rglwidget(elementId="rgl-pca1",width=720,height=720)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Top 1% 
+
+### Top Synap_1
 ```{r cc-top1synap1F0}
 top1synap1F0 <- slog1f[Synap_1F0 > quantile(Synap_1F0, 0.99),]
 dim(top1synap1F0)
@@ -204,7 +308,8 @@ This plot is too large to show inline, you can view it here:
 [F0 Lattice Plot conditioned on top 1% of Synap_1F0](../Figures/MarkerExploration_figure/cc-top1synap1F0.pdf)
 
 
-```{r cc-top1gadF0}
+### Top gadF0
+```{r cc-top1gadF0, results='hide'}
 top1gadF0 <- slog1f[gadF0 > quantile(gadF0, 0.99),]
 dim(top1gadF0)
 
@@ -232,71 +337,9 @@ dev.off()
 This plot is too large to show inline, you can view it here:
 [F0 Lattice Plot conditioned on top 1% of gadF0](../Figures/MarkerExploration_figure/cc-top1gadF0.pdf)
 
-## Correlation Matrix of markers 
 
-```{r cc_corRawF0,w=7,h=7, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed F0 data, reordered by synapse type.")}
-tmp <- as.numeric(table(fchannel))
-corrf <- cor(featF0)[ford,ford]
-corrplot(corrf,method="color",tl.col=ccol[ford], tl.cex=0.8)
-```
-
-```{r cc_corRawF0-5,w=24,h=24, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed data F0-5, reordered by synapse type.")}
-tmp <- as.numeric(table(fchannel))
-bford <- order(rep(fchannel,each=6))
-nord <- Reduce('c', f)
-cr <- rep(ccol, each=6)
-corrf <- cor(feat)[bford,bford]
-#corrf <- cor(feat)[nord,nord]
-corrplot(corrf,method="color",tl.col=cr[bford],tl.cex=0.8)
-#corrplot(corrf,method="color",tl.col=cr[nord],tl.cex=0.8)
-```
-
-
-## Distance Covariance Test
-
-```{r cc-dcov,eval=FALSE,echo=FALSE}
-set.seed(317)
-sam1 <- sample(dim(featF0)[1], 1e3)
-tmp <- as.data.frame((featF0[sam1,]))
-
-set.seed(331)
-
-combcols <- t(combn(24,2))
-
-    
-dc <- foreach(i = 1:dim(combcols)[1]) %dopar% {
-      dcov.test(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
-        }
-
-ms <- matrix(as.numeric(0),24,24)
-mp <- matrix(as.numeric(0),24,24)
-
-for(i in 1:length(dc)){
-    ms[combcols[i,1],combcols[i,2]] <- dc[[i]]$statistic
-    ms[combcols[i,2],combcols[i,1]] <- dc[[i]]$statistic
-    mp[combcols[i,1],combcols[i,2]] <- dc[[i]]$p
-    mp[combcols[i,2],combcols[i,1]] <- dc[[i]]$p
-}
-
-rownames(ms) <- colnames(featF0)
-rownames(mp) <- colnames(featF0)
-colnames(ms) <- colnames(featF0)
-colnames(mp) <- colnames(featF0)
-
-diag(ms) <- as.numeric(10)
-diag(mp) <- as.numeric(1)
-
-
-tmp <- as.numeric(table(fchannel))
-par(mfrow=c(1,2))
-corrplot(log10(mp)[ford,ford],is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
-corrRect(tmp,col=Syncol,lwd=4)
-corrplot(ms[ford,ford],is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
-corrRect(tmp,col=Syncol,lwd=4)
-```
 
 
 <footer>
 <p> [Back to Top][Outline]</p>
 </footer>
-

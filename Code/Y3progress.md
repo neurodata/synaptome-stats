@@ -72,6 +72,21 @@ and
 - `Synap` and `Synap` have been augmented to `Synap_1` and `Synap_2` for clarity. 
 - `VGlut1` and `VGlut1` have been augmented to `VGlut1_t1` and `VGlut1_t2` to distinguish between the different times of collection (which are unknown).
 
+> On Thu, Apr 14, 2016 at 3:05 AM, Kristina Micheva kmicheva@stanford.edu wrote:
+>
+>I suggest: 
+>Synap, VGluT1, VGluT2, psd, gad, vgat, gephyr,
+>
+>Or a bit bigger:
+>Synap, VGluT1, VGluT2, psd, gad, vgat, gephyr, VGlut3, CB1
+>
+>> On Apr 12, 2016, at 9:54 AM, Jesse L. Patsolic studiojlp@gmail.com wrote:
+>> 
+>> Kristina,
+>> 
+>> Out of the markers available, which do you think are the best to use as a subset?
+>> 
+
 ## Processing of puncta: computer vision
 
 <FONT COLOR=#ff0000> How were the puncta processed?</FONT>  
