@@ -44,6 +44,7 @@ require(rgl)
 require(rglwidget)
 require(doMC); registerDoMC(4)
 require(foreach)
+require(MASS)
 ```
 
 ```{r knitrOpts,include=FALSE,results='asis',message=FALSE,warning=FALSE}
@@ -257,7 +258,11 @@ rglwidget(elementId="rgl-pca1",width=720,height=720)
 ```
 
 
-
+```{r cc-lda1}
+d1 <- data.frame(type=factor(channel.type[ford]),pca1$x)
+lda.fit <- lda(type ~ ., data=d1[,1:3])
+plot(lda.fit)
+```
 
 
 
