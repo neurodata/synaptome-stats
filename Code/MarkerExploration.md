@@ -214,23 +214,23 @@ geterrmessage()
 ```
 
 ```r
-lda.fit <- lda(type ~ ., data=d1[,1:3])
+lda.fit <- lda(type ~ ., data=d1[,1:8])
 ```
 <FONT COLOR=#750000> LDA was run using only the first 3 out of 24 principal components from the untransformed correlation matrix.</FONT>  
 
 
 ```r
-voronoidf <- data.frame(x=lda.fit$means[,1],y=lda.fit$means[,2])
+voronoidf <- data.frame(x=lda.fit$means[,1],y=lda.fit$means[,2],z=lda.fit$means[,3])
 voronoidf$lab <- rownames(voronoidf)
 
 #This creates the voronoi line segments
-voronoi <- deldir(voronoidf$x,voronoidf$y)
+voronoiXY <- deldir(voronoidf$x,voronoidf$y)
  
 gg1 <- ggplot(data=voronoidf,aes(x=x,y=y)) +
         geom_segment(
             aes(x=x1,y=y1,xend=x2,yend=y2),
             size=1,
-            data=voronoi$dirsgs,
+            data=voronoiXY$dirsgs,
             linetype=1,
             color="#FFB958") +
 #        #Plot the points
@@ -240,12 +240,47 @@ gg1 <- ggplot(data=voronoidf,aes(x=x,y=y)) +
           size = 4,
           color="#333333")
 
-print(gg1)
+voronoiXZ <- deldir(voronoidf$x,voronoidf$z)
+gg2 <- ggplot(data=voronoidf,aes(x=x,y=z)) +
+        geom_segment(
+            aes(x=x1,y=y1,xend=x2,yend=y2),
+            size=1,
+            data=voronoiXZ$dirsgs,
+            linetype=1,
+            color="#FFB958") +
+#        #Plot the points
+        geom_point(
+          fill=rgb(70,130,180,255,maxColorValue=255),
+          pch=21,
+          size = 4,
+          color="#333333")
+
+voronoiYZ <- deldir(voronoidf$y,voronoidf$z)
+gg3 <- ggplot(data=voronoidf,aes(x=y,y=z)) +
+        geom_segment(
+            aes(x=x1,y=y1,xend=x2,yend=y2),
+            size=1,
+            data=voronoiYZ$dirsgs,
+            linetype=1,
+            color="#FFB958") +
+#        #Plot the points
+        geom_point(
+          fill=rgb(70,130,180,255,maxColorValue=255),
+          pch=21,
+          size = 4,
+          color="#333333")
+
+layoutM <- matrix(cbind(1,2,3), nrow=1)
+grid.arrange(gg1,gg2,gg3, layout_matrix=layoutM)
 ```
 
 <figure><img src="../Figures/MarkerExploration_figure/cc-voronoi-1.png"><figcaption><b>Figure 6: Voronoi diagram on class means from LDA on PCA of untransformed correlation matrix</b><br><br></figcaption></figure>
 
 
+```r
+ldam <- lda.fit$means
+plot3d(ldam[,1], ldam[,2], ldam[,3])
+```
 
 
 
