@@ -203,9 +203,47 @@ rglwidget(elementId="rgl-pca1",width=720,height=720)
 
 
 
+```r
+d1 <- data.frame(type=factor(channel.type[ford]),pca1$x)
+try(lda.fit <- lda(type ~ ., data=d1),silent=FALSE)
+geterrmessage()
+```
+
+```
+# [1] "Error in lda.default(x, grouping, ...) : \n  variable 24 appears to be constant within groups\n"
+```
+
+```r
+lda.fit <- lda(type ~ ., data=d1[,1:3])
+```
+<FONT COLOR=#750000> LDA was run using only the first 3 out of 24 principal components from the untransformed correlation matrix.</FONT>  
 
 
+```r
+voronoidf <- data.frame(x=lda.fit$means[,1],y=lda.fit$means[,2])
+voronoidf$lab <- rownames(voronoidf)
 
+#This creates the voronoi line segments
+voronoi <- deldir(voronoidf$x,voronoidf$y)
+ 
+gg1 <- ggplot(data=voronoidf,aes(x=x,y=y)) +
+        geom_segment(
+            aes(x=x1,y=y1,xend=x2,yend=y2),
+            size=1,
+            data=voronoi$dirsgs,
+            linetype=1,
+            color="#FFB958") +
+#        #Plot the points
+        geom_point(
+          fill=rgb(70,130,180,255,maxColorValue=255),
+          pch=21,
+          size = 4,
+          color="#333333")
+
+print(gg1)
+```
+
+<figure><img src="../Figures/MarkerExploration_figure/cc-voronoi-1.png"><figcaption><b>Figure 6: Voronoi diagram on class means from LDA on PCA of untransformed correlation matrix</b><br><br></figcaption></figure>
 
 
 
