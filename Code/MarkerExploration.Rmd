@@ -46,6 +46,9 @@ require(rglwidget)
 require(doMC); registerDoMC(4)
 require(foreach)
 require(MASS)
+
+source("kmpp.r")
+source("clusterFraction.r")
 ```
 
 ```{r knitrOpts,include=FALSE,results='asis',message=FALSE,warning=FALSE}
@@ -250,7 +253,7 @@ pairs(pca1$x[,1:3], col=ccol,pch=20, cex=2)
 ```
 
 
-```{r cc_3dLog, fig.cap=fig$cap("rgl1","PCA 1-3 on untransformed correlation matrix")}
+```{r cc_3dCorr, fig.cap=fig$cap("rgl1","PCA 1-3 on untransformed correlation matrix")}
 pca <- pca1$x
 rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol, size=1)
 rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(channel), col=ccol, adj=c(0,2))
@@ -263,7 +266,7 @@ rglwidget(elementId="rgl-pca1",width=720,height=720)
 d1 <- data.frame(type=factor(channel.type[ford]),pca1$x)
 try(lda.fit <- lda(type ~ ., data=d1),silent=FALSE)
 geterrmessage()
-lda.fit <- lda(type ~ ., data=d1[,1:8])
+lda.fit <- lda(type ~ ., data=d1[,1:4])
 ```
 <FONT COLOR=#750000> LDA was run using only the first 3 out of 24 principal components from the untransformed correlation matrix.</FONT>  
 
@@ -401,6 +404,30 @@ observations.
 This plot is too large to show inline, you can view it here:
 [F0 Lattice Plot conditioned on top 1% of gadF0](../Figures/MarkerExploration_figure/cc-top1gadF0.pdf)
 
+
+
+## K-means
+
+Here we run the K-means++ algorithm for $k=2$ on the scaled 
+and centered principal components of the correlation matrix.
+The algorithm is implemented [here](./kmpp.r).
+
+```{r cc-k1}
+kp1 <- kmpp(pca,k=2)
+km <- kmeans(pca, centers=2)
+ari <- mclust::adjustedRandIndex(kp1$cluster,km$cluster)
+if(ari < 1){ print(ari) }
+```
+
+```{r cc_3dKMPP}
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol, size=kp1$cluster)
+rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(channel), col=ccol, adj=c(0,1.5))
+
+subid <- currentSubscene3d()
+rglwidget(elementId="plot3dLog")
+```
+Above the points are sized according to the resulting clustering
+returned by K-means++.
 
 
 
