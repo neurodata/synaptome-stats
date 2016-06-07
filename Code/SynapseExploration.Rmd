@@ -21,8 +21,8 @@ output:
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 rm(list=ls()); 
-rmarkdown::render(grep("FeatureExploration.Rmd", dir(), value=TRUE))
-system('open FeatureExploration.html')
+rmarkdown::render(grep("SynapseExploration.Rmd", dir(), value=TRUE))
+system('open SynapseExploration.html')
 ```
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE}
 ### Library calls here.
@@ -194,6 +194,37 @@ We now have the following data sets:
 
 # Synapse Exploration
 
+### Kernel Density Estimates of the marginals
+
+```{r synEx-kde1, eval=TRUE,echo=TRUE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("logKDE","Kernel density estimates for each channel, on `log` data.")}
+df <- melt(as.matrix(fs))
+names(df) <- c("ind","channel","value")
+df$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
+
+lvo <- c(1:5,7:10,19,22,11:16,6,17,18,20,21,23,24)
+levels(df$channel)<-levels(df$channel)[lvo]
+
+ts <- 22
+
+gg1 <- ggplot(df, aes(x=value)) + 
+    scale_color_manual(values=ccol[lvo]) +
+    scale_fill_manual(values=ccol[lvo]) +
+    geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=100) +
+    geom_density(aes(group=channel, color=channel),size=1.5) +
+    facet_wrap( ~ channel, scale='free', ncol=6) +
+    theme(plot.title=element_text(size=ts),
+          axis.title.x=element_text(size=ts),
+          axis.title.y=element_text(size=ts),
+          legend.title=element_text(size=ts),
+          legend.text=element_text(size=ts-2),
+          axis.text=element_text(size=ts-2),
+          strip.text=element_text(size=ts), 
+          legend.position='none')+
+    ggtitle("Kernel Density Estimates of `fs` data.")
+
+print(gg1)
+```
+
 ## Correlations
 
 ```{r cc_cor,w=5,h=5, eval=TRUE,fig.cap=fig$cap("cor","Correlation on untransformed F0 data, reordered by synapse type.")}
@@ -231,17 +262,19 @@ The following are heatmaps generated from clustering
 via K-means++
 
 ```{r cc-kmpp-heatmap,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
-heatmap.2(as.matrix(aggp), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data unsorted") # 
+heatmap.2(as.matrix(aggp), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data") # 
 ```
 
 ```{r cc-kmpp-heatmapSorted,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
-heatmap.2(as.matrix(aggp),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data sorted by type.") 
+heatmap.2(as.matrix(aggp),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.") 
 ```
 
 Percentage of data within cluster is presented on the right side of the heatmap.
 
-Using the location data and coloring the points based on
-K-Means++
+
+### Clusters and Spatial Location
+Using the location data and the results of K-means++ we show a scatter
+plot colored by cluster.
 
 ```{r cc-kpp3d}
 set.seed(2^12)
@@ -251,7 +284,7 @@ kcol <- kp1$cluster[s1]
 plot3d(locs1$V1,locs1$V2,locs1$V3,
        pch='.', 
        col=ifelse(kcol==1,'cyan','black'), 
-       alpha=0.85, 
+       alpha=0.80, 
        xlab='x', 
        ylab='y', 
        zlab='z')
@@ -260,6 +293,27 @@ subid <- currentSubscene3d()
 rglwidget(elementId="plot3dLocations")
 ```
 
+### Kernel Density Estimates of the marginals | cluster 
+
+Here we look at the kernel density estimates within each cluster to
+compare.
+
+```{r synEx-kde1c2, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDE","Kernel density estimates for each channel, on `fs` data given cluster from km++")}
+df1 <- melt(as.matrix(fs))
+names(df1) <- c("ind","channel","value")
+df1$cluster <- kp1$cluster
+df1$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
+
+gg2 <- ggplot(df1, aes(x=value)) + 
+    scale_colour_manual(values=ccol) + 
+    scale_x_continuous(limits=c(0,400)) +
+    geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=250) +
+    geom_density(aes(group=channel, color=channel),size=1.5) +
+    facet_grid(channel ~ cluster, scale='free') + 
+    theme(strip.text.y=element_text(angle=0))
+
+print(gg2)
+```
 
 
 
