@@ -1,5 +1,5 @@
 ---
-title: "Synapse Clustering: Feature Exploration"
+title: "Synaptome Stats: Feature Exploration"
 author: "JLP"
 date: '`r Sys.Date()`'
 output:
@@ -193,13 +193,15 @@ We now have the following data sets:
 
 ## Synapsin1 Vs. Synapsin2 for all features
 
-```{r cc-syn,w=9,h=6,fig.cap=fig$cap("Syn1v2F","Scatter plots of Synap1F0 and Synap2F0 on linear and log scale for all features.")}
+```{r cc-synPrep}
 synF <- feat[, grep("Synap_", names(feat)),with=FALSE]
 ans1 <- apply(synF, 1, function(row){ any(row == 0)})
 lsynF <- synF[!ans1,lapply(.SD,function(x){scale(log10(x),center=TRUE,scale=TRUE)})]
 
 print(paste("removed", sum(ans1), "zero entries"))
+```
 
+```{r cc-synGG, echo=FALSE}
 gg1 <- ggplot(data=synF[,.(Synap_1F0,Synap_2F0)],aes(x=Synap_1F0,y=Synap_2F0)) +   
         geom_point(pch='.',alpha=0.2) + 
         geom_hex(bins=100) +
@@ -290,13 +292,15 @@ cbind(r2,pval)
 
 ## VGlut1_t1 Vs. VGlut1_t2 for all features
 
-```{r cc-vglut,w=9,h=6,fig.cap=fig$cap("Vglut1v2F","Scatter plots of VGlut1_t1F0 and VGlut1_t2F0 on linear and log scale for all features.")}
+```{r cc-vglut}
 vglutF <- feat[,grep("VGlut", names(feat)),with=FALSE]
 ans2 <- apply(vglutF,1,function(row){ any(row == 0)})
 lvglutF <- vglutF[!ans2,lapply(.SD, function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
 
 print(paste("removed", sum(ans2), "zero entries"))
+```
 
+```{r cc-vglutPrep, echo=FALSE}
 gg13 <- ggplot(data=vglutF[,.(VGlut1_t1F0,VGlut1_t2F0)],aes(x=VGlut1_t1F0,y=VGlut1_t2F0)) +   
         geom_point(pch='.',alpha=0.2) + 
         geom_hex(bins=100) +

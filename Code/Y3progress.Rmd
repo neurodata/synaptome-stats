@@ -1,5 +1,5 @@
 ---
-title: "Synapse Clustering: TRA Y3 Progress Report (JHU)"
+title: "Synaptome Stats: TRA Y3 Progress Report (JHU)"
 author: "Jesse Leigh Patsolic"
 date: '`r Sys.Date()`'
 output:

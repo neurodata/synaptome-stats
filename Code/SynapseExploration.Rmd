@@ -1,5 +1,5 @@
 ---
-title: "Synapse Clustering: Synapse Exploration"
+title: "Synapse Stats: Synapse Exploration"
 author: "JLP"
 date: '`r Sys.Date()`'
 output:
@@ -28,6 +28,7 @@ system('open SynapseExploration.html')
 ### Library calls here.
 require(Matrix)
 require(colorRamps)
+require(hexbin)
 require(corrplot)
 require(gplots)
 require(dplyr)
@@ -196,17 +197,17 @@ We now have the following data sets:
 
 ### Kernel Density Estimates of the marginals
 
-```{r synEx-kde1, eval=TRUE,echo=TRUE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("logKDE","Kernel density estimates for each channel, on `log` data.")}
-df <- melt(as.matrix(fs))
-names(df) <- c("ind","channel","value")
-df$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
+```{r synEx-kde1, eval=TRUE,echo=TRUE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("synEx-kde1","Kernel density estimates for each channel, on `fs` data.")}
+df1 <- melt(as.matrix(fs))
+names(df1) <- c("ind","channel","value")
+df1$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
 
 lvo <- c(1:5,7:10,19,22,11:16,6,17,18,20,21,23,24)
-levels(df$channel)<-levels(df$channel)[lvo]
+levels(df1$channel)<-levels(df1$channel)[lvo]
 
 ts <- 22
 
-gg1 <- ggplot(df, aes(x=value)) + 
+gg1 <- ggplot(df1, aes(x=value)) + 
     scale_color_manual(values=ccol[lvo]) +
     scale_fill_manual(values=ccol[lvo]) +
     geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=100) +
@@ -228,34 +229,46 @@ print(gg1)
 ## Correlations
 
 ```{r cc_cor,w=5,h=5, eval=TRUE,fig.cap=fig$cap("cor","Correlation on untransformed F0 data, reordered by synapse type.")}
-tmp <- as.numeric(table(fchannel))
-cmatf0 <- cor(featF0)
+cmatfs <- cor(fs)
+corrplot(cmatfs,method="color",tl.col=ccol[ford], tl.cex=0.8)
 ```
 ### PCA on the Correlation Matrix
 
 ```{r pcaLog, eval=TRUE}
 pcaf0 <- prcomp(featF0,scale=TRUE, center=TRUE)
-elpcaf0 <- getElbows(pcaf0$sdev, plot=FALSE) 
+pcafs <- prcomp(fs,scale=FALSE, center=FALSE)
+elpcaf0 <- getElbows(pcaf0$sdev, plot=FALSE)
+elpcafs <- getElbows(pcafs$sdev, plot=FALSE)
 ```
 
-We run K-means++ for $K=2$ on the 
+## K-means++ for $K=2$.
+We run K-means++ for $K=2$ on the `fs` data.
 
 ```{r cc_Corkmeans,eval=TRUE,echo=TRUE}
 K1 <- c(2)  ## The set of K's.
 #km1 <- kmeans(pcaf0$x[,1:elpcaf0[2]], centers=K1)
+set.seed(2^13)
 kp1 <- kmpp(fs, k=K1)
 ```
 
-### Heat maps:
+### Within cluster correlations
 
-For the following we manualy choose 2 clusters.
+```{r cc-wcc1, h=7,w=12,fig.cap=fig$cap("corkp1","Within cluster correlations")}
+corkp11 <- cor(fs[kp1$cluster == 1,])
+corkp12 <- cor(fs[kp1$cluster == 2,])
+
+par(mfrow=c(1,2))
+corrplot(corkp11,method="color",tl.col=ccol[ford], tl.cex=0.8, main='Cluster 1')
+corrplot(corkp12,method="color",tl.col=ccol[ford], tl.cex=0.8, main='Cluster 2')
+```
+
+### Heat maps:
 
 ```{r cc_agg, eval=TRUE}
 ## Formatting data for heatmap
 aggp <- aggregate(fs,by=list(lab=kp1$cluster),FUN=mean)
 aggp <- as.matrix(aggp[,-1])
 rownames(aggp) <- clusterFraction(kp1)
-ford <- order(fchannel)
 ```
 
 The following are heatmaps generated from clustering 
@@ -273,18 +286,21 @@ Percentage of data within cluster is presented on the right side of the heatmap.
 
 
 ### Clusters and Spatial Location
-Using the location data and the results of K-means++ we show a scatter
-plot colored by cluster.
+Using the location data and the results of K-means++ we show a 3d scatter
+plot colored accoding to cluster.
 
 ```{r cc-kpp3d}
 set.seed(2^12)
-s1 <- sample(dim(loc)[1],2.5e4)
+s1 <- sample(dim(loc)[1],5e4)
+
 locs1 <- loc[s1,]
-kcol <- kp1$cluster[s1]
+locs1$cluster <- kp1$cluster[s1]
+
+m <- table(kp1$cluster)/length(kp1$cluster)
+
 plot3d(locs1$V1,locs1$V2,locs1$V3,
-       pch='.', 
-       col=ifelse(kcol==1,'cyan','black'), 
-       alpha=0.80, 
+       col=ifelse(locs1$cluster==1,'#d95f02','#6a3d9a'), #orange,purple
+       alpha=0.75,
        xlab='x', 
        ylab='y', 
        zlab='z')
@@ -298,24 +314,68 @@ rglwidget(elementId="plot3dLocations")
 Here we look at the kernel density estimates within each cluster to
 compare.
 
-```{r synEx-kde1c2, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDE","Kernel density estimates for each channel, on `fs` data given cluster from km++")}
-df1 <- melt(as.matrix(fs))
-names(df1) <- c("ind","channel","value")
-df1$cluster <- kp1$cluster
-df1$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
+```{r synEx-kde1c2prep}
+df2 <- melt(as.matrix(fs))
+names(df2) <- c("ind","channel","value")
+df2$cluster <- kp1$cluster
+df2$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
 
-gg2 <- ggplot(df1, aes(x=value)) + 
+gg2 <- ggplot(df2, aes(x=value)) + 
     scale_colour_manual(values=ccol) + 
     scale_x_continuous(limits=c(0,400)) +
     geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=250) +
     geom_density(aes(group=channel, color=channel),size=1.5) +
     facet_grid(channel ~ cluster, scale='free') + 
-    theme(strip.text.y=element_text(angle=0))
+    theme(strip.text.y=element_text(angle=0)) +
+    guides(col=guide_legend(ncol=1))
+```
 
+```{r synEx-kde1c2, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDE","Kernel density estimates for each channel, on `fs` data given cluster from km++")}
 print(gg2)
 ```
 
+## `GABABR`
 
+```{r cc-gabLat}
+## re-formatting data for use in lattice 
+d1gab <- data.table(stack(fs, select=-GABABRF0))[,.(values)]
+d1gab$GABABR <- fs$GABABRF0
+
+### Adding relationship factor variables
+nd <- paste0("GABABR","~",abbreviate(channel[-which(channel=="GABABR")]))
+
+d1gab$ind <- factor(rep(nd,each=dim(fs)[1]),ordered=TRUE,levels=nd)
+
+names(d1gab) <- c("x","y","g")
+
+lat1 <- xyplot(y ~ x | g, data=d1gab,
+       as.table=TRUE,
+       colramp=BTC,
+       pch='.',
+       scales = list(y = list(relation = "free"),x = list(relation = "free")),
+       panel=function(x,y,...){
+           panel.hexbinplot(x,y,..., type='g')
+           panel.loess(x,y,col='red', lwd=2,...)
+        }
+       )
+```
+
+```{r cc-lat1,eval=FALSE,echo=FALSE,w=10,h=10,fig.cap=fig$cap("rg1", "Lattice plot of pairwise regressions involving `GABABR`")}
+print(lat1)
+```
+
+
+```{r cc-gabGG}
+gg3 <- ggplot(data=d1gab,aes(x=x,y=y, group=g)) +   
+        geom_point(pch='.',alpha=0.2) + 
+        geom_hex(bins=100) +
+        geom_smooth(method='lm',colour='red', alpha=0.7)+
+        facet_wrap( ~ g, scales='free_x') 
+```
+
+```{r cc-gg3,w=8,h=8,fig.cap=fig$cap("gabLat","Pairs plots of GABABR and all other markers with regression lines.")}
+print(gg3)
+```
 
 <footer>
 <p> [Back to top][Introduction]</p>

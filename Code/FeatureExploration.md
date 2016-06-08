@@ -123,79 +123,7 @@ print(paste("removed", sum(ans1), "zero entries"))
 # [1] "removed 222681 zero entries"
 ```
 
-```r
-gg1 <- ggplot(data=synF[,.(Synap_1F0,Synap_2F0)],aes(x=Synap_1F0,y=Synap_2F0)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F0")
-        
-gg2 <- ggplot(data=lsynF[,.(Synap_1F0,Synap_2F0)],aes(x=Synap_1F0,y=Synap_2F0)) +
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F0")
 
-gg3 <- ggplot(data=synF[,.(Synap_1F1,Synap_2F1)],aes(x=Synap_1F1,y=Synap_2F1)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F1")
-        
-gg4 <- ggplot(data=lsynF[,.(Synap_1F1,Synap_2F1)],aes(x=Synap_1F1,y=Synap_2F1)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F1")
-
-gg5 <- ggplot(data=synF[,.(Synap_1F2,Synap_2F2)],aes(x=Synap_1F2,y=Synap_2F2)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F2")
-        
-gg6 <- ggplot(data=lsynF[,.(Synap_1F2,Synap_2F2)],aes(x=Synap_1F2,y=Synap_2F2)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F2")
-
-gg7 <- ggplot(data=synF[,.(Synap_1F3,Synap_2F3)],aes(x=Synap_1F3,y=Synap_2F3)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F3")
-        
-gg8 <- ggplot(data=lsynF[,.(Synap_1F3,Synap_2F3)],aes(x=Synap_1F3,y=Synap_2F3)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F3")
-
-gg09 <- ggplot(data=synF[,.(Synap_1F4,Synap_2F4)],aes(x=Synap_1F4,y=Synap_2F4)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F4")
-        
-gg10 <- ggplot(data=lsynF[,.(Synap_1F4,Synap_2F4)],aes(x=Synap_1F4,y=Synap_2F4)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F4")
-
-gg11 <- ggplot(data=synF[,.(Synap_1F5,Synap_2F5)],aes(x=Synap_1F5,y=Synap_2F5)) +   
-        geom_point(pch='.',alpha=0.2,position='jitter') + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F5")
-        
-gg12 <- ggplot(data=lsynF[,.(Synap_1F5,Synap_2F5)],aes(x=Synap_1F5,y=Synap_2F5)) +   
-        geom_point(pch='.',alpha=0.2, position='jitter') +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F5")
-```
 
 
 
@@ -203,7 +131,7 @@ gg12 <- ggplot(data=lsynF[,.(Synap_1F5,Synap_2F5)],aes(x=Synap_1F5,y=Synap_2F5))
 grid.arrange(gg1,gg2,gg3,gg4,gg5,gg6,gg7,gg8,gg09,gg10, gg11, gg12, ncol=2)
 ```
 
-<figure><img src="../Figures/FeatureExploration_figure/cc-F1-5-1.png"><figcaption><b>Figure 2: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
+<figure><img src="../Figures/FeatureExploration_figure/cc-F1-5-1.png"><figcaption><b>Figure 1: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
 
 
 ```r
@@ -247,86 +175,14 @@ print(paste("removed", sum(ans2), "zero entries"))
 # [1] "removed 25365 zero entries"
 ```
 
-```r
-gg13 <- ggplot(data=vglutF[,.(VGlut1_t1F0,VGlut1_t2F0)],aes(x=VGlut1_t1F0,y=VGlut1_t2F0)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F0")
-        
-gg14 <- ggplot(data=lvglutF[,.(VGlut1_t1F0,VGlut1_t2F0)],aes(x=VGlut1_t1F0,y=VGlut1_t2F0)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F0")
 
-gg15 <- ggplot(data=vglutF[,.(VGlut1_t1F1,VGlut1_t2F1)],aes(x=VGlut1_t1F1,y=VGlut1_t2F1)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F1")
-        
-gg16 <- ggplot(data=lvglutF[,.(VGlut1_t1F1,VGlut1_t2F1)],aes(x=VGlut1_t1F1,y=VGlut1_t2F1)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F1")
-
-gg17 <- ggplot(data=vglutF[,.(VGlut1_t1F2,VGlut1_t2F2)],aes(x=VGlut1_t1F2,y=VGlut1_t2F2)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F2")
-        
-gg18 <- ggplot(data=lvglutF[,.(VGlut1_t1F2,VGlut1_t2F2)],aes(x=VGlut1_t1F2,y=VGlut1_t2F2)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F2")
-
-gg19 <- ggplot(data=vglutF[,.(VGlut1_t1F3,VGlut1_t2F3)],aes(x=VGlut1_t1F3,y=VGlut1_t2F3)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F3")
-        
-gg20 <- ggplot(data=lvglutF[,.(VGlut1_t1F3,VGlut1_t2F3)],aes(x=VGlut1_t1F3,y=VGlut1_t2F3)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F3")
-
-gg21 <- ggplot(data=vglutF[,.(VGlut1_t1F4,VGlut1_t2F4)],aes(x=VGlut1_t1F4,y=VGlut1_t2F4)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F4")
-        
-gg22 <- ggplot(data=lvglutF[,.(VGlut1_t1F4,VGlut1_t2F4)],aes(x=VGlut1_t1F4,y=VGlut1_t2F4)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F4")
-
-gg23 <- ggplot(data=vglutF[,.(VGlut1_t1F5,VGlut1_t2F5)],aes(x=VGlut1_t1F5,y=VGlut1_t2F5)) +   
-        geom_point(pch='.',alpha=0.2, position='jitter') + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F5")
-        
-gg24 <- ggplot(data=lvglutF[,.(VGlut1_t1F5,VGlut1_t2F5)],aes(x=VGlut1_t1F5,y=VGlut1_t2F5)) +   
-        geom_point(pch='.',alpha=0.2, position='jitter') +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F5")
-```
 
 
 ```r
 grid.arrange(gg13, gg14, gg15, gg16, gg17, gg18, gg19, gg20,gg21,gg22,gg23,gg24, ncol=2)
 ```
 
-<figure><img src="../Figures/FeatureExploration_figure/cc-vglutF1-5-1.png"><figcaption><b>Figure 4: Scatter plots of VGlut1_t1 and VGlut1_t2 on linear and log scale for all features.</b><br><br></figcaption></figure>
+<figure><img src="../Figures/FeatureExploration_figure/cc-vglutF1-5-1.png"><figcaption><b>Figure 2: Scatter plots of VGlut1_t1 and VGlut1_t2 on linear and log scale for all features.</b><br><br></figcaption></figure>
 
 
 ```r
@@ -380,7 +236,7 @@ ggplot(data=df1,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) +
     facet_wrap( ~ Var2,scales='free',ncol=6)
 ```
 
-<figure><img src="../Figures/FeatureExploration_figure/cc-kde-syn-1.png"><figcaption><b>Figure 5: KDE for Synapsin1 and Synapsin2 accross all features.</b><br><br></figcaption></figure>
+<figure><img src="../Figures/FeatureExploration_figure/cc-kde-syn-1.png"><figcaption><b>Figure 3: KDE for Synapsin1 and Synapsin2 accross all features.</b><br><br></figcaption></figure>
 
 
 ```r
@@ -391,7 +247,7 @@ ggplot(data=df2,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) +
     facet_wrap( ~ Var2,scales='free', ncol=6)
 ```
 
-<figure><img src="../Figures/FeatureExploration_figure/cc-kde-vglut-1.png"><figcaption><b>Figure 6: KDE for VGlut1_t1 and VGlut1_t2 accross all features.</b><br><br></figcaption></figure>
+<figure><img src="../Figures/FeatureExploration_figure/cc-kde-vglut-1.png"><figcaption><b>Figure 4: KDE for VGlut1_t1 and VGlut1_t2 accross all features.</b><br><br></figcaption></figure>
 
 
 
