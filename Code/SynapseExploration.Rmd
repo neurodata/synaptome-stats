@@ -253,13 +253,14 @@ kp1 <- kmpp(fs, k=K1)
 
 ### Within cluster correlations
 
-```{r cc-wcc1, h=7,w=12,fig.cap=fig$cap("corkp1","Within cluster correlations")}
+```{r cc-wcc1, h=8,w=8,fig.cap=fig$cap("corkp1","Within cluster correlations, clock-wise from top left, Cluster 1, Cluster 2, l2 distance between C1 and C2")}
 corkp11 <- cor(fs[kp1$cluster == 1,])
 corkp12 <- cor(fs[kp1$cluster == 2,])
 
-par(mfrow=c(1,2))
-corrplot(corkp11,method="color",tl.col=ccol[ford], tl.cex=0.8, main='Cluster 1')
-corrplot(corkp12,method="color",tl.col=ccol[ford], tl.cex=0.8, main='Cluster 2')
+par(mfrow=c(2,2))
+corrplot(corkp11,method="color",tl.col=ccol[ford], tl.cex=0.8)
+corrplot(corkp12,method="color",tl.col=ccol[ford], tl.cex=0.8)
+corrplot(sqrt((corkp11 - corkp12)^2),method="color",tl.col=ccol[ford], tl.cex=0.8)
 ```
 
 ### Heat maps:
