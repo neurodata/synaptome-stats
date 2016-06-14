@@ -164,6 +164,6 @@ the synaptic locus
 - Integrated Brightness $:= B=\sum_{i\in V} b_i$
 - Local Brightness $:= \sum_{i\in V} b_i/d_{i}^{2}$
 - Center of Mass $:= \sum_{i\in V} b_id_i/B$
-- Moment of Inertia $:= \sum_{i\in V} b_id_i/B$
+- Moment of Inertia $:= \sum_{i\in V} b_id{_i}^{2}/B$
 
 
