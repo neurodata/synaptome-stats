@@ -424,7 +424,7 @@ rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol, size=kp1$cluster)
 rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(channel), col=ccol, adj=c(0,1.5))
 
 subid <- currentSubscene3d()
-rglwidget(elementId="plot3dLog")
+rglwidget(elementId="plot3dLog", width=720, height=720)
 ```
 Above the points are sized according to the resulting clustering
 returned by K-means++.
