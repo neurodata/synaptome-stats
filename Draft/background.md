@@ -151,3 +151,19 @@ On Tue, May 17, 2016 at 11:48 AM, Forrest Collman <forrestc@alleninstitute.org> 
 >> Best,
 >> 
 >> Jesse
+
+# Feature Definitions
+
+Features 0-3 are defined in [BBSS13] as follows:
+
+Let $V$ be an 11x11x11 voxel cube.  For every $i \in V$, let $b_i$
+denote the brightness of voxel $i$ and $d_i$ the
+pixelwise distance from $i$ to
+the synaptic locus
+
+- Integrated Brightness $:= B=\sum_{i\in V} b_i$
+- Local Brightness $:= \sum_{i\in V} b_i/d_{i}^{2}$
+- Center of Mass $:= \sum_{i\in V} b_id_i/B$
+- Moment of Inertia $:= \sum_{i\in V} b_id_i/B$
+
+
