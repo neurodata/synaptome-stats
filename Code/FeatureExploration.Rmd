@@ -109,7 +109,7 @@ to explore if filtering improves the outcome of clustering.
 
 # Feature Definitions
 
-Features 0-3 are defined in [BBSS13] as follows:
+Features 0-3 are defined in [BBSS13][References] as follows:
 
 Let $V$ be an 11x11x11 voxel cube.  For every $i \in V$, let $b_i$
 denote the brightness of voxel $i$ and $d_i$ the
