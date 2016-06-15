@@ -68,7 +68,7 @@ bhkmpp <- function(x,blevels){
         ## Set seed to keep cluster labels somewhat consistant 
         set.seed(13)
         kv <- kmpp(fs[L[[j]] == i,], k = 2)
-        if(i != 1){kv$cluster <- as.integer(kv$cluster+i)}
+        if(i != 1){kv$cluster <- as.integer(kv$cluster + 2*(i-1))}
         L[L[[j]]==i,][[j+1]] <- kv$cluster
         }
     }
