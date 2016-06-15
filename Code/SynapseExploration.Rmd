@@ -243,23 +243,19 @@ elpcafs <- getElbows(pcafs$sdev, plot=FALSE)
 ```
 
 
-# K-means++ for $K=2$ (Level 1).
-We run K-means++ for $K=2$ on the `fs` data.
+# Level 1: K-means++ for $K=2$. 
+We run a Hierachical K-means++ for $K=2$ on the `fs` data with 4 levels.
 
-```{r cc-k1,eval=TRUE,echo=TRUE}
-K1 <- c(2)  ## The set of K's.
-
+```{r cc-kmpp,eval=TRUE,echo=TRUE}
 set.seed(2^13)
-k0 <- kmpp(fs, k=2)
-kl <- list()
-kl[[1]] <- list(c1 = k0$cluster == 1,c2 = k0$cluster==2, k1 = k0)
+L <- bhkmpp(fs,blevels=4)
 ```
 
 ## Within cluster correlations (Lv 1)
 
 ```{r cc-wcc1, h=8,w=8,fig.cap=fig$cap("corkp1","Within cluster correlations, clock-wise from top left, Cluster 1, Cluster 2, l2 distance between C1 and C2")}
-corkp1 <- cor(fs[kl[[1]]$c1,])
-corkp2 <- cor(fs[kl[[1]]$c2,])
+corkp1 <- cor(fs[L[[1]] == 1,])
+corkp2 <- cor(fs[L[[1]] == 2,])
 
 par(mfrow=c(2,2))
 corrplot(corkp1,method="color",tl.col=ccol[ford], tl.cex=0.8)
@@ -276,24 +272,23 @@ clusters.
 
 ```{r cc_agg, eval=TRUE}
 ## Formatting data for heatmap
-aggp <- aggregate(fs,by=list(lab=kl[[1]]$k1$cluster),FUN=mean) # FIX THIS
+aggp <- aggregate(fs,by=list(lab=L[[1]]),FUN=mean) # FIX THIS
 aggp <- as.matrix(aggp[,-1])
-rownames(aggp) <- clusterFraction(kl[[1]]$k1$cluster)
+rownames(aggp) <- clusterFraction(L[[1]])
 ```
 
 The following are heatmaps generated from clustering 
-via K-means++
+via K-means++ (at level 1)
 
-```{r cc-kmpp-heatmap,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
+```{r cc-kmpp-heatmapLV1,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
 heatmap.2(as.matrix(aggp), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data") # 
 ```
 
-```{r cc-kmpp-heatmapSorted,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
+```{r cc-kmpp-heatmapSortedLV1,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
 heatmap.2(as.matrix(aggp),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.") 
 ```
 
 Percentage of data within cluster is presented on the right side of the heatmap.
-
 
 
 ## Kernel Density Estimates of the marginals | cluster (Lv 1)
@@ -301,10 +296,10 @@ Percentage of data within cluster is presented on the right side of the heatmap.
 Here we look at the kernel density estimates within each cluster to
 compare.
 
-```{r synEx-kde1c2prep}
+```{r synEx-kde1c2prepLV1}
 df2 <- melt(as.matrix(fs))
 names(df2) <- c("ind","channel","value")
-df2$cluster <- kl[[1]]$k1$cluster
+df2$cluster <- L[[1]]
 df2$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
 
 gg2 <- ggplot(df2, aes(x=value)) + 
@@ -314,10 +309,18 @@ gg2 <- ggplot(df2, aes(x=value)) +
     geom_density(aes(group=channel, color=channel),size=1.5) +
     facet_grid(channel ~ cluster, scale='free') + 
     theme(strip.text.y=element_text(angle=0)) +
-    guides(col=guide_legend(ncol=1))
+    #guides(col=guide_legend(ncol=1))
+    theme(strip.text.y=element_text(angle=0),
+          plot.title=element_text(size=ts),
+          axis.title.x=element_text(size=ts),
+          axis.title.y=element_text(size=ts),
+          legend.title=element_text(size=ts),
+          legend.text=element_text(size=ts-2),
+          strip.text=element_text(size=ts), 
+          legend.position='none')
 ```
 
-```{r synEx-kde1c2, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDE","Kernel density estimates for each channel, on `fs` data given cluster from km++")}
+```{r synEx-kdeLV1, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDElv1","Kernel density estimates for each channel, on `fs` data given cluster from km++ level 1")}
 print(gg2)
 ```
 
@@ -325,84 +328,54 @@ print(gg2)
 Using the location data and the results of K-means++ we show a 3d scatter
 plot colored accoding to cluster.
 
-```{r cc-kpp3d}
+```{r cc-kpp3dLV1}
 set.seed(2^12)
 s1 <- sample(dim(loc)[1],5e4)
 
 locs1 <- loc[s1,]
-locs1$cluster <- kl[[1]]$k1$cluster[s1]
+locs1$cluster <- L[[1]][s1]
 
 plot3d(locs1$V1,locs1$V2,locs1$V3,
-       col=ifelse(locs1$cluster==1,'#d95f02','#6a3d9a'), #orange,purple
+       col=rev(brewer.pal(8,"Blues"))[locs1$cluster],
        alpha=0.75,
        xlab='x', 
        ylab='y', 
        zlab='z')
 
 subid <- currentSubscene3d()
-rglwidget(elementId="plot3dLocations")
+rglwidget(elementId="plot3dLocations", height=720, width=720)
 ```
 
-
-# K-means++ for $K=2$ (Level 2).
-
-We run the next level of K-means++ for $K=2$ on the `fs` data.
-
-
-```{r cc-k2,eval=TRUE,echo=TRUE}
-###
-###
-### Naming convention: 
-###     k<numeric> := kmpp on the <numeric>th node
-###         in the tree as read in a binary tree 
-###
-###     c<numeric> := the logical vector of class membership for 
-###         <numeric>th cluster.
-###      
-K2 <- c(2)  ## The set of K's.
-
-set.seed(2^13)
-k1 <-kmpp(fs[kl[[1]]$c1,], k = K2)
-set.seed(2^13)
-k2 <-kmpp(fs[kl[[1]]$c2,], k = K2)
-kl[[2]] <- list(c11 = k1$cluster == 1, c12 = k1$cluster==2, 
-                c21 = k2$cluster == 1, c22 = k2$cluster==2, k1=k1,k2=k2)
-```
+# Level 2: K-means++ for $K=2$.
 
 ## Within cluster correlations (Lv 2)
 
-```{r cc-wcc2,h=8,w=14,fig.cap=fig$cap("corkp2","Within cluster correlations for level 2. (c11, c12, c21, c22)")}
-corkp11 <- cor(featF0[kl[[1]]$c1,][kl[[2]]$c11,])
-corkp12 <- cor(featF0[kl[[1]]$c1,][kl[[2]]$c12,])
-corkp21 <- cor(featF0[kl[[1]]$c2,][kl[[2]]$c21,])
-corkp22 <- cor(featF0[kl[[1]]$c2,][kl[[2]]$c22,])
+```{r cc-wccLV2,h=10,w=10,fig.cap=fig$cap("corkp2","Within cluster correlations for level 2. (c11, c12, c21, c22)")}
+corLV2 <- lapply(c(1:4),function(x){cor(fs[L[[2]] == x,])})
 
-par(mfrow=c(1,4))
-corrplot(corkp11,method="color",tl.col=ccol[ford], tl.cex=0.8)
-corrplot(corkp12,method="color",tl.col=ccol[ford], tl.cex=0.8)
-corrplot(corkp21,method="color",tl.col=ccol[ford], tl.cex=0.8)
-corrplot(corkp22,method="color",tl.col=ccol[ford], tl.cex=0.8)
+par(mfrow=c(2,2))
+for(pl in corLV2){
+corrplot(pl,method="color",tl.col=ccol[ford], tl.cex=0.8)
+}
 ```
-
 
 ## Heat maps (Lv 2):
 
 ```{r cc-agg2, eval=TRUE}
 ## Formatting data for heatmap
-labs2 <- c(kl[[2]]$k1$cluster,kl[[2]]$k2$cluster+2)
-aggp2 <- aggregate(fs,by=list(lab=labs2),FUN=function(x){mean(x)}) # FIX THIS
+aggp2 <- aggregate(fs,by=list(lab=L[[2]]),FUN=function(x){mean(x)}) # FIX THIS
 aggp2 <- as.matrix(aggp2[,-1])
-rownames(aggp2) <- clusterFraction(labs2)
+rownames(aggp2) <- clusterFraction(L[[2]])
 ```
 
 The following are heatmaps generated from clustering 
 via K-means++
 
-```{r cc-kmpp-heatmap2,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
+```{r cc-kmpp-heatmapLV2,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
 heatmap.2(as.matrix(aggp2), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data") # 
 ```
 
-```{r cc-kmpp-heatmapSorted2,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
+```{r cc-kmpp-heatmapSortedLV2,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
 heatmap.2(as.matrix(aggp2),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.") 
 ```
 
@@ -414,10 +387,10 @@ Percentage of data within cluster is presented on the right side of the heatmap.
 Here we look at the kernel density estimates within each cluster to
 compare.
 
-```{r synEx-kde1c2prep2}
+```{r synEx-kdeLV2}
 df2 <- melt(as.matrix(fs))
 names(df2) <- c("ind","channel","value")
-df2$cluster <- labs2
+df2$cluster <- L[[2]]
 df2$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
 
 gg3 <- ggplot(df2, aes(x=value)) + 
@@ -426,11 +399,18 @@ gg3 <- ggplot(df2, aes(x=value)) +
     geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=250) +
     geom_density(aes(group=channel),size=.5, color='black', alpha=0.5) +
     facet_grid(channel ~ cluster, scale='free') + 
-    theme(strip.text.y=element_text(angle=0)) +
-    guides(col=guide_legend(ncol=1))
+    #guides(col=guide_legend(ncol=1))
+    theme(strip.text.y=element_text(angle=0),
+          plot.title=element_text(size=ts),
+          axis.title.x=element_text(size=ts),
+          axis.title.y=element_text(size=ts),
+          legend.title=element_text(size=ts),
+          legend.text=element_text(size=ts-2),
+          strip.text=element_text(size=ts), 
+          legend.position='none')
 ```
 
-```{r synEx-kde1c22, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDE2","Kernel density estimates for each channel, on `fs` data given cluster from km++ level 2")}
+```{r synEx-kdeLV2, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDE2","Kernel density estimates for each channel, on `fs` data given cluster from km++ level 2")}
 print(gg3)
 ```
 
@@ -442,11 +422,11 @@ plot colored according to cluster.
 set.seed(2^12)
 s1 <- sample(dim(loc)[1],5e4)
 
-locs1 <- loc[s1,]
-locs1$cluster <- c(kl[[2]]$k1$cluster,kl[[2]]$k2$cluster+2)[s1]
+locs2 <- loc[s1,]
+locs2$cluster <- L[[2]][s1]
 
-plot3d(locs1$V1,locs1$V2,locs1$V3,
-       col=brewer.pal(4,"BrBG")[locs1$cluster],#ifelse(locs1$cluster==1,'#d95f02','#6a3d9a'), #orange,purple
+plot3d(locs2$V1,locs2$V2,locs2$V3,
+       col=rev(brewer.pal(8,"Blues"))[locs2$cluster],
        alpha=0.75,
        xlab='x', 
        ylab='y', 
@@ -458,9 +438,118 @@ rglwidget(elementId="plot3dLocationsLV2")
 ```
 
 
-## `GABABR`
 
-```{r cc-gabLat}
+
+# Level 3: K-means++ for $K=2$.
+
+## Within cluster correlations (Lv 3)
+
+```{r cc-wcc3,h=16,w=10,fig.cap=fig$cap("corkp3","Within cluster correlations for level 3. (c111, c112, c121, c122, c211, c212, c221, c222)")}
+corLV3 <- lapply(c(1:6),function(x){cor(fs[L[[3]] == x,])})
+
+par(mfrow=c(3,2))
+for(pl in corLV3){
+corrplot(pl,method="color",tl.col=ccol[ford], tl.cex=0.8)
+}
+```
+
+## Heat maps (Lv 3):
+
+```{r cc-agg3, eval=TRUE}
+## Formatting data for heatmap
+aggp3 <- aggregate(fs,by=list(lab=L[[3]]),FUN=function(x){mean(x)}) # FIX THIS
+aggp3 <- as.matrix(aggp3[,-1])
+rownames(aggp3) <- clusterFraction(L[[3]])
+```
+
+The following are heatmaps generated from clustering 
+via K-means++
+
+```{r cc-kmpp-heatmapLV3,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat3", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
+heatmap.2(as.matrix(aggp3), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data") # 
+```
+
+```{r cc-kmpp-heatmapSortedLV3,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
+heatmap.2(as.matrix(aggp3),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.") 
+```
+
+Percentage of data within cluster is presented on the right side of the heatmap.
+
+
+## Kernel Density Estimates of the marginals | cluster (Lv 3)
+
+Here we look at the kernel density estimates within each cluster to
+compare.
+
+```{r synEx-kde1c2prep3}
+df3 <- melt(as.matrix(fs))
+names(df3) <- c("ind","channel","value")
+df3$cluster <- L[[3]]
+df3$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
+
+gg4 <- ggplot(df3, aes(x=value)) + 
+    scale_colour_manual(values=ccol) + 
+    #scale_x_continuous(limits=c(0,400)) +
+    geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=250) +
+    geom_density(aes(group=channel),size=.5, color='black', alpha=0.5) +
+    facet_grid(channel ~ cluster, scale='free') + 
+    #guides(col=guide_legend(ncol=1)) + 
+    theme(strip.text.y=element_text(angle=0),
+          plot.title=element_text(size=ts),
+          axis.title.x=element_text(size=ts),
+          axis.title.y=element_text(size=ts),
+          legend.title=element_text(size=ts),
+          legend.text=element_text(size=ts-2),
+          strip.text=element_text(size=ts), 
+          legend.position='none')
+```
+
+```{r synEx-kdeLV3, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDE3","Kernel density estimates for each channel, on `fs` data given cluster from km++ level 3")}
+print(gg4)
+```
+
+## Clusters and Spatial Location (Lv 3)
+Using the location data and the results of K-means++ we show a 3d scatter
+plot colored according to cluster.
+
+```{r cc-kppLV3}
+set.seed(2^12)
+s1 <- sample(dim(loc)[1],5e4)
+
+locs3 <- loc[s1,]
+locs3$cluster <- L[[3]][s1]
+
+plot3d(locs3$V1,locs3$V2,locs3$V3,
+       col=rev(brewer.pal(8,"Blues"))[locs3$cluster],
+       alpha=0.75,
+       xlab='x', 
+       ylab='y', 
+       zlab='z'
+       )
+
+subid <- currentSubscene3d()
+rglwidget(elementId="plot3dLocationsLV3")
+```
+
+
+
+
+# `GABABR`
+
+```{r cc-latPrep}
+## re-formatting data for use in lattice 
+d1gab <- data.table(stack(fs, select=-GABABRF0))[,.(values)]
+d1gab$GABABR <- fs$GABABRF0
+
+### Adding relationship factor variables
+nd <- paste0("GABABR","~",abbreviate(channel[-which(channel=="GABABR")]))
+
+d1gab$ind <- factor(rep(nd,each=dim(fs)[1]),ordered=TRUE,levels=nd)
+
+names(d1gab) <- c("x","y","g")
+```
+
+```{r cc-gabLat, eval=FALSE, echo=FALSE}
 ## re-formatting data for use in lattice 
 d1gab <- data.table(stack(fs, select=-GABABRF0))[,.(values)]
 d1gab$GABABR <- fs$GABABRF0
@@ -490,15 +579,15 @@ print(lat1)
 
 
 ```{r cc-gabGG}
-gg3 <- ggplot(data=d1gab,aes(x=x,y=y, group=g)) +   
+gg5 <- ggplot(data=d1gab,aes(x=x,y=y, group=g)) +   
         geom_point(pch='.',alpha=0.2) + 
         geom_hex(bins=100) +
         geom_smooth(method='lm',colour='red', alpha=0.7)+
         facet_wrap( ~ g, scales='free_x') 
 ```
 
-```{r cc-gg3,w=8,h=8,fig.cap=fig$cap("gabLat","Pairs plots of GABABR and all other markers with regression lines.")}
-print(gg3)
+```{r cc-gg5,w=8,h=8,fig.cap=fig$cap("gabLat","Pairs plots of GABABR and all other markers with regression lines.")}
+print(gg5)
 ```
 
 
