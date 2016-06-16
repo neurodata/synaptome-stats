@@ -43,12 +43,13 @@ require(colorRamps)
 require(corrplot)
 require(rgl)
 require(rglwidget)
-require(doMC); registerDoMC(4)
+require(doMC); registerDoMC(6)
 require(foreach)
 require(MASS)
 
 source("kmpp.r")
 source("clusterFraction.r")
+source("http://www.cis.jhu.edu/~parky/Synapse/getElbows.R")
 ```
 
 ```{r knitrOpts,include=FALSE,results='asis',message=FALSE,warning=FALSE}
@@ -141,8 +142,10 @@ ford <- order(fchannel)
 
 
 ## Setting up colors for channel types
-Syncol <- c("#197300","#5ed155","#660000","#cc0000","#ff9933","#0000cd","#ffd700")
+Syncol <-  c("#197300","#5ed155","#660000","#cc0000","#ff9933","#0000cd","#ffd700")
+Syncol3 <- c("#197300","#197300","#cc0000","#cc0000","#0000cd","#0000cd","#0000cd")
 ccol <- Syncol[fchannel]
+ccol3 <- Syncol3[fchannel]
 
 exType <- factor(c(rep("ex",11),rep("in",6),rep("other",7)),ordered=TRUE)
 exCol<-exType;levels(exCol) <- c("#197300","#990000","#0000cd");
@@ -187,6 +190,7 @@ We now have the following data sets:
 ```{r cc_corRawF0,w=7,h=7, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed F0 data, reordered by synapse type.")}
 corrf <- cor(featF0)[ford,ford]
 corrplot(corrf,method="color",tl.col=ccol[ford], tl.cex=0.8)
+corLog <- cor(slog1f)
 ```
 
 ```{r cc_corRawF0-5,w=24,h=24, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed data F0-5, reordered by synapse type.")}
@@ -210,8 +214,9 @@ set.seed(331)
 combcols <- t(combn(24,2))
 
 dc <- foreach(i = 1:dim(combcols)[1]) %dopar% {
-      dcov.test(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
-        }
+       dcov.test(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
+       #dcor.ttest(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
+       }
 
 ms <- matrix(as.numeric(0),24,24)
 mp <- matrix(as.numeric(0),24,24)
@@ -249,14 +254,14 @@ We will run PCA on the untransformed correlation matrix so the data can be viewe
 
 ```{r cc-pca1,h=7,w=7,fig.cap=fig$cap("pairs1","PCA of untransformed correlation matrix")}
 pca1 <- prcomp(corrf,center=TRUE, scale=TRUE)
-pairs(pca1$x[,1:3], col=ccol,pch=20, cex=2)
+pairs(pca1$x[,1:3], col=ccol3,pch=20, cex=2)
 ```
 
 
 ```{r cc_3dCorr, fig.cap=fig$cap("rgl1","PCA 1-3 on untransformed correlation matrix")}
 pca <- pca1$x
-rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol, size=1)
-rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(channel), col=ccol, adj=c(0,2))
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol3, size=1)
+rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(channel), col=ccol3, adj=c(0,2))
 subid <- currentSubscene3d()
 rglwidget(elementId="rgl-pca1",width=720,height=720)
 ```
@@ -413,15 +418,15 @@ and centered principal components of the correlation matrix.
 The algorithm is implemented [here](./kmpp.r).
 
 ```{r cc-k1}
-kp1 <- kmpp(pca,k=2)
-km <- kmeans(pca, centers=2)
+kp1 <- kmpp(pca,k=3)
+km <- kmeans(pca, centers=3)
 ari <- mclust::adjustedRandIndex(kp1$cluster,km$cluster)
 if(ari < 1){ print(ari) }
 ```
 
 ```{r cc_3dKMPP}
-rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol, size=kp1$cluster)
-rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(channel), col=ccol, adj=c(0,1.5))
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol3, size=kp1$cluster)
+rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(channel), col=ccol3, adj=c(0,1.5))
 
 subid <- currentSubscene3d()
 rglwidget(elementId="plot3dLog", width=720, height=720)
@@ -430,6 +435,140 @@ Above the points are sized according to the resulting clustering
 returned by K-means++.
 
 
+# ARI
+```{r cc_f1, eval=TRUE, echo=FALSE}
+avd <- function(pcaObj,elbow,truth,K){
+###
+### Given a pca object with an elbow as upper-bound
+### compute the ARI of truth versus the kmeans clustering for each
+### dimension from 1:elbow.  Also compute a permutation test for the ARI
+### for each dimension from 1:elbow
+###
+require(foreach)
+
+MAX <- 1e3
+
+kv <- foreach(i = 1:elbow) %do% {
+        set.seed(i*3 +2)
+        ### kvec for ith dimension of PCA
+        k <- as.numeric(kmeans(pcaObj$x[,1:i],centers=K)$cluster)
+
+        ## ari of clustering vs truth
+        ari <- mclust::adjustedRandIndex(truth,k)
+        list(k=k,ari=ari)
+        }
+
+out <- foreach(i = 1:elbow,.combine='rbind') %:% 
+       foreach(j = 1:MAX,.combine='rbind') %do% {
+           set.seed(j*3 + 1)
+           ### Calculate the permutation
+           y <- sample(kv[[i]]$k) 
+
+           ##E gets ari of permutation vs truth
+           data.frame(Embedding_Dimension=i,permARI=mclust::adjustedRandIndex(truth,y))
+           }
+
+out$Embedding_Dimension <- as.factor(out$Embedding_Dimension)
+
+clusterARI <- sapply(kv,'[[',2)
+
+out$ari <- rep(clusterARI, each=MAX)
+#L <- list(distARI=out,ari=clusterARI)
+
+return(out)
+}
+
+```
+
+Here we consider the channel types to be the "ground truth" and computer
+the Adjusted Rand Index of between that and the output from k-means.
+
+
+## Approximate permutation test.
+```{r cc_truth}
+levels(ffchannel) <- c(rep("ex", 2), rep("in", 2), rep("other", 3))
+levels(ffchannel)
+truth <- as.numeric(ffchannel)
+```
+
+```{r arislog1f,eval=FALSE,echo=FALSE}
+kcl <- kmpp(corLog,k=3)
+kcl <- as.numeric(kcl$cluster) 
+v1 <- mclust::adjustedRandIndex(truth,kcl)
+
+ariCor <- foreach(j=1:1e5,.combine='c') %dopar%{
+    set.seed(j*2^8-3)  # for reproducibility 
+    y <- sample(kcl)
+    mclust::adjustedRandIndex(truth,y)
+    }
+
+N <- length(ariCor)
+(pval <- sum(ariCor >= v1)/N)
+```
+
+```{r cc_ariPlots,eval=FALSE,echo=FALSE,w=4,h=4, fig.cap=fig$cap("ariPlot","ARI plot")}
+h1 <- hist(ariCor,xlim=c(min(ariCor),v1+v1/2), prob=TRUE, breaks='Sc',plot=TRUE,main=NULL, xlab="ARI")
+title("Approx. permutation test.")
+abline(v = v1, lwd=2, col='darkred')
+text(median(h1$breaks),quantile(h1$density,.98),col='darkred',labels=mtext(bquote(hat(p)==.(pval))))
+```
+
+```{r cc-pca, eval=TRUE}
+pca <- prcomp(corrf,scale=TRUE, center=TRUE)
+elb <- getElbows(pca$sdev, plot=TRUE) 
+pcaLog <- prcomp(corLog,scale=TRUE, center=TRUE)
+elLog <- getElbows(pcaLog$sdev, plot=TRUE) 
+```
+
+Making a data.table of the permutation data for ggplot.
+```{r cc-ariVdim}
+DT <- data.table(avd(pcaLog,elLog[2],truth,3),key='Embedding_Dimension') 
+
+
+
+DT <- DT[,pval := sum(permARI>=ari)/length(permARI),by=Embedding_Dimension]
+
+ua <- DT[,unique(ari),by=Embedding_Dimension]
+arid <- data.frame(Embedding_Dimension=as.numeric(ua$Emb),
+                   ARI=ua$V1,
+                   pval=DT[,unique(pval),by=Embedding_Dimension]$V1)
+```
+
+```{r cc-gg3, w=20,h=12, fig.cap=fig$cap("ariPerm","ARI Permutation Tests")}
+gg3 <- ggplot(data=DT,aes(x=permARI, y=..density..,color=Embedding_Dimension,label=pval)) + 
+        #geom_histogram(binwidth=3.49*sd(DT$permARI)*length(DT$permARI)^(-1/3)) +
+        geom_histogram(bins=25)+
+        geom_vline(aes(xintercept=ari),colour='darkred',size=1.2)+
+        #geom_text(aes(x=(ari-ari/2),y=7))+
+        theme(axis.text=element_text(size=18),
+                  title=element_text(size=16),  
+                  strip.text.x=element_text(size=16)) + 
+        facet_wrap(~Embedding_Dimension+pval,scale='free',labeller=label_both)
+print(gg3)
+```
+
+```{r arivDim, w=12,h=8, fig.cap=fig$cap("ari_pvals","ARI and P-Values")}
+gg5 <- ggplot(data=arid,aes(x=Embedding_Dimension,y=ARI,label=pval,colour=pval)) + 
+        geom_line(size=1.5,colour='salmon') + geom_point(size=3) +
+            #geom_text(hjust='right',vjust='top',nudge_x=0.5,nudge_y=0.01,size=5)+
+            theme(axis.text=element_text(size=18),
+                  title=element_text(size=16)) + 
+            ggtitle("ARI vs. DIM with estimated p-values")
+
+gg6 <- 
+    ggplot(data=arid, aes(x=Embedding_Dimension, y=pval, colour=pval))+
+        geom_line(size=1.5, colour='salmon') + 
+        geom_point(size=3) + 
+       # geom_hline(yintercept=0.05, 
+       #            colour='forestgreen',
+       #            size=1.5) +
+        scale_y_log10(breaks=c(1e-4,1.53-4,1e-3), na.value=0) +
+        theme(axis.text=element_text(size=18),
+                  title=element_text(size=16)) + 
+        ggtitle("P-values")
+
+grid.arrange(gg5,gg6,nrow=2)
+```
 
 <footer>
 <p> [Back to Top][Data]</p>
