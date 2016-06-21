@@ -271,7 +271,7 @@ corkp2 <- cor(fs[L[[1]] == 2,])
 par(mfrow=c(2,2))
 corrplot(corkp1,method="color",tl.col=ccol[ford], tl.cex=0.8)
 corrplot(corkp2,method="color",tl.col=ccol[ford], tl.cex=0.8)
-corrplot(sqrt((corkp1 - corkp2)^2),method="color",tl.col=ccol[ford], tl.cex=0.8)
+corrplot(sqrt((corkp1 - corkp2)^2),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
 ```
 
 Notice that the non-synaptic markers change very little between

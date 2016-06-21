@@ -154,6 +154,7 @@ The following block needs to be re-written.
 gg1 <- list()
 ind <- matrix(c(1:12), ncol=2)
 rownames(ind) <- paste0("F", 0:5)
+cols <- colorRampPalette(c("darkgreen", "chartreuse"))(10)
 
 for ( i in c(1:6)) {
   tmp1 <- synF[,ind[i,], with=FALSE]
@@ -161,7 +162,6 @@ for ( i in c(1:6)) {
   tmp3 <- rsynF[,ind[i,], with=FALSE]
  
   gg1[[i]] <- list() 
-  cols <- colorRampPalette(c("darkgreen", "chartreuse"))(10)
   
    
   gg1[[i]][[1]] <- ggplot(data=tmp1,aes_string(x=names(tmp1)[1], y=names(tmp1)[2])) +
@@ -289,7 +289,6 @@ names(lvglutF) <- paste0(names(lvglutF),"_logscale")
 
 ```r
 df1 <- melt(as.matrix(cbind(synF,lsynF)))
-levels(df1$Var2)<-levels(df1$Var2)[c(1:6,13:18,7:12,19:24)]
 ggplot(data=df1,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
     geom_density() + 
     facet_wrap( ~ Var2,scales='free',ncol=6)
@@ -300,7 +299,6 @@ ggplot(data=df1,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) +
 
 ```r
 df2 <- melt(as.matrix(cbind(vglutF,lvglutF)))
-levels(df2$Var2)<-levels(df2$Var2)[c(1:6,13:18,7:12,19:24)]
 ggplot(data=df2,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
     geom_density() + 
     facet_wrap( ~ Var2,scales='free', ncol=6)

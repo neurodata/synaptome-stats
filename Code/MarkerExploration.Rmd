@@ -176,8 +176,8 @@ set.seed(331)
 combcols <- t(combn(24,2))
 
 dc <- foreach(i = 1:dim(combcols)[1]) %dopar% {
-       dcov.test(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
-       #dcor.ttest(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
+       #dcov.test(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
+       dcor.ttest(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
        }
 
 ms <- matrix(as.numeric(0),24,24)
@@ -186,8 +186,8 @@ mp <- matrix(as.numeric(0),24,24)
 for(i in 1:length(dc)){
     ms[combcols[i,1],combcols[i,2]] <- dc[[i]]$statistic
     ms[combcols[i,2],combcols[i,1]] <- dc[[i]]$statistic
-    mp[combcols[i,1],combcols[i,2]] <- dc[[i]]$p
-    mp[combcols[i,2],combcols[i,1]] <- dc[[i]]$p
+    mp[combcols[i,1],combcols[i,2]] <- dc[[i]]$p.val
+    mp[combcols[i,2],combcols[i,1]] <- dc[[i]]$p.val
 }
 
 rownames(ms) <- colnames(featF0)
@@ -195,15 +195,18 @@ rownames(mp) <- colnames(featF0)
 colnames(ms) <- colnames(featF0)
 colnames(mp) <- colnames(featF0)
 
-diag(ms) <- as.numeric(10)
+diag(ms) <- as.numeric(0)
 diag(mp) <- as.numeric(1)
 ```
 
 ```{r cc-energyplot,h=7,w=7,fig.cap=fig$cap("enplt","Energy Matrix for F0: p-values in log10 scale")}
-#par(mfrow=c(1,2))
-#corrplot(1/1e10*(ms[ford,ford]),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
+cl5 <- colorRampPalette(c("white", "blue"))
+bl5 <- colorRampPalette(c("blue", "red")
+
+par(mfrow=c(1,2))
+corrplot((ms[ford,ford]),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
 #corrRect(tmp,col=Syncol,lwd=4; rm(tmp))
-corrplot(log10(mp[ford,ford]),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8,col=mycol3[-c(1:2)])
+corrplot((mp[ford,ford]),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8,col=mycol3[-c(1:2)])
 tmp <- as.numeric(table(fchannel))
 corrRect(tmp,col=Syncol,lwd=8);rm(tmp)
 ```
@@ -235,7 +238,10 @@ try(lda.fit <- lda(type ~ ., data=d1),silent=FALSE)
 geterrmessage()
 lda.fit <- lda(type ~ ., data=d1[,1:4])
 ```
-<FONT COLOR=#750000> LDA was run using only the first 3 out of 24 principal components from the untransformed correlation matrix.</FONT>  
+<FONT COLOR=#750000> 
+LDA was run using only the first 3 out of 24 principal 
+components from the untransformed correlation matrix.
+</FONT>  
 
 ```{r cc-voronoi,h=6,w=14,fig.cap=fig$cap("voronoi","Voronoi diagram on class means from LDA on PCA of untransformed correlation matrix")}
 voronoidf <- data.frame(x=lda.fit$means[,1],y=lda.fit$means[,2],z=lda.fit$means[,3])
