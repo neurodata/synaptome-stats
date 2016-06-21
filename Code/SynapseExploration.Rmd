@@ -61,17 +61,26 @@ library(knitr)
 ### were setup by Youngser Park
 knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
 dep_auto() # figure out dependencies automatically
-opts_chunk$set(cache=FALSE,echo=TRUE,warning=FALSE,message=FALSE,comment="#",fig.path='../Figures/SynapseExploration_figure/',dpi=227,dev=c('png','pdf'))
+opts_chunk$set(cache=FALSE, echo=TRUE, 
+               warning=FALSE, message=FALSE, 
+               comment="#", fig.path='../Figures/SynapseExploration_figure/',
+               dpi=227,dev=c('png','pdf'))
 
-opts_knit$set(aliases=c(h='fig.height', w='fig.width', cap='fig.cap', scap='fig.scap'))                                                                               
-opts_knit$set(eval.after = c('fig.cap','fig.scap'))                                                                            
+opts_knit$set(aliases = c(h = 'fig.height', w = 'fig.width', 
+                          cap='fig.cap', scap='figscap'))
+
+opts_knit$set(eval.after = c('fig.cap','fig.scap'))
+
 knit_hooks$set(document = function(x) {
-  gsub('(\\\\end\\{knitrout\\}[\n]+)', '\\1\\\\noindent ', x)                                                   })
+  gsub('(\\\\end\\{knitrout\\}[\n]+)', '\\1\\\\noindent ', x)
+  }
+)
 #opts_knit$set(animation.fun = hook_scianimator)
 
 knit_hooks$set(plot = function(x, options) {
-       paste('<figure><img src="',
-             opts_knit$get('base.url'), paste(x, collapse = '.'),
+  paste('<figure><img src="',
+        opts_knit$get('base.url'), 
+        paste(x, collapse = '.'),
              '"><figcaption>', options$fig.cap, '</figcaption></figure>',
              sep = '')
  })
@@ -100,21 +109,23 @@ knit_hooks$set(plot = function(x, options) {
 ```
 
 [Homepage](http://docs.neurodata.io/synaptome-stats/)  
-The formatted source code for this file is [here](https://github.com/neurodata/synaptome-stats/blob/gh-pages/Code/SynapseExploration.Rmd).  
+The formatted source code for this file is 
+[here](https://github.com/neurodata/synaptome-stats/blob/gh-pages/Code/SynapseExploration.Rmd).  
 And a [raw version here](https://raw.githubusercontent.com/neurodata/synaptome-stats/gh-pages/Code/SynapseExploration.Rmd).    
 Previous work by Youngser Park can be found [here](http://www.cis.jhu.edu/~parky/Synapse/synapse.html).  
 
 
 # Introduction
 
-Following from previous pages, this page will focus on filtering the data before clustering 
-to explore if filtering improves the outcome of clustering.
+Following from previous pages, this page will focus on filtering the data 
+before clustering to explore if filtering improves the outcome of clustering.
 
 # Data 
 Here we read in the data and select a random half of it for exploration. 
 
 ```{r cc-data, eval=TRUE}
-featFull <- fread("../data/synapsinR_7thA.tif.Pivots.txt.2011Features.txt",showProgress=FALSE)
+featFull <- fread("../data/synapsinR_7thA.tif.Pivots.txt.2011Features.txt",
+                  showProgress=FALSE)
 locFull <- fread("../data/synapsinR_7thA.tif.Pivots.txt",showProgress=FALSE)
 
 ### Setting a seed and creating an index vector
@@ -303,21 +314,20 @@ df2$cluster <- L[[1]]
 df2$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
 
 gg2 <- ggplot(df2, aes(x=value)) + 
-    scale_colour_manual(values=ccol) + 
-    scale_x_continuous(limits=c(0,400)) +
-    geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=250) +
-    geom_density(aes(group=channel, color=channel),size=1.5) +
-    facet_grid(channel ~ cluster, scale='free') + 
-    theme(strip.text.y=element_text(angle=0)) +
-    #guides(col=guide_legend(ncol=1))
-    theme(strip.text.y=element_text(angle=0),
-          plot.title=element_text(size=ts),
-          axis.title.x=element_text(size=ts),
-          axis.title.y=element_text(size=ts),
-          legend.title=element_text(size=ts),
-          legend.text=element_text(size=ts-2),
-          strip.text=element_text(size=ts), 
-          legend.position='none')
+scale_colour_manual(values=ccol) + 
+scale_x_continuous(limits=c(0,400)) +
+geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=250) +
+geom_density(aes(group=channel, color=channel),size=1.5) +
+facet_grid(channel ~ cluster, scale='free_x') + 
+theme(strip.text.y=element_text(angle=0)) +
+theme(strip.text.y   =element_text(angle=0),
+      plot.title     =element_text(size=ts),
+      axis.title.x   =element_text(size=ts),
+      axis.title.y   =element_text(size=ts),
+      legend.title   =element_text(size=ts),
+      legend.text    =element_text(size=ts-2),
+      strip.text     =element_text(size=ts), 
+      legend.position='none')
 ```
 
 ```{r synEx-kdeLV1, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDElv1","Kernel density estimates for each channel, on `fs` data given cluster from km++ level 1")}
@@ -438,7 +448,7 @@ plot3d(locs2$V1,locs2$V2,locs2$V3,
        )
 
 subid <- currentSubscene3d()
-rglwidget(elementId="plot3dLocationsLV2")
+rglwidget(elementId="plot3dLocationsLV2", height=720, width=720)
 ```
 
 
@@ -532,67 +542,12 @@ plot3d(locs3$V1,locs3$V2,locs3$V3,
        )
 
 subid <- currentSubscene3d()
-rglwidget(elementId="plot3dLocationsLV3")
+rglwidget(elementId="plot3dLocationsLV3", height=720, width=720)
 ```
 
 
 
 
-# `GABABR`
-
-```{r cc-latPrep}
-## re-formatting data for use in lattice 
-d1gab <- data.table(stack(fs, select=-GABABRF0))[,.(values)]
-d1gab$GABABR <- fs$GABABRF0
-
-### Adding relationship factor variables
-nd <- paste0("GABABR","~",abbreviate(channel[-which(channel=="GABABR")]))
-
-d1gab$ind <- factor(rep(nd,each=dim(fs)[1]),ordered=TRUE,levels=nd)
-
-names(d1gab) <- c("x","y","g")
-```
-
-```{r cc-gabLat, eval=FALSE, echo=FALSE}
-## re-formatting data for use in lattice 
-d1gab <- data.table(stack(fs, select=-GABABRF0))[,.(values)]
-d1gab$GABABR <- fs$GABABRF0
-
-### Adding relationship factor variables
-nd <- paste0("GABABR","~",abbreviate(channel[-which(channel=="GABABR")]))
-
-d1gab$ind <- factor(rep(nd,each=dim(fs)[1]),ordered=TRUE,levels=nd)
-
-names(d1gab) <- c("x","y","g")
-
-lat1 <- xyplot(y ~ x | g, data=d1gab,
-       as.table=TRUE,
-       colramp=BTC,
-       pch='.',
-       scales = list(y = list(relation = "free"),x = list(relation = "free")),
-       panel=function(x,y,...){
-           panel.hexbinplot(x,y,..., type='g')
-           panel.loess(x,y,col='red', lwd=2,...)
-        }
-       )
-```
-
-```{r cc-lat1,eval=FALSE,echo=FALSE,w=10,h=10,fig.cap=fig$cap("rg1", "Lattice plot of pairwise regressions involving `GABABR`")}
-print(lat1)
-```
-
-
-```{r cc-gabGG}
-gg5 <- ggplot(data=d1gab,aes(x=x,y=y, group=g)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        facet_wrap( ~ g, scales='free_x') 
-```
-
-```{r cc-gg5,w=8,h=8,fig.cap=fig$cap("gabLat","Pairs plots of GABABR and all other markers with regression lines.")}
-print(gg5)
-```
 
 
 

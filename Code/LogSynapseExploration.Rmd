@@ -437,7 +437,7 @@ plot3d(locs2$V1,locs2$V2,locs2$V3,
        )
 
 subid <- currentSubscene3d()
-rglwidget(elementId="plot3dLocationsLV2")
+rglwidget(elementId="plot3dLocationsLV2", height=720, width=720)
 ```
 
 
@@ -531,7 +531,7 @@ plot3d(locs3$V1,locs3$V2,locs3$V3,
        )
 
 subid <- currentSubscene3d()
-rglwidget(elementId="plot3dLocationsLV3")
+rglwidget(elementId="plot3dLocationsLV3", height=720, width=720)
 ```
 
 

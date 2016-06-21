@@ -28,6 +28,7 @@ system('open FeatureExploration.html')
 ### Library calls here.
 require(Matrix)
 require(colorRamps)
+require(RColorBrewer)
 require(corrplot)
 require(gplots)
 require(dplyr)
@@ -58,12 +59,17 @@ library(knitr)
 ### were setup by Youngser Park
 knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
 dep_auto() # figure out dependencies automatically
-opts_chunk$set(cache=FALSE,echo=TRUE,warning=FALSE,message=FALSE,comment="#",fig.path='../Figures/FeatureExploration_figure/',dpi=227,dev=c('png','pdf'))
+opts_chunk$set(cache=FALSE,echo=TRUE,warning=FALSE,message=FALSE,
+               comment="#",
+               fig.path='../Figures/FeatureExploration_figure/',
+               dpi=227,dev=c('png','pdf'))
 
-opts_knit$set(aliases=c(h='fig.height', w='fig.width', cap='fig.cap', scap='fig.scap'))                                                                               
-opts_knit$set(eval.after = c('fig.cap','fig.scap'))                                                                            
+opts_knit$set(aliases=c(h='fig.height', w='fig.width', 
+                        cap='fig.cap', scap='fig.scap'))
+opts_knit$set(eval.after = c('fig.cap','fig.scap'))
 knit_hooks$set(document = function(x) {
-  gsub('(\\\\end\\{knitrout\\}[\n]+)', '\\1\\\\noindent ', x)                                                   })
+  gsub('(\\\\end\\{knitrout\\}[\n]+)', '\\1\\\\noindent ', x)
+})
 #opts_knit$set(animation.fun = hook_scianimator)
 
 knit_hooks$set(plot = function(x, options) {
@@ -104,7 +110,8 @@ Previous work by Youngser Park can be found [here](http://www.cis.jhu.edu/~parky
 
 # Introduction
 
-Following from previous pages, this page will focus on filtering the data before clustering 
+Following from previous pages, this page will focus on 
+filtering the data before clustering 
 to explore if filtering improves the outcome of clustering.
 
 # Feature Definitions
@@ -116,17 +123,18 @@ denote the brightness of voxel $i$ and $d_i$ the
 pixelwise distance from $i$ to
 the synaptic locus (which seems to be the center voxel), then  
 
-- Integrated Brightness $:= \sum_{i\in V} b_i =: B$
-- Local Brightness $:= \sum_{i\in V} b_i/d_{i}^{2}$
-- Center of Mass $:= \sum_{i\in V} b_id_i/B$
-- Moment of Inertia $:= \sum_{i\in V} b_id{_i}^{2}/B$
+- `F0` Integrated Brightness $:= \sum_{i\in V} b_i =: B$
+- `F1` Local Brightness $:= \sum_{i\in V} b_i/d_{i}^{2}$
+- `F2` Center of Mass $:= \sum_{i\in V} b_id_i/B$
+- `F3` Moment of Inertia $:= \sum_{i\in V} b_id{_i}^{2}/B$
 
 
 # Data 
 Here we read in the data and select a random half of it for exploration. 
 
 ```{r cc-data, eval=TRUE}
-featFull <- fread("../data/synapsinR_7thA.tif.Pivots.txt.2011Features.txt",showProgress=FALSE)
+featFull <- fread("../data/synapsinR_7thA.tif.Pivots.txt.2011Features.txt", 
+                  showProgress=FALSE)
 
 ### Setting a seed and creating an index vector
 ### to select half of the data
@@ -146,24 +154,27 @@ channel <- c('Synap_1','Synap_2','VGlut1_t1','VGlut1_t2','VGlut2','Vglut3',
 ## Setting the channel types
 channel.type <- c('ex.pre','ex.pre','ex.pre','ex.pre','ex.pre','in.pre.small',
                   'ex.post','ex.post','ex.post','ex.post','in.pre','in.pre',
-                  'in.pre','in.post','in.post','in.post','in.pre.small','other',
-                  'ex.post','other','other','ex.post','none','none')
+                  'in.pre','in.post','in.post','in.post','in.pre.small',
+                  'other', 'ex.post','other','other','ex.post','none','none')
 
 nchannel <- length(channel)
 nfeat <- ncol(feat) / nchannel
 
 ## Createing factor variables for channel and channel type sorted properly
 ffchannel <- (factor(channel.type,
-    levels= c("ex.pre","ex.post","in.pre","in.post","in.pre.small","other","none")
-    ))
+                     levels= c("ex.pre", "ex.post", "in.pre",
+                               "in.post", "in.pre.small", "other", "none")))
 fchannel <- as.numeric(factor(channel.type,
-    levels= c("ex.pre","ex.post","in.pre","in.post","in.pre.small","other","none")
-    ))
+                              levels= c("ex.pre", "ex.post", "in.pre",
+                                        "in.post", "in.pre.small", 
+                                        "other", "none")))
 ford <- order(fchannel)
 
 
 ## Setting up colors for channel types
-Syncol <- c("#197300","#5ed155","#660000","#cc0000","#ff9933","mediumblue","gold")
+Syncol <- c("#197300", "#5ed155", "#660000", "#cc0000", "#ff9933",
+            "mediumblue", "gold")
+
 ccol <- Syncol[fchannel]
 
 exType <- factor(c(rep("ex",11),rep("in",6),rep("other",7)),ordered=TRUE)
@@ -184,7 +195,8 @@ f <- lapply(1:6,function(x){seq(x,ncol(feat),by=nfeat)})
 featF <- lapply(f,function(x){subset(feat,select=x)})
 
 featF0 <- featF[[1]]
-f01e3 <- 1e3*data.table(apply(X=featF0, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
+f01e3 <- 1e3*data.table(apply(X=featF0, 2, 
+                              function(x){((x-min(x))/(max(x)-min(x)))}))
 
 fs <- f01e3
 
@@ -211,98 +223,70 @@ We now have the following data sets:
 ```{r cc-synPrep}
 synF <- feat[, grep("Synap_", names(feat)),with=FALSE]
 ans1 <- apply(synF, 1, function(row){ any(row == 0)})
-lsynF <- synF[!ans1,lapply(.SD,function(x){scale(log10(x),center=TRUE,scale=TRUE)})]
+lsynF <- synF[!ans1, lapply(.SD, 
+                            function(x){ 
+                             as.integer(scale(log10(x),center=TRUE,scale=TRUE))
+                            })]
 
+rsynF <- synF[,lapply(.SD, rank, ties.method='average')]
 print(paste("removed", sum(ans1), "zero entries"))
 ```
 
+The following block needs to be re-written. 
 ```{r cc-synGG, echo=FALSE}
-gg1 <- ggplot(data=synF[,.(Synap_1F0,Synap_2F0)],aes(x=Synap_1F0,y=Synap_2F0)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F0")
-        
-gg2 <- ggplot(data=lsynF[,.(Synap_1F0,Synap_2F0)],aes(x=Synap_1F0,y=Synap_2F0)) +
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F0")
+gg1 <- list()
+gg2 <- list()
+gg3 <- list()
+ind <- matrix(c(1:12), ncol=2)
+rownames(ind) <- paste0("F", 0:5)
 
-gg3 <- ggplot(data=synF[,.(Synap_1F1,Synap_2F1)],aes(x=Synap_1F1,y=Synap_2F1)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F1")
-        
-gg4 <- ggplot(data=lsynF[,.(Synap_1F1,Synap_2F1)],aes(x=Synap_1F1,y=Synap_2F1)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F1")
+for ( i in c(1:6)) {
+  tmp1 <- synF[,ind[i,], with=FALSE]
+  tmp2 <- lsynF[,ind[i,], with=FALSE]
+  tmp3 <- rsynF[,ind[i,], with=FALSE]
+ 
+  gg1[[i]] <- list() 
+  cols <- colorRampPalette(c("darkgreen", "chartreuse"))(10)
+  
+   
+  gg1[[i]][[1]] <- ggplot(data=tmp1,aes_string(x=names(tmp1)[1], y=names(tmp1)[2])) +
+          geom_hex(bins=200,aes(fill=log10(..value..))) +
+          geom_smooth(method='lm',colour='red', alpha=0.5)+
+          ggtitle(paste0("Untransformed Feature:", rownames(ind)[i])) +
+          scale_fill_gradientn(guide=guide_colorbar("Count on \nlog_10 scale"),
+                               colours=cols) 
 
-gg5 <- ggplot(data=synF[,.(Synap_1F2,Synap_2F2)],aes(x=Synap_1F2,y=Synap_2F2)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F2")
-        
-gg6 <- ggplot(data=lsynF[,.(Synap_1F2,Synap_2F2)],aes(x=Synap_1F2,y=Synap_2F2)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F2")
+  gg1[[i]][[2]] <- 
+    ggplot(data=tmp2,aes_string(x=names(tmp2)[1], y=names(tmp2)[2])) +
+          geom_hex(bins=200,aes(fill=log10(..value..))) +
+          geom_smooth(method='lm',colour='red', alpha=0.5)+
+          ggtitle(paste0("Scale log Transformed Feature:", rownames(ind)[i])) +
+          scale_fill_gradientn(guide=guide_colorbar("Count on \nlog_10 scale"),
+                               colours= cols )
 
-gg7 <- ggplot(data=synF[,.(Synap_1F3,Synap_2F3)],aes(x=Synap_1F3,y=Synap_2F3)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F3")
-        
-gg8 <- ggplot(data=lsynF[,.(Synap_1F3,Synap_2F3)],aes(x=Synap_1F3,y=Synap_2F3)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F3")
-
-gg09 <- ggplot(data=synF[,.(Synap_1F4,Synap_2F4)],aes(x=Synap_1F4,y=Synap_2F4)) +   
-        geom_point(pch='.',alpha=0.2) + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F4")
-        
-gg10 <- ggplot(data=lsynF[,.(Synap_1F4,Synap_2F4)],aes(x=Synap_1F4,y=Synap_2F4)) +   
-        geom_point(pch='.',alpha=0.2) +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F4")
-
-gg11 <- ggplot(data=synF[,.(Synap_1F5,Synap_2F5)],aes(x=Synap_1F5,y=Synap_2F5)) +   
-        geom_point(pch='.',alpha=0.2,position='jitter') + 
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Untransformed Features: F5")
-        
-gg12 <- ggplot(data=lsynF[,.(Synap_1F5,Synap_2F5)],aes(x=Synap_1F5,y=Synap_2F5)) +   
-        geom_point(pch='.',alpha=0.2, position='jitter') +
-        geom_hex(bins=100) +
-        geom_smooth(method='lm',colour='red', alpha=0.7)+
-        ggtitle("Scaled Logged Features: F5")
+  gg1[[i]][[3]] <- 
+    ggplot(data=tmp3,aes_string(x=names(tmp3)[1], y=names(tmp3)[2])) +
+          geom_hex(bins=200,aes(fill=log10(..value..))) +
+          #geom_point(alpha=0.2) + 
+          geom_smooth(method='lm',colour='red', alpha=0.5)+
+          ggtitle(paste0("Rank Transformed Feature:", rownames(ind)[i])) +
+          scale_fill_gradientn(guide=guide_colorbar("Count on \nlog_10 scale"),
+                               colours=cols)
+}
+gg <- Reduce("c", gg1)
 ```
 
 
-```{r cc-F1-5,w=8.5,h=23,fig.cap=fig$cap("synF0-5","Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.")}
-grid.arrange(gg1,gg2,gg3,gg4,gg5,gg6,gg7,gg8,gg09,gg10, gg11, gg12, ncol=2)
+```{r cc-F1-5,w=6*5,h=6*5,fig.cap=fig$cap("synF0-4","Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.")}
+do.call("grid.arrange",args=c(gg, ncol=3))
 ```
 
 ```{r pv1}
-ggd1 <- list(gg1,gg2,gg3,gg4,gg5,gg6,gg7,gg8,gg09,gg10,gg11, gg12)
-
-lm.fits1 <-lapply(ggd1,function(x){x <- x$data;lm(as.formula(paste0(names(x)[2],"~",names(x)[1])),data=x)})
+lm.fits1 <-lapply(gg,function(x){x <- x$data;lm(as.formula(paste0(names(x)[2],"~",names(x)[1])),data=x)})
 r2 <- sapply(lm.fits1, function(x){ summary(x)$r.squared })
 pval<- sapply(lm.fits1,function(x){ anova(x)$'Pr(>F)'[1] })
 
-cbind(r2,pval)
+cbind(r2[1:6],pval[1:6], r2[7:12], pval[7:12], r2[13:18], pval[13:18])
 ```
 
 ## VGlut1_t1 Vs. VGlut1_t2 for all features
