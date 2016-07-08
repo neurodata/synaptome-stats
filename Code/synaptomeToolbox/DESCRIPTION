@@ -1,0 +1,15 @@
+Package: synaptomeToolbox
+Type: Package
+Title: Exploration of data.
+Version: 0.1
+Date: 2016-06-17
+Author: Jesse Leigh Patsolic
+Maintainer: <jesse@cis.jhu.edu>
+Description: NeuroData Exploration from a "just look at it" perspective.
+License: What license is it under?
+Depends:
+    corrplot,
+    data.table,
+    foreach,
+    ggplot2
+RoxygenNote: 5.0.1

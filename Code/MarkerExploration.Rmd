@@ -22,7 +22,7 @@ output:
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 rm(list=ls()); 
-rmarkdown::render(grep("MarkerExploration.Rmd", dir(), value=TRUE))
+system.time(rmarkdown::render(grep("MarkerExploration.Rmd", dir(), value=TRUE)))
 system('open MarkerExploration.html')
 ```
 ```{r setup,include=FALSE,results='asis',message=FALSE}
@@ -150,7 +150,7 @@ We now have the following data sets:
 ## Correlation Matrix of markers 
 
 ```{r cc_corRawF0,w=7,h=7, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed F0 data, reordered by synapse type.")}
-corrf <- cor(featF0)[ford,ford]
+corrf <- cor(featF[[1]])[ford,ford]
 corrplot(corrf,method="color",tl.col=ccol[ford], tl.cex=0.8)
 corLog <- cor(slog1f)
 ```
@@ -165,7 +165,7 @@ corrplot(corrfB,method="color",tl.col=cr[bford],tl.cex=0.8)
 #corrplot(corrfB,method="color",tl.col=cr[nord],tl.cex=0.8)
 ```
 
-## Energy Matrix: Distance Covariance Test
+## Energy Matrix: Distance Correlation T-test
 
 ```{r cc-dcov,eval=TRUE,echo=TRUE}
 set.seed(317)
@@ -199,23 +199,28 @@ diag(ms) <- as.numeric(0)
 diag(mp) <- as.numeric(1)
 ```
 
-```{r cc-energyplot,h=7,w=7,fig.cap=fig$cap("enplt","Energy Matrix for F0: p-values in log10 scale")}
+```{r cc-energyplot,h=7,w=14,fig.cap=fig$cap("enplt","F0: Distance correlation t-test statistic and p-value matrices.")}
 cl5 <- colorRampPalette(c("white", "blue"))
-bl5 <- colorRampPalette(c("blue", "red")
+bl5 <- colorRampPalette(c("blue", "red"))
 
 par(mfrow=c(1,2))
-corrplot((ms[ford,ford]),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
+corrplot(ms[ford,ford],is.corr=FALSE,method="color",tl.col=ccol[ford], 
+         tl.cex=0.8, mar=c(0,0,1,0),oma=c(0,0,2,0))
+title("Test statistic") 
 #corrRect(tmp,col=Syncol,lwd=4; rm(tmp))
-corrplot((mp[ford,ford]),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8,col=mycol3[-c(1:2)])
+corrplot((mp[ford,ford]),is.corr=FALSE,method="color",tl.col=ccol[ford], 
+         tl.cex=0.8,col=mycol3[-c(1:2)], mar=c(0,0,1,0),
+         p.mat=mp[ford,ford], sig.level=0.05)
+title("p-values")
 tmp <- as.numeric(table(fchannel))
 corrRect(tmp,col=Syncol,lwd=8);rm(tmp)
 ```
-
-
+The `X`'s in the above right figure denote a p-value greater than 0.05.
 
 ## Scatterplots 
 
-We will run PCA on the untransformed correlation matrix so the data can be viewed in 2-dimensions.  The colors correspond to synapse type.
+We will run PCA on the untransformed correlation matrix so the data can be 
+viewed in 2-dimensions.  The colors correspond to synapse type.
 
 ```{r cc-pca1,h=7,w=7,fig.cap=fig$cap("pairs1","PCA of untransformed correlation matrix")}
 pca1 <- prcomp(corrf,center=TRUE, scale=TRUE)

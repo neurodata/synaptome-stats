@@ -116,6 +116,8 @@ ans <- apply(featF0, 1, function(row){ any(row == 0)})
 
 logF0 <- log10(featF0[!ans,])
 slogF0 <- logF0[,lapply(.SD,scale, center=TRUE,scale=TRUE)]
+
+rFeat <- feat[,lapply(.SD, rank, ties.method='average')]
 ```
 
 We now have the following data sets:
