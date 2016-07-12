@@ -241,7 +241,7 @@ text(d1[,2:3], labels=rownames(d1), pos=ifelse(d1[,2]<4,4,2),
 
 deldir(x = voronoidf$x,y = voronoidf$y, rw = c(-5,5,-5,5), 
        plotit=TRUE, add=TRUE, wl='te')
-text(voronoidf, labels=rownames(voronoidf), pos=1)
+text(voronoidf, labels=rownames(voronoidf), pos=c(1,1,3))
 ```
 
 <figure><img src="../Figures/MarkerExploration_figure/cc-voronoi-1.png"><figcaption><b>Figure 5: Voronoi diagram on class means from LDA on PCA of untransformed correlation matrix</b><br><br></figcaption></figure>
