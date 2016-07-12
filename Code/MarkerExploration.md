@@ -46,6 +46,10 @@ channel.type <- c('ex.pre','ex.pre','ex.pre','ex.pre','ex.pre','in.pre.small',
                   'in.pre','in.post','in.post','in.post','in.pre.small','other',
                   'ex.post','other','other','ex.post','none','none')
 
+channel.type2 <- c('ex.pre','ex.pre','ex.pre','ex.pre','ex.pre','other',
+                   'ex.post','ex.post','ex.post','ex.post','in.pre','in.pre',
+                   'in.pre','in.post','in.post','in.post','other','other',
+                   'ex.post','other','other','ex.post','other','other')
 nchannel <- length(channel)
 nfeat <- ncol(feat) / nchannel
 
@@ -189,13 +193,6 @@ pairs(pca1$x[,1:3], col=ccol3[ford],pch=20, cex=2)
 
 <figure><img src="../Figures/MarkerExploration_figure/cc-pca1-1.png"><figcaption><b>Figure 3: PCA of untransformed correlation matrix</b><br><br></figcaption></figure>
 
-```r
-plot(pca1$x[,1:3], col=ccol3[ford],pch=20, cex=2)
-text(pca1$x, labels=rownames(pca1$x), pos=4)
-```
-
-<figure><img src="../Figures/MarkerExploration_figure/cc-pca1-2.png"><figcaption><b>Figure 3: PCA of untransformed correlation matrix</b><br><br></figcaption></figure>
-
 
 
 ```r
@@ -213,7 +210,7 @@ rglwidget(elementId="rgl-pca1",width=720,height=720)
 
 ```r
 d1 <- data.frame(type=exType,pca1$x)
-#d1 <- data.frame(type=channel.type[ford],pca1$x)
+#d1 <- data.frame(type=channel.type2[ford],pca1$x)
 try(lda.fit <- lda(type ~ ., data=d1),silent=FALSE)
 geterrmessage()
 ```
@@ -243,7 +240,7 @@ text(d1[,2:3], labels=rownames(d1), pos=ifelse(d1[,2]<4,4,2),
      col=ccol3[ford], cex=1.2)
 
 deldir(x = voronoidf$x,y = voronoidf$y, rw = c(-5,5,-5,5), 
-       plotit=TRUE, add=TRUE)
+       plotit=TRUE, add=TRUE, wl='te')
 text(voronoidf, labels=rownames(voronoidf), pos=1)
 ```
 
