@@ -25,7 +25,7 @@
 #'
 transforms <- function(x, type = c('zscore'), ...) {
 
-  type <- if (type == "all") { 
+  type <- if (any(type == "all")) { 
     c("zscore", "rank", "1e3", "log10", "log", "slog10", "slog") 
   } else {
     type 

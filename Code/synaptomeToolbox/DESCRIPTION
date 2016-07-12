@@ -10,6 +10,7 @@ License: What license is it under?
 Depends:
     corrplot,
     data.table,
+    energy,
     foreach,
     ggplot2
 RoxygenNote: 5.0.1
