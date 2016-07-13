@@ -204,9 +204,16 @@ We now have the following data sets:
 ```{r cc_corRawF0,w=7,h=7, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed F0 data, reordered by synapse type.")}
 corrf <- cor(featF[[1]])[ford,ford]
 corrplot(corrf,method="color",tl.col=ccol[ford], tl.cex=0.8)
-corLog <- cor(slog1f)
+#corLog <- cor(slog1f)
 ```
 
+
+```{r cc-bigCorr, w=8,h=8, eval=TRUE,fig.cap=fig$cap("corrB","Full Correlation on untransformed F0-F5 data, reordered by synapse type.")}
+bford <- order(rep(fchannel,each=6))
+nord <- Reduce('c', f)
+cr <- rep(ccol, each=6)
+corrfB <- cor(feat)[bford,bford]
+corrplot(corrfB,method="color",tl.col=cr[bford],tl.cex=0.75)
 ## Energy Matrix: Distance Correlation T-test
 
 ```{r cc-dcov,eval=TRUE,echo=TRUE}
@@ -280,17 +287,32 @@ subid <- currentSubscene3d()
 rglwidget(elementId="rgl-pca1",width=720,height=720)
 ```
 
+```{r cc-pca2,h=7,w=7,fig.cap=fig$cap("pairs2","PCA of untransformed correlation matrix")}
+pcaB <- prcomp(corrfB,center=TRUE, scale=TRUE)
+pairs(pcaB$x[,1:3], col=cr[bford],pch=20, cex=2)
+plot(pcaB$x[,1:3], col=cr[bford],pch=20, cex=2)
+text(pcaB$x[,1:2], labels=rownames(pcaB$x), pos=4, col=cr[bford])
+```
+
+
+```{r cc_3dCorrB, fig.cap=fig$cap("rglB","PCA 1-3 on untransformed correlation matrix")}
+pcaB <- pcaB$x
+rgl::plot3d(pcaB[,1],pcaB[,2],pcaB[,3],type='s',col=cr[bford], size=1)
+rgl::rgl.texts(pcaB[,1],pcaB[,2],pcaB[,3],abbreviate(rownames(pcaB)), col=cr[bford], adj=c(0,2))
+subid <- currentSubscene3d()
+rglwidget(elementId="rgl-pcaB",width=720,height=720)
+```
+
+# LDA 
 
 ```{r cc-lda1}
 d1 <- data.frame(type=exType,pca1$x)
 #d1 <- data.frame(type=channel.type2[ford],pca1$x)
-try(lda.fit <- lda(type ~ ., data=d1),silent=FALSE)
-geterrmessage()
 lda.fit <- lda(type ~ ., data=d1[,1:3])
 ```
 
 <FONT COLOR=#750000> 
-LDA was run using only the first 2 out of 24 principal 
+LDA was run using only the first 2 principal 
 components from the untransformed correlation matrix.
 </FONT>  
 
@@ -302,14 +324,23 @@ voronoidf <- data.frame(x=lda.fit$means[,1],y=lda.fit$means[,2])
 #This creates the voronoi line segments
 plot(d1[,2:3], col=ccol3[ford], pch=20, cex=1.5)
 
-text(d1[,2:3], labels=rownames(d1), pos=ifelse(d1[,2]<4,4,2), 
+text(d1[,2:3], labels=rownames(d1), pos=ifelse(d1[,2]<max(d1[,2] -0.5),4,2), 
      col=ccol3[ford], cex=1.2)
 
-deldir(x = voronoidf$x,y = voronoidf$y, rw = c(-5,5,-5,5), 
+deldir(x = voronoidf$x,y = voronoidf$y, rw = c(-15,15,-15,15), 
        plotit=TRUE, add=TRUE, wl='te')
 text(voronoidf, labels=rownames(voronoidf), pos=c(1,1,3))
 ```
 
+
+```{r contingency-table}
+truth <- d1[,1]
+pred <- predict(lda.fit)$class
+table(truth, pred)
+(lda.err <- sum(as.numeric(truth) != as.numeric(pred))/length(truth))
+```
+
+The above gives the LDA error rate.
 
 <footer>
 <p> [Back to Top][Data]</p>
