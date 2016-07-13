@@ -337,12 +337,12 @@ kvecCor <- foreach(i = K1) %dopar% {
 par(mfrow=c(1,2))
 
 plot(pcaLog$x[,1:2],
-     col=ccol,
+     col=ccol[ford],
      pch=as.numeric(exType)+15,
      cex=1.5,
      xlim=c(min(pcaLog$x[,1])-0.2,max(pcaLog$x[,1])+0.7),
      main="Embedding of PCA log_10 correlation data")
-text(pcaLog$x[,1:2],label=abbreviate(channel),offset=1, pos=4)
+text(pcaLog$x[,1:2],label=abbreviate(rownames(pcaLog$x)),offset=1, pos=4)
 
 
 plot(pcaLog$x[,1:2],
@@ -351,7 +351,7 @@ plot(pcaLog$x[,1:2],
      cex=1.5,
      xlim=c(min(pcaLog$x[,1])-0.2,max(pcaLog$x[,1])+0.7),
      main="Embedding of PCA log_10 correlation data, \ncolor based on 3-means clustering.")
-text(pcaLog$x[,1:2],col='black',label=abbreviate(channel),offset=1, pos=4)
+text(pcaLog$x[,1:2],col='black',label=abbreviate(rownames(pcaLog$x)),offset=1, pos=4)
 
 
 
@@ -360,10 +360,10 @@ text(pcaLog$x[,1:2],col='black',label=abbreviate(channel),offset=1, pos=4)
 
 ```{r cc_3dLog}
 pca <- pcaLog$x[,1:3]
-rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol, size=1, main="Log")
-rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(channel), col=ccol, adj=c(0,1.5))
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol[ford], size=1, main="Log")
+rgl::rgl.texts(pca[,1],pca[,2],pca[,3], abbreviate(rownames(pca)), col=ccol[ford], adj=c(0,1.5))
 subid <- currentSubscene3d()
-rglwidget(elementId="plot3dLog")
+rglwidget(elementId="plot3dLog", width=720, height=720)
 ```
 
 ## K-Means Level 1
