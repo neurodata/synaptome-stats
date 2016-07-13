@@ -342,6 +342,8 @@ table(truth, pred)
 
 The above gives the LDA error rate.
 
+
+
 <footer>
 <p> [Back to Top][Data]</p>
 </footer>
