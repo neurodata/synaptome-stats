@@ -260,7 +260,7 @@ title("Test statistic")
 corrRect(tmp,col=Syncol,lwd=4)
 
 
-corrplot((mp[ford,ford]),is.corr=FALSE,method="color",tl.col=ccol[ford], 
+corrplot((-log10(mp[ford,ford]+.Machine$double.eps)),is.corr=FALSE,method="color",tl.col=ccol[ford], 
          tl.cex=0.8,col=mycol3[-c(1:2)], mar=c(0,0,1,0),
          p.mat=mp[ford,ford], sig.level=0.05)
 title("p-values")
@@ -287,9 +287,12 @@ subid <- currentSubscene3d()
 rglwidget(elementId="rgl-pca1",width=720,height=720)
 ```
 
-```{r cc-pca2,h=7,w=7,fig.cap=fig$cap("pairs2","PCA of untransformed correlation matrix")}
+```{r cc-pcaB1,h=7,w=7,fig.cap=fig$cap("pairs2","PCA of untransformed correlation matrix")}
 pcaB <- prcomp(corrfB,center=TRUE, scale=TRUE)
 pairs(pcaB$x[,1:3], col=cr[bford],pch=20, cex=2)
+```
+
+```{r cc-pcaB2,h=7,w=7,fig.cap=fig$cap("pairs1","PC2 v PC1 of untransformed correlation matrix")}
 plot(pcaB$x[,1:3], col=cr[bford],pch=20, cex=2)
 text(pcaB$x[,1:2], labels=rownames(pcaB$x), pos=4, col=cr[bford])
 ```
