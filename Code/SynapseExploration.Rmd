@@ -21,9 +21,10 @@ output:
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 rm(list=ls()); 
-rmarkdown::render(grep("SynapseExploration.Rmd", dir(), value=TRUE))
+rmarkdown::render(grep("^SynapseExploration.Rmd", dir(), value=TRUE))
 system('open SynapseExploration.html')
 ```
+
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE}
 ### Library calls here.
 require(Matrix)
@@ -115,15 +116,7 @@ And a [raw version here](https://raw.githubusercontent.com/neurodata/synaptome-s
 Previous work by Youngser Park can be found [here](http://www.cis.jhu.edu/~parky/Synapse/synapse.html).  
 
 
-# Introduction
-
-Following from previous pages, this page will focus on filtering the data 
-before clustering to explore if filtering improves the outcome of clustering.
-
-# Data 
-Here we read in the data and select a random half of it for exploration. 
-
-```{r cc-data, eval=TRUE}
+```{r cc-data, eval=TRUE, echo=FALSE}
 featFull <- fread("../data/synapsinR_7thA.tif.Pivots.txt.2011Features.txt",
                   showProgress=FALSE)
 locFull <- fread("../data/synapsinR_7thA.tif.Pivots.txt",showProgress=FALSE)
@@ -136,7 +129,6 @@ half2 <- setdiff(1:dim(featFull)[1],half1)
 
 feat <- featFull[half1,]
 loc <- locFull[half1,]
-dim(feat)
 
 ## Setting the channel names
 channel <- c('Synap_1','Synap_2','VGlut1_t1','VGlut1_t2','VGlut2','Vglut3',
@@ -178,9 +170,7 @@ mycol <- colorpanel(100, "purple", "black", "green")
 mycol2 <- matlab.like(nchannel)
 ```
 
-## Data transformations
-
-```{r cc-datatrans, eval=TRUE}
+```{r cc-datatrans, eval=TRUE, echo=FALSE}
 f <- lapply(1:6,function(x){seq(x,ncol(feat),by=nfeat)})
 featF <- lapply(f,function(x){subset(feat,select=x)})
 
@@ -244,46 +234,73 @@ cmatfs <- cor(fs)
 corrplot(cmatfs,method="color",tl.col=ccol[ford], tl.cex=1)
 ```
 
-# PCA on the Correlation Matrix
+# Level 0 
 
-```{r pcaLog, eval=TRUE}
-pcaf0 <- prcomp(featF0,scale=TRUE, center=TRUE)
-pcafs <- prcomp(fs,scale=FALSE, center=FALSE)
-elpcaf0 <- getElbows(pcaf0$sdev, plot=FALSE)
-elpcafs <- getElbows(pcafs$sdev, plot=FALSE)
+```{r cc-dat0,eval=TRUE,echo=TRUE}
+dat <- fs
 ```
 
+## Heat maps (Lv 0):
+
+```{r cc_agg0, eval=TRUE}
+## Formatting data for heatmap
+aggp <- apply(dat, 2, mean)
+aggp <- t(cbind(aggp, aggp))
+```
+
+The following are heatmaps generated from clustering 
+via K-means++ (at level 1)
+
+```{r cc-kmpp-heatmapLV0,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
+heatmap.2(as.matrix(aggp), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data") # 
+```
+
+```{r cc-kmpp-heatmapSortedLV0,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
+heatmap.2(as.matrix(aggp),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.") 
+```
+
+Percentage of data within cluster is presented on the right side of the heatmap.
+
+
+## Jittered scatter plot: Lv 0
+
+
+```{r ggJitter}
+ggJdat <- stack(dat)
+ggD <- data.table(ggJdat)
+
+set.seed(1024)
+tmp <- ggD[ sample(dim(ggD)[1], 1e4),]
+tmp$ind <- as.factor(tmp$ind)
+levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
+
+ggJ0 <- 
+  ggplot(data = tmp, aes(x = ind, y = values)) +
+  geom_point(alpha=0.75) + 
+  geom_jitter(width = 1) + 
+  theme(axis.title.x = element_blank()) + 
+  theme(axis.text.x = element_text(color = ccol[ford], 
+                                   angle=45,
+                                   vjust = 0.5))
+```
+
+```{r jitter0, h=6, w=14, fig.cap=fig$cap("jitter1","Scatter Plot Level 0 ")}
+print(ggJ0)
+```
 
 # Level 1: K-means++ for $K=2$. 
 We run a Hierachical K-means++ for $K=2$ on the `fs` data with 4 levels.
 
 ```{r cc-kmpp,eval=TRUE,echo=TRUE}
 set.seed(2^13)
-L <- bhkmpp(fs,blevels=4)
+L <- bhkmpp(dat,blevels=4)
 ```
-
-## Within cluster correlations (Lv 1)
-
-```{r cc-wcc1, h=8,w=8,fig.cap=fig$cap("corkp1","Within cluster correlations, clock-wise from top left, Cluster 1, Cluster 2, l2 distance between C1 and C2")}
-corkp1 <- cor(fs[L[[1]] == 1,])
-corkp2 <- cor(fs[L[[1]] == 2,])
-
-par(mfrow=c(2,2))
-corrplot(corkp1,method="color",tl.col=ccol[ford], tl.cex=0.8)
-corrplot(corkp2,method="color",tl.col=ccol[ford], tl.cex=0.8)
-corrplot(sqrt((corkp1 - corkp2)^2),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
-```
-
-Notice that the non-synaptic markers change very little between
-clusters.  Also note that the correlations between (`gad, VGAT, PV,
-Gephyr`) and `VGlut1` at both times change significantly between
-clusters.
 
 ## Heat maps (Lv 1):
 
 ```{r cc_agg, eval=TRUE}
 ## Formatting data for heatmap
-aggp <- aggregate(fs,by=list(lab=L[[1]]),FUN=mean)
+aggp <- aggregate(dat,by=list(lab=L[[1]]),FUN=mean)
 aggp <- as.matrix(aggp[,-1])
 rownames(aggp) <- clusterFraction(L[[1]])
 ```
@@ -302,23 +319,73 @@ heatmap.2(as.matrix(aggp),dendrogram='row',Colv=NA,trace="none", col=mycol,colCo
 Percentage of data within cluster is presented on the right side of the heatmap.
 
 
+## Jittered scatter plot: Lv 1
+
+
+```{r ggJitter1}
+ggJdat <- stack(dat)
+ggD <- data.table(ggJdat)
+ggD$label <- L[[1]]
+
+ggCol <- brewer.pal(4,"Set1")[order(table(L[[1]]))]
+
+set.seed(1024)
+tmp <- ggD[ sample(dim(ggD)[1], 1e4),]
+tmp$label <- as.factor(tmp$lab)
+tmp$ind <- as.factor(tmp$ind)
+levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
+
+ggJ1 <- 
+  ggplot(data = tmp, aes(x = ind, y = values, 
+                         color = label, 
+                         shape = label)) +
+  scale_color_manual(values=ggCol) + 
+  geom_point(alpha=0.75) + 
+  geom_jitter(width = 1) + 
+  theme(axis.title.x = element_blank()) + 
+  theme(axis.text.x = element_text(color = ccol[ford], 
+                                   angle=45,
+                                   vjust = 0.5))
+```
+
+```{r jitter1, h=6, w=14, fig.cap=fig$cap("jitter1","Scatter Plot Level 1 ")}
+print(ggJ1)
+```
+## Within cluster correlations (Lv 1)
+
+```{r cc-wcc1, h=8,w=8,fig.cap=fig$cap("corkp1","Within cluster correlations, clock-wise from top left, Cluster 1, Cluster 2, l2 distance between C1 and C2")}
+corkp1 <- cor(dat[L[[1]] == 1,])
+corkp2 <- cor(dat[L[[1]] == 2,])
+
+par(mfrow=c(2,2))
+corrplot(corkp1,method="color",tl.col=ccol[ford], tl.cex=0.8)
+corrplot(corkp2,method="color",tl.col=ccol[ford], tl.cex=0.8)
+corrplot(sqrt((corkp1 - corkp2)^2),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
+```
+
+Notice that the non-synaptic markers change very little between
+clusters.  Also note that the correlations between (`gad, VGAT, PV,
+Gephyr`) and `VGlut1` at both times change significantly between
+clusters.
+
+
 ## Kernel Density Estimates of the marginals | cluster (Lv 1)
 
 Here we look at the kernel density estimates within each cluster to
 compare.
 
 ```{r synEx-kde1c2prepLV1}
-df2 <- melt(as.matrix(fs))
+df2 <- melt(as.matrix(dat))
 names(df2) <- c("ind","channel","value")
 df2$cluster <- L[[1]]
-df2$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
+df2$type <- factor(rep(ffchannel,each=dim(dat)[1]),levels=levels(ffchannel))
 
 gg2 <- ggplot(df2, aes(x=value)) + 
 scale_colour_manual(values=ccol) + 
 scale_x_continuous(limits=c(0,400)) +
 geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=250) +
 geom_density(aes(group=channel, color=channel),size=1.5) +
-facet_grid(channel ~ cluster, scale='free_x') + 
+facet_grid(channel ~ cluster, scale='free') + 
 theme(strip.text.y=element_text(angle=0)) +
 theme(strip.text.y   =element_text(angle=0),
       plot.title     =element_text(size=ts),
@@ -361,7 +428,7 @@ rglwidget(elementId="plot3dLocations", height=720, width=720)
 ## Within cluster correlations (Lv 2)
 
 ```{r cc-wccLV2,h=10,w=10,fig.cap=fig$cap("corkp2","Within cluster correlations for level 2. (c11, c12, c21, c22)")}
-corLV2 <- lapply(c(1:4),function(x){cor(fs[L[[2]] == x,])})
+corLV2 <- lapply(c(1:4),function(x){cor(dat[L[[2]] == x,])})
 
 par(mfrow=c(2,2))
 for(pl in corLV2){
@@ -373,7 +440,7 @@ corrplot(pl,method="color",tl.col=ccol[ford], tl.cex=0.8)
 
 ```{r cc-agg2, eval=TRUE}
 ## Formatting data for heatmap
-aggp2 <- aggregate(fs,by=list(lab=L[[2]]),FUN=function(x){mean(x)}) 
+aggp2 <- aggregate(dat,by=list(lab=L[[2]]),FUN=function(x){mean(x)}) 
 aggp2 <- as.matrix(aggp2[,-1])
 rownames(aggp2) <- clusterFraction(L[[2]])
 ```
@@ -398,10 +465,10 @@ Here we look at the kernel density estimates within each cluster to
 compare.
 
 ```{r synEx-kdeLV2}
-df2 <- melt(as.matrix(fs))
+df2 <- melt(as.matrix(dat))
 names(df2) <- c("ind","channel","value")
 df2$cluster <- L[[2]]
-df2$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
+df2$type <- factor(rep(ffchannel,each=dim(dat)[1]),levels=levels(ffchannel))
 
 gg3 <- ggplot(df2, aes(x=value)) + 
     scale_colour_manual(values=ccol) + 
@@ -418,6 +485,25 @@ gg3 <- ggplot(df2, aes(x=value)) +
           legend.text=element_text(size=ts-2),
           strip.text=element_text(size=ts), 
           legend.position='none')
+
+
+
+
+
+
+
+
+df2 <- melt(as.matrix(dat))
+names(df2) <- c("ind","channel","value")
+df2$cluster <- L[[2]]
+df2$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
+
+gg3 <- ggplot(df2[sample(dim(df2)[1],1e2),], 
+              aes(x = as.factor(channel), y=value,
+                  colour=channel)) + 
+       scale_colour_manual(values=ccol) + 
+       geom_point() 
+
 ```
 
 ```{r gg-kdeLV2, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDE2","Kernel density estimates for each channel, on `fs` data given cluster from km++ level 2")}
@@ -459,7 +545,7 @@ rglwidget(elementId="plot3dLocationsLV2", height=720, width=720)
 ## Within cluster correlations (Lv 3)
 
 ```{r cc-wcc3,h=16,w=10,fig.cap=fig$cap("corkp3","Within cluster correlations for level 3. (c111, c112, c121, c122, c211, c212, c221, c222)")}
-corLV3 <- lapply(c(1:8),function(x){cor(fs[L[[3]] == x,])})
+corLV3 <- lapply(c(1:8),function(x){cor(dat[L[[3]] == x,])})
 
 par(mfrow=c(3,2))
 for(pl in corLV3){
@@ -471,7 +557,7 @@ corrplot(pl,method="color",tl.col=ccol[ford], tl.cex=0.8)
 
 ```{r cc-agg3, eval=TRUE}
 ## Formatting data for heatmap
-aggp3 <- aggregate(fs,by=list(lab=L[[3]]),FUN=function(x){mean(x)})
+aggp3 <- aggregate(dat,by=list(lab=L[[3]]),FUN=function(x){mean(x)})
 aggp3 <- as.matrix(aggp3[,-1])
 rownames(aggp3) <- clusterFraction(L[[3]])
 ```
@@ -496,10 +582,10 @@ Here we look at the kernel density estimates within each cluster to
 compare.
 
 ```{r synEx-kde1c2prep3}
-df3 <- melt(as.matrix(fs))
+df3 <- melt(as.matrix(dat))
 names(df3) <- c("ind","channel","value")
 df3$cluster <- L[[3]]
-df3$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
+df3$type <- factor(rep(ffchannel,each=dim(dat)[1]),levels=levels(ffchannel))
 
 gg4 <- ggplot(df3, aes(x=value)) + 
     scale_colour_manual(values=ccol) + 
