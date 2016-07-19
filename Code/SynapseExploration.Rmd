@@ -227,12 +227,6 @@ gg1 <- ggplot(df1, aes(x=value)) +
 print(gg1)
 ```
 
-# Correlations
-
-```{r cc_cor,w=5,h=5, eval=TRUE,fig.cap=fig$cap("cor","Correlation on untransformed F0 data, reordered by synapse type.")}
-cmatfs <- cor(fs)
-corrplot(cmatfs,method="color",tl.col=ccol[ford], tl.cex=1)
-```
 
 # Level 0 
 
@@ -252,7 +246,9 @@ The following are heatmaps generated from clustering
 via K-means++ (at level 1)
 
 ```{r cc-kmpp-heatmapLV0,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
-heatmap.2(as.matrix(aggp), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data") # 
+heatmap.2(as.matrix(aggp), trace="none",col=mycol,colCol=ccol,cexRow=0.8, 
+          keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", 
+          srtCol=90,main="Heatmap of `fs` data") 
 ```
 
 ```{r cc-kmpp-heatmapSortedLV0,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
@@ -270,7 +266,8 @@ ggJdat <- stack(dat)
 ggD <- data.table(ggJdat)
 
 set.seed(1024)
-tmp <- ggD[ sample(dim(ggD)[1], 1e4),]
+s2 <- sample(dim(ggD)[1], 2.5e4)
+tmp <- ggD[s2,]
 tmp$ind <- as.factor(tmp$ind)
 levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
 
@@ -287,6 +284,16 @@ ggJ0 <-
 ```{r jitter0, h=6, w=14, fig.cap=fig$cap("jitter1","Scatter Plot Level 0 ")}
 print(ggJ0)
 ```
+
+The above scatter plot is a random sample of the data points. 
+
+## Correlations: Lv 0
+
+```{r cc_cor,w=5,h=5, eval=TRUE,fig.cap=fig$cap("cor","Correlation on untransformed F0 data, reordered by synapse type.")}
+cmatfs <- cor(fs)
+corrplot(cmatfs,method="color",tl.col=ccol[ford], tl.cex=1)
+```
+
 
 # Level 1: K-means++ for $K=2$. 
 We run a Hierachical K-means++ for $K=2$ on the `fs` data with 4 levels.
@@ -329,19 +336,21 @@ ggD$label <- L[[1]]
 
 ggCol <- brewer.pal(4,"Set1")[order(table(L[[1]]))]
 
-set.seed(1024)
-tmp <- ggD[ sample(dim(ggD)[1], 1e4),]
+tmp <- ggD[s2, ]
 tmp$label <- as.factor(tmp$lab)
 tmp$ind <- as.factor(tmp$ind)
 levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
 
+cf1 <- data.frame(cf = clusterFraction(L[[1]]))
+
 ggJ1 <- 
   ggplot(data = tmp, aes(x = ind, y = values, 
-                         color = label, 
-                         shape = label)) +
+                         color = label)) +
   scale_color_manual(values=ggCol) + 
-  geom_point(alpha=0.75) + 
-  geom_jitter(width = 1) + 
+  geom_point(alpha=0.25, position=position_jitterdodge()) + 
+  geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
+  annotate("text", x = levels(tmp$ind)[c(2,20)], y = 650, 
+           label= cf1[1:2,]) + 
   theme(axis.title.x = element_blank()) + 
   theme(axis.text.x = element_text(color = ccol[ford], 
                                    angle=45,
@@ -459,56 +468,46 @@ heatmap.2(as.matrix(aggp2),dendrogram='row',Colv=NA,trace="none", col=mycol,colC
 Percentage of data within cluster is presented on the right side of the heatmap.
 
 
+## Jittered scatter plot: Lv 2
+
+
+```{r ggJitter2}
+ggJdat <- stack(dat)
+ggD <- data.table(ggJdat)
+ggD$label <- L[[2]]
+
+ggCol <- brewer.pal(8,"Set1")[order(table(L[[2]]))]
+
+tmp <- ggD[s2, ]
+tmp$label <- as.factor(tmp$lab)
+tmp$ind <- as.factor(tmp$ind)
+levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
+
+cf2 <- data.frame(cf = clusterFraction(L[[2]]))
+ggJ2 <- 
+  ggplot(data = tmp, aes(x = ind, y = values, 
+                         color = label)) +
+  scale_color_manual(values=ggCol) + 
+  geom_point(alpha=0.25, position=position_jitterdodge()) + 
+  geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
+  annotate("text", x = levels(tmp$ind)[c(2,8,14,20)], y = 650, 
+           label= cf2[1:4,]) + 
+  theme(axis.title.x = element_blank()) + 
+  theme(axis.text.x = element_text(color = ccol[ford], 
+                                   angle=45,
+                                   vjust = 0.5))
+```
+
+```{r jitter2, h=6, w=14, fig.cap=fig$cap("jitter2","Scatter Plot Level 2 ")}
+print(ggJ2)
+```
+
+The fraction of data points within each cluster are given at the top of
+the plot window. 
 ## Kernel Density Estimates of the marginals | cluster (Lv 2)
 
 Here we look at the kernel density estimates within each cluster to
 compare.
-
-```{r synEx-kdeLV2}
-df2 <- melt(as.matrix(dat))
-names(df2) <- c("ind","channel","value")
-df2$cluster <- L[[2]]
-df2$type <- factor(rep(ffchannel,each=dim(dat)[1]),levels=levels(ffchannel))
-
-gg3 <- ggplot(df2, aes(x=value)) + 
-    scale_colour_manual(values=ccol) + 
-    #scale_x_continuous(limits=c(0,400)) +
-    geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=250) +
-    geom_density(aes(group=channel),size=.5, color='black', alpha=0.5) +
-    facet_grid(channel ~ cluster, scale='free') + 
-    #guides(col=guide_legend(ncol=1))
-    theme(strip.text.y=element_text(angle=0),
-          plot.title=element_text(size=ts),
-          axis.title.x=element_text(size=ts),
-          axis.title.y=element_text(size=ts),
-          legend.title=element_text(size=ts),
-          legend.text=element_text(size=ts-2),
-          strip.text=element_text(size=ts), 
-          legend.position='none')
-
-
-
-
-
-
-
-
-df2 <- melt(as.matrix(dat))
-names(df2) <- c("ind","channel","value")
-df2$cluster <- L[[2]]
-df2$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
-
-gg3 <- ggplot(df2[sample(dim(df2)[1],1e2),], 
-              aes(x = as.factor(channel), y=value,
-                  colour=channel)) + 
-       scale_colour_manual(values=ccol) + 
-       geom_point() 
-
-```
-
-```{r gg-kdeLV2, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDE2","Kernel density estimates for each channel, on `fs` data given cluster from km++ level 2")}
-print(gg3)
-```
 
 ## Clusters and Spatial Location (Lv 2)
 Using the location data and the results of K-means++ we show a 3d scatter
@@ -576,10 +575,42 @@ heatmap.2(as.matrix(aggp3),dendrogram='row',Colv=NA,trace="none", col=mycol,colC
 Percentage of data within cluster is presented on the right side of the heatmap.
 
 
+## Jittered scatter plot: Lv 3
+
+
+```{r ggJitter3}
+ggJdat <- stack(dat)
+ggD <- data.table(ggJdat)
+ggD$label <- L[[3]]
+
+ggCol <- brewer.pal(8,"Set1")[order(table(L[[3]]))]
+
+tmp <- ggD[s2, ]
+tmp$label <- as.factor(tmp$lab)
+tmp$ind <- as.factor(tmp$ind)
+levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
+
+ggJ3 <- 
+  ggplot(data = tmp, aes(x = ind, y = values, 
+                         color = label)) +
+  scale_color_manual(values=ggCol) + 
+  geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
+  geom_point(alpha=0.25, position=position_jitterdodge()) + 
+  #geom_jitter(width=2) + 
+  theme(axis.title.x = element_blank()) + 
+  theme(axis.text.x = element_text(color = ccol[ford], 
+                                   angle=45,
+                                   vjust = 0.5))
+```
+
+```{r jitter3, h=6, w=14, fig.cap=fig$cap("jitter3","Scatter Plot Level 3 ")}
+print(ggJ3)
+```
 ## Kernel Density Estimates of the marginals | cluster (Lv 3)
 
 Here we look at the kernel density estimates within each cluster to
-compare.
+compare. The fraction of points within clusters is `r round(table(L[[3]])/length(L[[3]]),3)`
+
 
 ```{r synEx-kde1c2prep3}
 df3 <- melt(as.matrix(dat))
