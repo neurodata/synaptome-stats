@@ -266,7 +266,7 @@ ggJdat <- stack(dat)
 ggD <- data.table(ggJdat)
 
 set.seed(1024)
-s2 <- sample(dim(ggD)[1], 2.5e4)
+s2 <- sample(dim(ggD)[1], 5e4)
 tmp <- ggD[s2,]
 tmp$ind <- as.factor(tmp$ind)
 levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
@@ -349,7 +349,7 @@ ggJ1 <-
   scale_color_manual(values=ggCol) + 
   geom_point(alpha=0.25, position=position_jitterdodge()) + 
   geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
-  annotate("text", x = levels(tmp$ind)[c(2,20)], y = 650, 
+  annotate("text", x = levels(tmp$ind)[c(2,20)], y = max(tmp$values)+25, 
            label= cf1[1:2,]) + 
   theme(axis.title.x = element_blank()) + 
   theme(axis.text.x = element_text(color = ccol[ford], 
@@ -365,11 +365,18 @@ print(ggJ1)
 ```{r cc-wcc1, h=8,w=8,fig.cap=fig$cap("corkp1","Within cluster correlations, clock-wise from top left, Cluster 1, Cluster 2, l2 distance between C1 and C2")}
 corkp1 <- cor(dat[L[[1]] == 1,])
 corkp2 <- cor(dat[L[[1]] == 2,])
+difCor12 <- sqrt((corkp1 - corkp2)^2)
 
-par(mfrow=c(2,2))
-corrplot(corkp1,method="color",tl.col=ccol[ford], tl.cex=0.8)
-corrplot(corkp2,method="color",tl.col=ccol[ford], tl.cex=0.8)
-corrplot(sqrt((corkp1 - corkp2)^2),is.corr=FALSE,method="color",tl.col=ccol[ford], tl.cex=0.8)
+layout(matrix(c(1,2,3,3), 2, 2, byrow=TRUE))
+corrplot(corkp1,method="color",tl.col=ccol[ford], tl.cex=0.8, mar=c(0,0,1,0))
+title("Cluster 1")
+corrplot(corkp2,method="color",tl.col=ccol[ford], tl.cex=0.8, mar=c(0,0,1,0))
+title("Cluster 2")
+corrplot(difCor12,is.corr=FALSE,method="color",
+         tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0),
+         col=colorRampPalette(c("white","white","darkorange"))(50))
+title("Difference(1,2)")
 ```
 
 Notice that the non-synaptic markers change very little between
@@ -377,38 +384,6 @@ clusters.  Also note that the correlations between (`gad, VGAT, PV,
 Gephyr`) and `VGlut1` at both times change significantly between
 clusters.
 
-
-## Kernel Density Estimates of the marginals | cluster (Lv 1)
-
-Here we look at the kernel density estimates within each cluster to
-compare.
-
-```{r synEx-kde1c2prepLV1}
-df2 <- melt(as.matrix(dat))
-names(df2) <- c("ind","channel","value")
-df2$cluster <- L[[1]]
-df2$type <- factor(rep(ffchannel,each=dim(dat)[1]),levels=levels(ffchannel))
-
-gg2 <- ggplot(df2, aes(x=value)) + 
-scale_colour_manual(values=ccol) + 
-scale_x_continuous(limits=c(0,400)) +
-geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=250) +
-geom_density(aes(group=channel, color=channel),size=1.5) +
-facet_grid(channel ~ cluster, scale='free') + 
-theme(strip.text.y=element_text(angle=0)) +
-theme(strip.text.y   =element_text(angle=0),
-      plot.title     =element_text(size=ts),
-      axis.title.x   =element_text(size=ts),
-      axis.title.y   =element_text(size=ts),
-      legend.title   =element_text(size=ts),
-      legend.text    =element_text(size=ts-2),
-      strip.text     =element_text(size=ts), 
-      legend.position='none')
-```
-
-```{r synEx-kdeLV1, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDElv1","Kernel density estimates for each channel, on `fs` data given cluster from km++ level 1")}
-print(gg2)
-```
 
 ## Clusters and Spatial Location (Lv 1)
 Using the location data and the results of K-means++ we show a 3d scatter
@@ -436,13 +411,41 @@ rglwidget(elementId="plot3dLocations", height=720, width=720)
 
 ## Within cluster correlations (Lv 2)
 
-```{r cc-wccLV2,h=10,w=10,fig.cap=fig$cap("corkp2","Within cluster correlations for level 2. (c11, c12, c21, c22)")}
+```{r cc-wccLV2,h=12,w=7,fig.cap=fig$cap("corkp2","Within cluster correlations for level 2. (c11, c12, c21, c22)")}
 corLV2 <- lapply(c(1:4),function(x){cor(dat[L[[2]] == x,])})
 
-par(mfrow=c(2,2))
-for(pl in corLV2){
-corrplot(pl,method="color",tl.col=ccol[ford], tl.cex=0.8)
-}
+difCor1112 <- sqrt((corLV2[[2]] - corLV2[[1]])^2)
+difCor2122 <- sqrt((corLV2[[4]] - corLV2[[3]])^2)
+
+layout(matrix(c(1,2,3,3,4,5,6,6), 4, 2, byrow=TRUE))
+corrplot(corLV2[[1]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title("Cluster 1")
+corrplot(corLV2[[2]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title("Cluster 2")
+corrplot(difCor1112, method="color", tl.col=ccol[ford], 
+         tl.cex=0.8,
+         mar = c(0,0,1,0),
+         cl.lim = c(0,max(difCor1112,difCor2122)),
+         col=colorRampPalette(c("white", 
+                                "white",
+                                "darkorange"))(100))
+title("Difference(1,2)")
+corrplot(corLV2[[3]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title("Cluster 3")
+corrplot(corLV2[[4]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title("Cluster 4")
+corrplot(difCor2122, method="color", tl.col=ccol[ford], 
+         tl.cex=0.8,
+         mar=c(0,0,1,0),
+         cl.lim = c(0,max(difCor1112,difCor2122)),
+         col=colorRampPalette(c("white", 
+                                "white",
+                                "darkorange"))(100))
+title("Difference(3,4)")
 ```
 
 ## Heat maps (Lv 2):
@@ -490,7 +493,7 @@ ggJ2 <-
   scale_color_manual(values=ggCol) + 
   geom_point(alpha=0.25, position=position_jitterdodge()) + 
   geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
-  annotate("text", x = levels(tmp$ind)[c(2,8,14,20)], y = 650, 
+  annotate("text", x = levels(tmp$ind)[c(2,8,14,20)], y = max(tmp$values)+25, 
            label= cf2[1:4,]) + 
   theme(axis.title.x = element_blank()) + 
   theme(axis.text.x = element_text(color = ccol[ford], 
@@ -543,13 +546,70 @@ rglwidget(elementId="plot3dLocationsLV2", height=720, width=720)
 
 ## Within cluster correlations (Lv 3)
 
-```{r cc-wcc3,h=16,w=10,fig.cap=fig$cap("corkp3","Within cluster correlations for level 3. (c111, c112, c121, c122, c211, c212, c221, c222)")}
+```{r cc-wcc3,h=17,w=7,fig.cap=fig$cap("corkp3","Within cluster correlations for level 3. (c111, c112, c121, c122, c211, c212, c221, c222)")}
 corLV3 <- lapply(c(1:8),function(x){cor(dat[L[[3]] == x,])})
 
-par(mfrow=c(3,2))
-for(pl in corLV3){
-corrplot(pl,method="color",tl.col=ccol[ford], tl.cex=0.8)
-}
+difCor1 <- sqrt((corLV3[[2]] - corLV3[[1]])^2)
+difCor2 <- sqrt((corLV3[[4]] - corLV3[[3]])^2)
+difCor3 <- sqrt((corLV3[[6]] - corLV3[[5]])^2)
+difCor4 <- sqrt((corLV3[[8]] - corLV3[[7]])^2)
+m <- max(difCor1, difCor2, difCor3, difCor4)
+
+layout(matrix(c(1, 2, 3, 3,
+                4, 5, 6, 6, 
+                7, 8, 9, 9,
+                10, 11, 12, 12), 8,2, byrow=TRUE))
+
+corrplot(corLV3[[1]],method="color",tl.col=ccol[ford], tl.cex=0.8,
+         mar=c(0,0,1,0))
+title('Cluster 1')
+corrplot(corLV3[[2]],method="color",tl.col=ccol[ford], tl.cex=0.8,
+         mar=c(0,0,1,0))
+title('Cluster 2')
+corrplot(difCor1,method="color",tl.col=ccol[ford], tl.cex=0.8,
+         cl.lim=c(0,m), 
+         mar=c(0,0,1,0),
+         col=colorRampPalette(c("white","white","darkorange"))(50))
+title('Difference(1,2)')
+corrplot(corLV3[[3]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title('Cluster 3')
+corrplot(corLV3[[4]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title('Cluster 4')
+corrplot(difCor2,method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         cl.lim= c(0,m),
+         mar=c(0,0,1,0),
+         col=colorRampPalette(c("white",
+                                "white",
+                                "darkorange"))(50))
+title('Difference(3,4)')
+corrplot(corLV3[[5]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title('Cluster 5')
+corrplot(corLV3[[6]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title('Cluster 6')
+corrplot(difCor3,method="color",tl.col=ccol[ford], tl.cex=0.8,
+         cl.lim= c(0,m),
+         mar=c(0,0,1,0),
+         col=colorRampPalette(c("white",
+                                "white",
+                                "darkorange"))(50))
+title('Difference(5,6)')
+corrplot(corLV3[[7]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title('Cluster 7')
+corrplot(corLV3[[8]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title('Cluster 8')
+corrplot(difCor4,method="color",tl.col=ccol[ford], tl.cex=0.8,
+         cl.lim= c(0,m),
+         mar=c(0,0,1,0),
+         col=colorRampPalette(c("white",
+                                "white",
+                                "darkorange"))(50))
+title('Difference(7,8)')
 ```
 
 ## Heat maps (Lv 3):
@@ -603,40 +663,8 @@ ggJ3 <-
                                    vjust = 0.5))
 ```
 
-```{r jitter3, h=6, w=14, fig.cap=fig$cap("jitter3","Scatter Plot Level 3 ")}
+```{r jitter3, h=6, w=17, fig.cap=fig$cap("jitter3","Scatter Plot Level 3 ")}
 print(ggJ3)
-```
-## Kernel Density Estimates of the marginals | cluster (Lv 3)
-
-Here we look at the kernel density estimates within each cluster to
-compare. The fraction of points within clusters is `r round(table(L[[3]])/length(L[[3]]),3)`
-
-
-```{r synEx-kde1c2prep3}
-df3 <- melt(as.matrix(dat))
-names(df3) <- c("ind","channel","value")
-df3$cluster <- L[[3]]
-df3$type <- factor(rep(ffchannel,each=dim(dat)[1]),levels=levels(ffchannel))
-
-gg4 <- ggplot(df3, aes(x=value)) + 
-    scale_colour_manual(values=ccol) + 
-    #scale_x_continuous(limits=c(0,400)) +
-    geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=250) +
-    geom_density(aes(group=channel),size=.5, color='black', alpha=0.5) +
-    facet_grid(channel ~ cluster, scale='free') + 
-    #guides(col=guide_legend(ncol=1)) + 
-    theme(strip.text.y=element_text(angle=0),
-          plot.title=element_text(size=ts),
-          axis.title.x=element_text(size=ts),
-          axis.title.y=element_text(size=ts),
-          legend.title=element_text(size=ts),
-          legend.text=element_text(size=ts-2),
-          strip.text=element_text(size=ts), 
-          legend.position='none')
-```
-
-```{r synEx-kdeLV3, eval=TRUE,echo=TRUE,cache=FALSE,w=12,h=18,fig.cap=fig$cap("gKDE3","Kernel density estimates for each channel, on `fs` data given cluster from km++ level 3")}
-print(gg4)
 ```
 
 ## Clusters and Spatial Location (Lv 3)
@@ -661,11 +689,6 @@ plot3d(locs3$V1,locs3$V2,locs3$V3,
 subid <- currentSubscene3d()
 rglwidget(elementId="plot3dLocationsLV3", height=720, width=720)
 ```
-
-
-
-
-
 
 
 <footer>
