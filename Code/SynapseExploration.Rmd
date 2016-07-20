@@ -360,6 +360,7 @@ ggJ1 <-
 ```{r jitter1, h=6, w=14, fig.cap=fig$cap("jitter1","Scatter Plot Level 1 ")}
 print(ggJ1)
 ```
+
 ## Within cluster correlations (Lv 1)
 
 ```{r cc-wcc1, h=8,w=8,fig.cap=fig$cap("corkp1","Within cluster correlations, clock-wise from top left, Cluster 1, Cluster 2, l2 distance between C1 and C2")}
@@ -409,44 +410,6 @@ rglwidget(elementId="plot3dLocations", height=720, width=720)
 
 # Level 2: K-means++ for $K=2$.
 
-## Within cluster correlations (Lv 2)
-
-```{r cc-wccLV2,h=12,w=7,fig.cap=fig$cap("corkp2","Within cluster correlations for level 2. (c11, c12, c21, c22)")}
-corLV2 <- lapply(c(1:4),function(x){cor(dat[L[[2]] == x,])})
-
-difCor1112 <- sqrt((corLV2[[2]] - corLV2[[1]])^2)
-difCor2122 <- sqrt((corLV2[[4]] - corLV2[[3]])^2)
-
-layout(matrix(c(1,2,3,3,4,5,6,6), 4, 2, byrow=TRUE))
-corrplot(corLV2[[1]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
-title("Cluster 1")
-corrplot(corLV2[[2]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
-title("Cluster 2")
-corrplot(difCor1112, method="color", tl.col=ccol[ford], 
-         tl.cex=0.8,
-         mar = c(0,0,1,0),
-         cl.lim = c(0,max(difCor1112,difCor2122)),
-         col=colorRampPalette(c("white", 
-                                "white",
-                                "darkorange"))(100))
-title("Difference(1,2)")
-corrplot(corLV2[[3]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
-title("Cluster 3")
-corrplot(corLV2[[4]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
-title("Cluster 4")
-corrplot(difCor2122, method="color", tl.col=ccol[ford], 
-         tl.cex=0.8,
-         mar=c(0,0,1,0),
-         cl.lim = c(0,max(difCor1112,difCor2122)),
-         col=colorRampPalette(c("white", 
-                                "white",
-                                "darkorange"))(100))
-title("Difference(3,4)")
-```
 
 ## Heat maps (Lv 2):
 
@@ -507,10 +470,46 @@ print(ggJ2)
 
 The fraction of data points within each cluster are given at the top of
 the plot window. 
-## Kernel Density Estimates of the marginals | cluster (Lv 2)
 
-Here we look at the kernel density estimates within each cluster to
-compare.
+
+## Within cluster correlations (Lv 2)
+
+```{r cc-wccLV2,h=12,w=7,fig.cap=fig$cap("corkp2","Within cluster correlations for level 2. (c11, c12, c21, c22)")}
+corLV2 <- lapply(c(1:4),function(x){cor(dat[L[[2]] == x,])})
+
+difCor1112 <- sqrt((corLV2[[2]] - corLV2[[1]])^2)
+difCor2122 <- sqrt((corLV2[[4]] - corLV2[[3]])^2)
+
+layout(matrix(c(1,2,3,3,4,5,6,6), 4, 2, byrow=TRUE))
+corrplot(corLV2[[1]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title("Cluster 1")
+corrplot(corLV2[[2]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title("Cluster 2")
+corrplot(difCor1112, method="color", tl.col=ccol[ford], 
+         tl.cex=0.8,
+         mar = c(0,0,1,0),
+         cl.lim = c(0,max(difCor1112,difCor2122)),
+         col=colorRampPalette(c("white", 
+                                "white",
+                                "darkorange"))(100))
+title("Difference(1,2)")
+corrplot(corLV2[[3]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title("Cluster 3")
+corrplot(corLV2[[4]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
+         mar=c(0,0,1,0))
+title("Cluster 4")
+corrplot(difCor2122, method="color", tl.col=ccol[ford], 
+         tl.cex=0.8,
+         mar=c(0,0,1,0),
+         cl.lim = c(0,max(difCor1112,difCor2122)),
+         col=colorRampPalette(c("white", 
+                                "white",
+                                "darkorange"))(100))
+title("Difference(3,4)")
+```
 
 ## Clusters and Spatial Location (Lv 2)
 Using the location data and the results of K-means++ we show a 3d scatter
@@ -543,6 +542,62 @@ rglwidget(elementId="plot3dLocationsLV2", height=720, width=720)
 
 
 # Level 3: K-means++ for $K=2$.
+
+
+## Heat maps (Lv 3):
+
+```{r cc-agg3, eval=TRUE}
+## Formatting data for heatmap
+aggp3 <- aggregate(dat,by=list(lab=L[[3]]),FUN=function(x){mean(x)})
+aggp3 <- as.matrix(aggp3[,-1])
+rownames(aggp3) <- clusterFraction(L[[3]])
+```
+
+The following are heatmaps generated from clustering 
+via K-means++
+
+```{r cc-kmpp-heatmapLV3,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat3", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
+heatmap.2(as.matrix(aggp3), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data") # 
+```
+
+```{r cc-kmpp-heatmapSortedLV3,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
+heatmap.2(as.matrix(aggp3),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.") 
+```
+
+Percentage of data within cluster is presented on the right side of the heatmap.
+
+
+## Jittered scatter plot: Lv 3
+
+
+```{r ggJitter3}
+ggJdat <- stack(dat)
+ggD <- data.table(ggJdat)
+ggD$label <- L[[3]]
+
+ggCol <- brewer.pal(8,"Set1")[order(table(L[[3]]))]
+
+tmp <- ggD[s2, ]
+tmp$label <- as.factor(tmp$lab)
+tmp$ind <- as.factor(tmp$ind)
+levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
+
+ggJ3 <- 
+  ggplot(data = tmp, aes(x = ind, y = values, 
+                         color = label)) +
+  scale_color_manual(values=ggCol) + 
+  geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
+  geom_point(alpha=0.25, position=position_jitterdodge()) + 
+  #geom_jitter(width=2) + 
+  theme(axis.title.x = element_blank()) + 
+  theme(axis.text.x = element_text(color = ccol[ford], 
+                                   angle=45,
+                                   vjust = 0.5))
+```
+
+```{r jitter3, h=6, w=17, fig.cap=fig$cap("jitter3","Scatter Plot Level 3 ")}
+print(ggJ3)
+```
 
 ## Within cluster correlations (Lv 3)
 
@@ -611,62 +666,6 @@ corrplot(difCor4,method="color",tl.col=ccol[ford], tl.cex=0.8,
                                 "darkorange"))(50))
 title('Difference(7,8)')
 ```
-
-## Heat maps (Lv 3):
-
-```{r cc-agg3, eval=TRUE}
-## Formatting data for heatmap
-aggp3 <- aggregate(dat,by=list(lab=L[[3]]),FUN=function(x){mean(x)})
-aggp3 <- as.matrix(aggp3[,-1])
-rownames(aggp3) <- clusterFraction(L[[3]])
-```
-
-The following are heatmaps generated from clustering 
-via K-means++
-
-```{r cc-kmpp-heatmapLV3,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat3", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
-heatmap.2(as.matrix(aggp3), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data") # 
-```
-
-```{r cc-kmpp-heatmapSortedLV3,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
-heatmap.2(as.matrix(aggp3),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.") 
-```
-
-Percentage of data within cluster is presented on the right side of the heatmap.
-
-
-## Jittered scatter plot: Lv 3
-
-
-```{r ggJitter3}
-ggJdat <- stack(dat)
-ggD <- data.table(ggJdat)
-ggD$label <- L[[3]]
-
-ggCol <- brewer.pal(8,"Set1")[order(table(L[[3]]))]
-
-tmp <- ggD[s2, ]
-tmp$label <- as.factor(tmp$lab)
-tmp$ind <- as.factor(tmp$ind)
-levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
-
-ggJ3 <- 
-  ggplot(data = tmp, aes(x = ind, y = values, 
-                         color = label)) +
-  scale_color_manual(values=ggCol) + 
-  geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
-  geom_point(alpha=0.25, position=position_jitterdodge()) + 
-  #geom_jitter(width=2) + 
-  theme(axis.title.x = element_blank()) + 
-  theme(axis.text.x = element_text(color = ccol[ford], 
-                                   angle=45,
-                                   vjust = 0.5))
-```
-
-```{r jitter3, h=6, w=17, fig.cap=fig$cap("jitter3","Scatter Plot Level 3 ")}
-print(ggJ3)
-```
-
 ## Clusters and Spatial Location (Lv 3)
 Using the location data and the results of K-means++ we show a 3d scatter
 plot colored according to cluster.
