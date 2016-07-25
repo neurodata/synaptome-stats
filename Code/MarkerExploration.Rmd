@@ -250,6 +250,7 @@ diag(mp) <- as.numeric(1)
 
 ```{r cc-energyplot,h=7,w=14,fig.cap=fig$cap("enplt","F0: Distance correlation t-test statistic and p-value matrices.")}
 cl5 <- colorRampPalette(c("white", "blue"))
+gr5 <- colorRampPalette(c("darkgreen", "white", "white"))
 bl5 <- colorRampPalette(c("blue", "red"))
 
 par(mfrow=c(1,2))
@@ -260,13 +261,15 @@ title("Test statistic")
 corrRect(tmp,col=Syncol,lwd=4)
 
 
-corrplot((-log10(mp[ford,ford]+.Machine$double.eps)),is.corr=FALSE,method="color",tl.col=ccol[ford], 
-         tl.cex=0.8,col=mycol3[-c(1:2)], mar=c(0,0,1,0),
-         p.mat=mp[ford,ford], sig.level=0.05)
+corrplot((log10(mp[ford,ford]+.Machine$double.eps)),is.corr=FALSE,method="color",tl.col=ccol[ford], 
+         tl.cex=0.8, mar=c(0,0,1,0),
+         p.mat=mp[ford,ford], sig.level=0.01,
+         col=gr5(150)
+         )
 title("p-values")
 corrRect(tmp,col=Syncol,lwd=4);rm(tmp)
 ```
-The `X`'s in the above right figure denote a p-value greater than 0.05.
+The `X`'s in the above right figure denote a p-value greater than 0.01.
 
 ## Scatterplots 
 
