@@ -43,6 +43,7 @@ require(colorRamps)
 require(corrplot)
 require(rgl)
 require(rglwidget)
+require(randomForest)
 require(doMC); registerDoMC(6)
 require(foreach)
 require(MASS)
@@ -202,9 +203,15 @@ We now have the following data sets:
 ## Correlation Matrix of markers 
 
 ```{r cc_corRawF0,w=7,h=7, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed F0 data, reordered by synapse type.")}
-corrf <- cor(featF[[1]])[ford,ford]
-corrplot(corrf,method="color",tl.col=ccol[ford], tl.cex=0.8)
-#corLog <- cor(slog1f)
+corrf <- lapply(lapply(featF, cor), function(x) x[ford, ford])
+
+titles <- paste('Correlation Matrix of', paste0("F", 0:5))
+par(mfrow = c(3,2))
+for(i in 1:length(corrf)) {
+  corrplot(corrf[[i]],method="color",tl.col=ccol[ford], 
+           tl.cex=0.8, mar=c(5,0,1,1))
+  title(titles[i])
+}
 ```
 
 
@@ -221,10 +228,10 @@ set.seed(317)
 sam1 <- sample(dim(featF0)[1], 1e3)
 tmp <- as.data.frame((featF0[sam1,]))
 
-set.seed(331)
 combcols <- t(combn(24,2))
 
 dc <- foreach(i = 1:dim(combcols)[1]) %dopar% {
+       set.seed(331*i)
        #dcov.test(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
        dcor.ttest(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
        }
@@ -277,12 +284,16 @@ We will run PCA on the untransformed correlation matrix so the data can be
 viewed in 2-dimensions.  The colors correspond to synapse type.
 
 ```{r cc-pca1,h=7,w=7,fig.cap=fig$cap("pairs1","PCA of untransformed correlation matrix")}
-pca1 <- prcomp(corrf,center=TRUE, scale=TRUE)
-pairs(pca1$x[,1:3], col=ccol3[ford],pch=20, cex=2)
+pcaL <- lapply(corrf, prcomp, center=TRUE, scale=TRUE)
+titlepca <- paste("PCA on ", paste0("cor(F", 0:5, ')'))
+for(i in 1:length(pcaL)) { 
+  pairs(pcaL[[i]]$x[,1:3], col=ccol3[ford],pch=20, cex=2,
+        main=titlepca[i])
+}
 ```
 
 
-```{r cc_3dCorr, fig.cap=fig$cap("rgl1","PCA 1-3 on untransformed correlation matrix")}
+```{r cc_3dCorr,echo=FALSE, eval=FALSE, fig.cap=fig$cap("rgl1","PCA 1-3 on untransformed correlation matrix")}
 pca <- pca1$x
 rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol3[ford], size=1)
 rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(rownames(pca)), col=ccol3[ford], adj=c(0,2))
@@ -312,41 +323,66 @@ rglwidget(elementId="rgl-pcaB",width=720,height=720)
 # LDA 
 
 ```{r cc-lda1}
-d1 <- data.frame(type=exType,pca1$x)
-#d1 <- data.frame(type=channel.type2[ford],pca1$x)
-lda.fit <- lda(type ~ ., data=d1[,1:3])
+el2 <- lapply(pcaL, function(x) getElbows(x$sdev, plot=FALSE))
+del2 <- lapply(pcaL, function(x) {
+                 elb <- getElbows(x$sdev, plot=FALSE)[1]
+                 return(x$x[,1:elb])
+        })
+
+d1 <- lapply(del2, function(x) data.frame(type = exType, x))
+lda.fit <- lapply(d1, function(x) lda(type ~ ., data = x) )
+rf.fit <- lapply(d1, function(x) randomForest(type ~ ., data=x))
+rf.pred <- lapply(rf.fit, '[[', 3)
 ```
 
 <FONT COLOR=#750000> 
-LDA was run using only the first 2 principal 
-components from the untransformed correlation matrix.
+LDA was run using only the principal 
+components up to and including the first elbow from ZG from the untransformed correlation matrix.
 </FONT>  
 
 
-```{r cc-voronoi,h=7,w=8,fig.cap=fig$cap("voronoi","Voronoi diagram on class means from LDA on PCA of untransformed correlation matrix")}
+```{r cc-voronoi,h=8,w=12,fig.cap=fig$cap("voronoi","Voronoi diagrams on class means from LDA on PCA of untransformed correlation matrices")}
 
-voronoidf <- data.frame(x=lda.fit$means[,1],y=lda.fit$means[,2])
+titlesvor <- paste("LDA decision boundaries for", paste0("F", 0:5))
+voronoidf <- lapply(lapply(lda.fit, '[[', 3), data.frame)
+#voronoidf <- data.frame(x=lda.fit$means[,1],y=lda.fit$means[,2])
 
 #This creates the voronoi line segments
-plot(d1[,2:3], col=ccol3[ford], pch=20, cex=1.5)
 
-text(d1[,2:3], labels=rownames(d1), pos=ifelse(d1[,2]<max(d1[,2] -0.5),4,2), 
-     col=ccol3[ford], cex=1.2)
+par(mfrow = c(2,3))
+for(i in 1:length(d1)){
+  plot(d1[[i]][,2:3], col=ccol3[ford], pch=20, cex=1.5)
+  title(titlesvor[i])
+  text(d1[[i]][,2:3], labels=rownames(d1[[i]]), 
+       pos=ifelse(d1[[i]][,2]<max(d1[[i]][,2] -0.5),4,2), 
+       col=ccol3[ford], cex=1.2)
 
-deldir(x = voronoidf$x,y = voronoidf$y, rw = c(-15,15,-15,15), 
+  deldir(x = voronoidf[[i]][,1],y = voronoidf[[i]][,2], rw = c(-15,15,-15,15), 
        plotit=TRUE, add=TRUE, wl='te')
-text(voronoidf, labels=rownames(voronoidf), pos=c(1,1,3))
+  text(voronoidf[[i]], labels=rownames(voronoidf[[i]]), cex=1.5, pos=1)
+}
 ```
 
 
 ```{r contingency-table}
-truth <- d1[,1]
-pred <- predict(lda.fit)$class
-table(truth, pred)
-(lda.err <- sum(as.numeric(truth) != as.numeric(pred))/length(truth))
+truth <- lapply(d1, '[[', 1)
+pred <- lapply(lapply(lda.fit, predict), '[[', 1)
+
+for( i in 1:length(truth)) {
+ print(table(truth = truth[[i]],pred = pred[[i]]) )
+}
+
+lda.err <- list()
+for(i in 1:6) {
+ tr <- as.numeric(truth[[i]])
+ pr <- as.numeric(pred[[i]])
+ lda.err[[i]] <- sum( tr != pr ) / length(tr)
+}
+
+Reduce('c', lda.err)
 ```
 
-The above gives the LDA error rate.
+The above gives the LDA error rates for each of the features.
 
 
 
