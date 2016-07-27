@@ -202,14 +202,14 @@ We now have the following data sets:
 
 ## Correlation Matrix of markers 
 
-```{r cc_corRawF0,w=7,h=7, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed F0 data, reordered by synapse type.")}
+```{r cc_corRawF0,w=7,h=14, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed F0 data, reordered by synapse type.")}
 corrf <- lapply(lapply(featF, cor), function(x) x[ford, ford])
 
 titles <- paste('Correlation Matrix of', paste0("F", 0:5))
 par(mfrow = c(3,2))
 for(i in 1:length(corrf)) {
   corrplot(corrf[[i]],method="color",tl.col=ccol[ford], 
-           tl.cex=0.8, mar=c(5,0,1,1))
+           tl.cex=0.8, mar=c(1,0,1,1.5))
   title(titles[i])
 }
 ```
@@ -341,7 +341,7 @@ components up to and including the first elbow from ZG from the untransformed co
 </FONT>  
 
 
-```{r cc-voronoi,h=8,w=12,fig.cap=fig$cap("voronoi","Voronoi diagrams on class means from LDA on PCA of untransformed correlation matrices")}
+```{r cc-voronoi,h=12,w=8,fig.cap=fig$cap("voronoi","Voronoi diagrams on class means from LDA on PCA of untransformed correlation matrices")}
 
 titlesvor <- paste("LDA decision boundaries for", paste0("F", 0:5))
 voronoidf <- lapply(lapply(lda.fit, '[[', 3), data.frame)
@@ -349,7 +349,7 @@ voronoidf <- lapply(lapply(lda.fit, '[[', 3), data.frame)
 
 #This creates the voronoi line segments
 
-par(mfrow = c(2,3))
+par(mfrow = c(3,2))
 for(i in 1:length(d1)){
   plot(d1[[i]][,2:3], col=ccol3[ford], pch=20, cex=1.5)
   title(titlesvor[i])
