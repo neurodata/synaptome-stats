@@ -131,6 +131,41 @@ We now have the following data sets:
 
 # Feature Exploration
 
+## KDE plots of chosen transformation/feature pair
+
+
+```r
+synF <- feat[, grep("Synap_", names(feat)),with=FALSE]
+lsynF <- synF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+names(synF) <- paste0(names(synF), "_linear")
+names(lsynF) <- paste0(names(lsynF), "_logscale")
+
+vglutF <- feat[,grep("VGlut1_t",names(feat)),with=FALSE]
+lvglutF <- vglutF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+names(vglutF) <- paste0(names(vglutF), "_linear")
+names(lvglutF) <- paste0(names(lvglutF),"_logscale")
+```
+
+
+```r
+df1 <- melt(as.matrix(cbind(synF,lsynF)))
+ggplot(data=df1,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
+    geom_density() + 
+    facet_wrap( ~ Var2,scales='free',ncol=6)
+```
+
+<figure><img src="../Figures/FeatureExploration_figure/cc-kde-syn-1.png"><figcaption><b>Figure 1: KDE for Synapsin1 and Synapsin2 accross all features.</b><br><br></figcaption></figure>
+
+
+```r
+df2 <- melt(as.matrix(cbind(vglutF,lvglutF)))
+ggplot(data=df2,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
+    geom_density() + 
+    facet_wrap( ~ Var2,scales='free', ncol=6)
+```
+
+<figure><img src="../Figures/FeatureExploration_figure/cc-kde-vglut-1.png"><figcaption><b>Figure 2: KDE for VGlut1_t1 and VGlut1_t2 accross all features.</b><br><br></figcaption></figure>
+
 ## Synapsin1 Vs. Synapsin2 for all features
 
 
@@ -200,7 +235,7 @@ rm(gg1)
 do.call("grid.arrange",args=c(ggS, ncol=3))
 ```
 
-<figure><img src="../Figures/FeatureExploration_figure/cc-VF1-5-1.png"><figcaption><b>Figure 1: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
+<figure><img src="../Figures/FeatureExploration_figure/cc-VF1-5-1.png"><figcaption><b>Figure 3: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
 
 
 ```r
@@ -248,7 +283,7 @@ print(paste("removed", sum(ans2), "zero entries"))
 do.call("grid.arrange",args=c(ggV, ncol=3))
 ```
 
-<figure><img src="../Figures/FeatureExploration_figure/cc-F1-5-1.png"><figcaption><b>Figure 2: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
+<figure><img src="../Figures/FeatureExploration_figure/cc-F1-5-1.png"><figcaption><b>Figure 4: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
 
 The
 
@@ -272,41 +307,6 @@ data.frame(r2 = matrix(r2, nrow=6,byrow=TRUE),
 ```
 
 
-
-## KDE plots of chosen transformation/feature pair
-
-
-```r
-synF <- feat[, grep("Synap_", names(feat)),with=FALSE]
-lsynF <- synF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
-names(synF) <- paste0(names(synF), "_linear")
-names(lsynF) <- paste0(names(lsynF), "_logscale")
-
-vglutF <- feat[,grep("VGlut1_t",names(feat)),with=FALSE]
-lvglutF <- vglutF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
-names(vglutF) <- paste0(names(vglutF), "_linear")
-names(lvglutF) <- paste0(names(lvglutF),"_logscale")
-```
-
-
-```r
-df1 <- melt(as.matrix(cbind(synF,lsynF)))
-ggplot(data=df1,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
-    geom_density() + 
-    facet_wrap( ~ Var2,scales='free',ncol=6)
-```
-
-<figure><img src="../Figures/FeatureExploration_figure/cc-kde-syn-1.png"><figcaption><b>Figure 3: KDE for Synapsin1 and Synapsin2 accross all features.</b><br><br></figcaption></figure>
-
-
-```r
-df2 <- melt(as.matrix(cbind(vglutF,lvglutF)))
-ggplot(data=df2,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
-    geom_density() + 
-    facet_wrap( ~ Var2,scales='free', ncol=6)
-```
-
-<figure><img src="../Figures/FeatureExploration_figure/cc-kde-vglut-1.png"><figcaption><b>Figure 4: KDE for VGlut1_t1 and VGlut1_t2 accross all features.</b><br><br></figcaption></figure>
 
 
 # References 

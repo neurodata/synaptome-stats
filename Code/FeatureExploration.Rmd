@@ -220,6 +220,34 @@ We now have the following data sets:
 
 # Feature Exploration
 
+## KDE plots of chosen transformation/feature pair
+
+```{r cc-kde-data}
+synF <- feat[, grep("Synap_", names(feat)),with=FALSE]
+lsynF <- synF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+names(synF) <- paste0(names(synF), "_linear")
+names(lsynF) <- paste0(names(lsynF), "_logscale")
+
+vglutF <- feat[,grep("VGlut1_t",names(feat)),with=FALSE]
+lvglutF <- vglutF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+names(vglutF) <- paste0(names(vglutF), "_linear")
+names(lvglutF) <- paste0(names(lvglutF),"_logscale")
+```
+
+```{r cc-kde-syn, w=14,h=8,fig.cap=fig$cap("synKDE", "KDE for Synapsin1 and Synapsin2 accross all features.")}
+df1 <- melt(as.matrix(cbind(synF,lsynF)))
+ggplot(data=df1,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
+    geom_density() + 
+    facet_wrap( ~ Var2,scales='free',ncol=6)
+```
+
+```{r cc-kde-vglut, w=14,h=8,fig.cap=fig$cap("vglutKDE", "KDE for VGlut1_t1 and VGlut1_t2 accross all features.")}
+df2 <- melt(as.matrix(cbind(vglutF,lvglutF)))
+ggplot(data=df2,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
+    geom_density() + 
+    facet_wrap( ~ Var2,scales='free', ncol=6)
+```
+
 ## Synapsin1 Vs. Synapsin2 for all features
 
 ```{r cc-synPrep}
@@ -364,34 +392,6 @@ data.frame(r2 = matrix(r2, nrow=6,byrow=TRUE),
 ```
 
 
-
-## KDE plots of chosen transformation/feature pair
-
-```{r cc-kde-data}
-synF <- feat[, grep("Synap_", names(feat)),with=FALSE]
-lsynF <- synF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
-names(synF) <- paste0(names(synF), "_linear")
-names(lsynF) <- paste0(names(lsynF), "_logscale")
-
-vglutF <- feat[,grep("VGlut1_t",names(feat)),with=FALSE]
-lvglutF <- vglutF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
-names(vglutF) <- paste0(names(vglutF), "_linear")
-names(lvglutF) <- paste0(names(lvglutF),"_logscale")
-```
-
-```{r cc-kde-syn, w=14,h=8,fig.cap=fig$cap("synKDE", "KDE for Synapsin1 and Synapsin2 accross all features.")}
-df1 <- melt(as.matrix(cbind(synF,lsynF)))
-ggplot(data=df1,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
-    geom_density() + 
-    facet_wrap( ~ Var2,scales='free',ncol=6)
-```
-
-```{r cc-kde-vglut, w=14,h=8,fig.cap=fig$cap("vglutKDE", "KDE for VGlut1_t1 and VGlut1_t2 accross all features.")}
-df2 <- melt(as.matrix(cbind(vglutF,lvglutF)))
-ggplot(data=df2,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
-    geom_density() + 
-    facet_wrap( ~ Var2,scales='free', ncol=6)
-```
 
 
 # References 

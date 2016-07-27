@@ -289,32 +289,6 @@ for(i in 1:length(mdcor)){
 
 The `X`'s in the above right figure denote a p-value greater than 0.01.
 
-### Shared significance
-
-```{r sdcor}
-mp <- lapply(mdcor, '[[', 2)
-
-MP <- abind(mp, along = 3)
-
-out <- 
-  foreach(i = 1:24, .combine='cbind') %:%
-    foreach(j = 1:24, .combine = 'rbind') %do% {
-      all(MP[i,j,] <= 0.01)
-}
-
-rownames(out) <- colnames(out) <- channel
-```
-
-```{r shared-sig,h=7,w=7,fig.cap=fig$cap("sh-sig","Shared significances")}
-corrplot(out,is.corr=FALSE,method="color",
-         tl.col=ccol[ford],  mar=c(0,0,1,0))
-corrRect(as.numeric(table(fchannel)),col=Syncol,lwd=4)
-title("Shared significances across F0-5")
-```
-
-A blue $a_{ij}$ element in the above matrix plot implies 
-that the null hypothesis that markers $i$ and $j$ are 
-independant was rejected at signficance level 0.01.
 
 ## Scatterplots 
 
