@@ -223,60 +223,77 @@ corrfB <- cor(feat)[bford,bford]
 corrplot(corrfB,method="color",tl.col=cr[bford],tl.cex=0.75)
 ## Energy Matrix: Distance Correlation T-test
 
-```{r cc-dcov,eval=TRUE,echo=TRUE}
-set.seed(317)
-sam1 <- sample(dim(featF0)[1], 1e3)
-tmp <- as.data.frame((featF0[sam1,]))
-
-combcols <- t(combn(24,2))
-
-dc <- foreach(i = 1:dim(combcols)[1]) %dopar% {
-       set.seed(331*i)
-       #dcov.test(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
-       dcor.ttest(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
-       }
-
-ms <- matrix(as.numeric(0),24,24)
-mp <- matrix(as.numeric(0),24,24)
-
-for(i in 1:length(dc)){
-    ms[combcols[i,1],combcols[i,2]] <- dc[[i]]$statistic
-    ms[combcols[i,2],combcols[i,1]] <- dc[[i]]$statistic
-    mp[combcols[i,1],combcols[i,2]] <- dc[[i]]$p.val
-    mp[combcols[i,2],combcols[i,1]] <- dc[[i]]$p.val
+```{r cc-dcor,eval=TRUE,echo=TRUE}
+computeDcor <- function(x) {
+  set.seed(317)
+  sam1 <- sample(dim(x)[1], min(1e3,dim(x)[1]))
+  tmp <- as.data.frame((x[sam1,]))
+  
+  combcols <- t(combn(24,2))
+  
+  dc <- foreach(i = 1:dim(combcols)[1]) %dopar% {
+         set.seed(331*i)
+         dcor.ttest(x=tmp[,combcols[i,1]],y=tmp[,combcols[i,2]])
+         }
+  
+  ms <- matrix(as.numeric(0),24,24)
+  mp <- matrix(as.numeric(0),24,24)
+  
+  for(i in 1:length(dc)){
+      ms[combcols[i,1],combcols[i,2]] <- dc[[i]]$statistic
+      ms[combcols[i,2],combcols[i,1]] <- dc[[i]]$statistic
+      mp[combcols[i,1],combcols[i,2]] <- dc[[i]]$p.val
+      mp[combcols[i,2],combcols[i,1]] <- dc[[i]]$p.val
+  }
+  
+  rownames(ms) <- colnames(x)
+  rownames(mp) <- colnames(x)
+  colnames(ms) <- colnames(x)
+  colnames(mp) <- colnames(x)
+  
+  diag(ms) <- as.numeric(0)
+  diag(mp) <- as.numeric(1)
+  return(list(ms, mp))
 }
 
-rownames(ms) <- colnames(featF0)
-rownames(mp) <- colnames(featF0)
-colnames(ms) <- colnames(featF0)
-colnames(mp) <- colnames(featF0)
-
-diag(ms) <- as.numeric(0)
-diag(mp) <- as.numeric(1)
+mdcor <- lapply(featF, computeDcor)
 ```
 
-```{r cc-energyplot,h=7,w=14,fig.cap=fig$cap("enplt","F0: Distance correlation t-test statistic and p-value matrices.")}
+```{r cc-energyplot,h=17,w=12,fig.cap=fig$cap("enplt","F0-5: Distance correlation t-test statistic and p-value matrices.")}
 cl5 <- colorRampPalette(c("white", "blue"))
 gr5 <- colorRampPalette(c("darkgreen", "white", "white"))
 bl5 <- colorRampPalette(c("blue", "red"))
 
-par(mfrow=c(1,2))
+sTitle <- paste("dcor.ttest statistic", paste0("F", 0:5))
+pTitle <- paste("dcor.ttest log10(p-value)", paste0("F", 0:5))
+
 tmp <- as.numeric(table(fchannel))
-corrplot(ms[ford,ford],is.corr=FALSE,method="color",tl.col=ccol[ford], 
-         tl.cex=0.8, mar=c(0,0,1,0),oma=c(0,0,2,0))
-title("Test statistic") 
-corrRect(tmp,col=Syncol,lwd=4)
+par(mfcol=c(6,2))
+for(i in 1:length(mdcor)){
+  corrplot(mdcor[[i]][[1]][ford,ford],is.corr=FALSE,method="color",
+           tl.col=ccol[ford], tl.cex=0.8, mar=c(1,0,1,1.5))
+  title(sTitle[i]) 
+  corrRect(tmp,col=Syncol,lwd=4)
+}
 
-
-corrplot((log10(mp[ford,ford]+.Machine$double.eps)),is.corr=FALSE,method="color",tl.col=ccol[ford], 
-         tl.cex=0.8, mar=c(0,0,1,0),
-         p.mat=mp[ford,ford], sig.level=0.01,
-         col=gr5(150)
-         )
-title("p-values")
-corrRect(tmp,col=Syncol,lwd=4);rm(tmp)
+for(i in 1:length(mdcor)){
+  corrplot((log10(mdcor[[i]][[2]][ford,ford]+.Machine$double.eps)),is.corr=FALSE,method="color",tl.col=ccol[ford], 
+           tl.cex=0.8, mar=c(1,0,1,1.5),
+           p.mat=mdcor[[i]][[2]][ford,ford], sig.level=0.01)
+  corrRect(tmp,col=Syncol,lwd=4)
+  title(pTitle[i])
+}
+rm(tmp)
 ```
 The `X`'s in the above right figure denote a p-value greater than 0.01.
+
+### Shared significance
+
+```{r sdcor}
+mp <- lapply(mdcor, '[[', 2)
+
+```
+
 
 ## Scatterplots 
 
