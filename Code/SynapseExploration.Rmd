@@ -195,39 +195,6 @@ We now have the following data sets:
   subtracting the mean and dividing by the sample standard deviation.
 
 
-
-# Kernel Density Estimates of the marginals
-
-```{r synEx-kde1, eval=TRUE,echo=TRUE,cache=FALSE,w=18,h=12,fig.cap=fig$cap("synEx-kde1","Kernel density estimates for each channel, on `fs` data.")}
-df1 <- melt(as.matrix(fs))
-names(df1) <- c("ind","channel","value")
-df1$type <- factor(rep(ffchannel,each=dim(fs)[1]),levels=levels(ffchannel))
-
-lvo <- c(1:5,7:10,19,22,11:16,6,17,18,20,21,23,24)
-levels(df1$channel)<-levels(df1$channel)[lvo]
-
-ts <- 22
-
-gg1 <- ggplot(df1, aes(x=value)) + 
-    scale_color_manual(values=ccol[lvo]) +
-    scale_fill_manual(values=ccol[lvo]) +
-    geom_histogram(aes(y=..density..,group=channel,colour=channel),bins=100) +
-    geom_density(aes(group=channel, color=channel),size=1.5) +
-    facet_wrap( ~ channel, scale='free', ncol=6) +
-    theme(plot.title=element_text(size=ts),
-          axis.title.x=element_text(size=ts),
-          axis.title.y=element_text(size=ts),
-          legend.title=element_text(size=ts),
-          legend.text=element_text(size=ts-2),
-          axis.text=element_text(size=ts-2),
-          strip.text=element_text(size=ts), 
-          legend.position='none')+
-    ggtitle("Kernel Density Estimates of `fs` data.")
-
-print(gg1)
-```
-
-
 # Level 0 
 
 ```{r cc-dat0,eval=TRUE,echo=TRUE}
@@ -245,14 +212,12 @@ aggp <- t(cbind(aggp, aggp))
 The following are heatmaps generated from clustering 
 via K-means++ (at level 1)
 
-```{r cc-kmpp-heatmapLV0,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
-heatmap.2(as.matrix(aggp), trace="none",col=mycol,colCol=ccol,cexRow=0.8, 
-          keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", 
-          srtCol=90,main="Heatmap of `fs` data") 
-```
 
 ```{r cc-kmpp-heatmapSortedLV0,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
-heatmap.2(as.matrix(aggp),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.") 
+heatmap.2(as.matrix(aggp),dendrogram='none',Colv=NA,trace="none", 
+          col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,
+          symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.", 
+          labRow = "") 
 ```
 
 Percentage of data within cluster is presented on the right side of the heatmap.
@@ -363,10 +328,10 @@ print(ggJ1)
 
 ## Within cluster correlations (Lv 1)
 
-```{r cc-wcc1, h=8,w=8,fig.cap=fig$cap("corkp1","Within cluster correlations, clock-wise from top left, Cluster 1, Cluster 2, l2 distance between C1 and C2")}
+```{r cc-wcc1, h=8,w=8,fig.cap=fig$cap("corkp1","Within cluster correlations, clock-wise from top left, Cluster 1, Cluster 2, difference C1 - C2")}
 corkp1 <- cor(dat[L[[1]] == 1,])
 corkp2 <- cor(dat[L[[1]] == 2,])
-difCor12 <- sqrt((corkp1 - corkp2)^2)
+difCor12 <- (corkp1 - corkp2)
 
 layout(matrix(c(1,2,3,3), 2, 2, byrow=TRUE))
 corrplot(corkp1,method="color",tl.col=ccol[ford], tl.cex=0.8, mar=c(0,0,1,0))
@@ -376,7 +341,7 @@ title("Cluster 2")
 corrplot(difCor12,is.corr=FALSE,method="color",
          tl.col=ccol[ford], tl.cex=0.8, 
          mar=c(0,0,1,0),
-         col=colorRampPalette(c("white","white","darkorange"))(50))
+         col=colorRampPalette(c("#998ec3","white","darkorange"))(50))
 title("Difference(1,2)")
 ```
 
@@ -474,11 +439,11 @@ the plot window.
 
 ## Within cluster correlations (Lv 2)
 
-```{r cc-wccLV2,h=12,w=7,fig.cap=fig$cap("corkp2","Within cluster correlations for level 2. (c11, c12, c21, c22)")}
+```{r cc-wccLV2,h=12,w=7,fig.cap=fig$cap("corkp2","Within cluster correlations for level 2. (c11, c12, c21, c22) with differences")}
 corLV2 <- lapply(c(1:4),function(x){cor(dat[L[[2]] == x,])})
 
-difCor1112 <- sqrt((corLV2[[2]] - corLV2[[1]])^2)
-difCor2122 <- sqrt((corLV2[[4]] - corLV2[[3]])^2)
+difCor1112 <- ((corLV2[[1]] - corLV2[[2]]))
+difCor2122 <- ((corLV2[[3]] - corLV2[[4]]))
 
 layout(matrix(c(1,2,3,3,4,5,6,6), 4, 2, byrow=TRUE))
 corrplot(corLV2[[1]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
@@ -490,8 +455,8 @@ title("Cluster 2")
 corrplot(difCor1112, method="color", tl.col=ccol[ford], 
          tl.cex=0.8,
          mar = c(0,0,1,0),
-         cl.lim = c(0,max(difCor1112,difCor2122)),
-         col=colorRampPalette(c("white", 
+         cl.lim = c(min(difCor1112,difCor2122),max(difCor1112,difCor2122)),
+         col=colorRampPalette(c("#998ec3", 
                                 "white",
                                 "darkorange"))(100))
 title("Difference(1,2)")
@@ -504,8 +469,8 @@ title("Cluster 4")
 corrplot(difCor2122, method="color", tl.col=ccol[ford], 
          tl.cex=0.8,
          mar=c(0,0,1,0),
-         cl.lim = c(0,max(difCor1112,difCor2122)),
-         col=colorRampPalette(c("white", 
+         cl.lim = c(min(difCor1112,difCor2122),max(difCor1112,difCor2122)),
+         col=colorRampPalette(c("#998ec3", 
                                 "white",
                                 "darkorange"))(100))
 title("Difference(3,4)")
@@ -601,14 +566,15 @@ print(ggJ3)
 
 ## Within cluster correlations (Lv 3)
 
-```{r cc-wcc3,h=17,w=7,fig.cap=fig$cap("corkp3","Within cluster correlations for level 3. (c111, c112, c121, c122, c211, c212, c221, c222)")}
+```{r cc-wcc3,h=17,w=5,fig.cap=fig$cap("corkp3","Within cluster correlations for level 3. (c111, c112, c121, c122, c211, c212, c221, c222)")}
 corLV3 <- lapply(c(1:8),function(x){cor(dat[L[[3]] == x,])})
 
-difCor1 <- sqrt((corLV3[[2]] - corLV3[[1]])^2)
-difCor2 <- sqrt((corLV3[[4]] - corLV3[[3]])^2)
-difCor3 <- sqrt((corLV3[[6]] - corLV3[[5]])^2)
-difCor4 <- sqrt((corLV3[[8]] - corLV3[[7]])^2)
-m <- max(difCor1, difCor2, difCor3, difCor4)
+difCor1 <- (corLV3[[1]] - corLV3[[2]])
+difCor2 <- (corLV3[[3]] - corLV3[[4]])
+difCor3 <- (corLV3[[5]] - corLV3[[6]])
+difCor4 <- (corLV3[[7]] - corLV3[[8]])
+M <- max(difCor1, difCor2, difCor3, difCor4)
+m <- min(difCor1, difCor2, difCor3, difCor4)
 
 layout(matrix(c(1, 2, 3, 3,
                 4, 5, 6, 6, 
@@ -622,9 +588,11 @@ corrplot(corLV3[[2]],method="color",tl.col=ccol[ford], tl.cex=0.8,
          mar=c(0,0,1,0))
 title('Cluster 2')
 corrplot(difCor1,method="color",tl.col=ccol[ford], tl.cex=0.8,
-         cl.lim=c(0,m), 
+         cl.lim=c(m,M), 
          mar=c(0,0,1,0),
-         col=colorRampPalette(c("white","white","darkorange"))(50))
+         col=colorRampPalette(c("#998ec3",
+                                "white",
+                                "darkorange"))(50))
 title('Difference(1,2)')
 corrplot(corLV3[[3]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
          mar=c(0,0,1,0))
@@ -633,9 +601,9 @@ corrplot(corLV3[[4]],method="color",tl.col=ccol[ford], tl.cex=0.8,
          mar=c(0,0,1,0))
 title('Cluster 4')
 corrplot(difCor2,method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         cl.lim= c(0,m),
+         cl.lim= c(m,M),
          mar=c(0,0,1,0),
-         col=colorRampPalette(c("white",
+         col=colorRampPalette(c("#998ec3",
                                 "white",
                                 "darkorange"))(50))
 title('Difference(3,4)')
@@ -646,9 +614,9 @@ corrplot(corLV3[[6]],method="color",tl.col=ccol[ford], tl.cex=0.8,
          mar=c(0,0,1,0))
 title('Cluster 6')
 corrplot(difCor3,method="color",tl.col=ccol[ford], tl.cex=0.8,
-         cl.lim= c(0,m),
+         cl.lim= c(m,M),
          mar=c(0,0,1,0),
-         col=colorRampPalette(c("white",
+         col=colorRampPalette(c("#998ec3",
                                 "white",
                                 "darkorange"))(50))
 title('Difference(5,6)')
@@ -659,9 +627,9 @@ corrplot(corLV3[[8]],method="color",tl.col=ccol[ford], tl.cex=0.8,
          mar=c(0,0,1,0))
 title('Cluster 8')
 corrplot(difCor4,method="color",tl.col=ccol[ford], tl.cex=0.8,
-         cl.lim= c(0,m),
+         cl.lim= c(m,M),
          mar=c(0,0,1,0),
-         col=colorRampPalette(c("white",
+         col=colorRampPalette(c("#998ec3",
                                 "white",
                                 "darkorange"))(50))
 title('Difference(7,8)')
