@@ -137,9 +137,8 @@ corrplot(corrfB,method="color",tl.col=cr[bford],tl.cex=0.75)
 
 <figure><img src="../Figures/MarkerExploration_figure/cc-bigCorr-1.png"><figcaption><b>Figure 2: Full Correlation on untransformed F0-F5 data, reordered by synapse type.</b><br><br></figcaption></figure>
 
-```r
-## Energy Matrix: Distance Correlation T-test
-```
+## Distance Correlation T-tests
+
 
 ```r
 computeDcor <- function(x) {

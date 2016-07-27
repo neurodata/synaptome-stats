@@ -222,7 +222,9 @@ nord <- Reduce('c', f)
 cr <- rep(ccol, each=6)
 corrfB <- cor(feat)[bford,bford]
 corrplot(corrfB,method="color",tl.col=cr[bford],tl.cex=0.75)
-## Energy Matrix: Distance Correlation T-test
+```
+
+## Distance Correlation T-tests
 
 ```{r cc-dcor,eval=TRUE,echo=TRUE}
 computeDcor <- function(x) {
