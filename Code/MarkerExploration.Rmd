@@ -47,6 +47,7 @@ require(randomForest)
 require(doMC); registerDoMC(6)
 require(foreach)
 require(MASS)
+require(abind)
 
 source("kmpp.r")
 source("clusterFraction.r")
@@ -259,7 +260,7 @@ computeDcor <- function(x) {
 mdcor <- lapply(featF, computeDcor)
 ```
 
-```{r cc-energyplot,h=17,w=12,fig.cap=fig$cap("enplt","F0-5: Distance correlation t-test statistic and p-value matrices.")}
+```{r cc-energyplot,h=17,w=7,fig.cap=fig$cap("enplt","F0-5: Distance correlation t-test statistic and p-value matrices.")}
 cl5 <- colorRampPalette(c("white", "blue"))
 gr5 <- colorRampPalette(c("darkgreen", "white", "white"))
 bl5 <- colorRampPalette(c("blue", "red"))
@@ -267,24 +268,25 @@ bl5 <- colorRampPalette(c("blue", "red"))
 sTitle <- paste("dcor.ttest statistic", paste0("F", 0:5))
 pTitle <- paste("dcor.ttest log10(p-value)", paste0("F", 0:5))
 
-tmp <- as.numeric(table(fchannel))
-par(mfcol=c(6,2))
+
+par(mfcol=c(6,2), oma=c(1,1,1,1))
 for(i in 1:length(mdcor)){
   corrplot(mdcor[[i]][[1]][ford,ford],is.corr=FALSE,method="color",
            tl.col=ccol[ford], tl.cex=0.8, mar=c(1,0,1,1.5))
   title(sTitle[i]) 
-  corrRect(tmp,col=Syncol,lwd=4)
+  corrRect(as.numeric(table(fchannel)),col=Syncol,lwd=4)
 }
 
 for(i in 1:length(mdcor)){
   corrplot((log10(mdcor[[i]][[2]][ford,ford]+.Machine$double.eps)),is.corr=FALSE,method="color",tl.col=ccol[ford], 
            tl.cex=0.8, mar=c(1,0,1,1.5),
-           p.mat=mdcor[[i]][[2]][ford,ford], sig.level=0.01)
-  corrRect(tmp,col=Syncol,lwd=4)
+           p.mat=mdcor[[i]][[2]][ford,ford], 
+           sig.level=0.01, pch = 'x', pch.cex=0.5)
   title(pTitle[i])
+  corrRect(as.numeric(table(fchannel)),col=Syncol,lwd=4)
 }
-rm(tmp)
 ```
+
 The `X`'s in the above right figure denote a p-value greater than 0.01.
 
 ### Shared significance
@@ -292,8 +294,27 @@ The `X`'s in the above right figure denote a p-value greater than 0.01.
 ```{r sdcor}
 mp <- lapply(mdcor, '[[', 2)
 
+MP <- abind(mp, along = 3)
+
+out <- 
+  foreach(i = 1:24, .combine='cbind') %:%
+    foreach(j = 1:24, .combine = 'rbind') %do% {
+      all(MP[i,j,] <= 0.01)
+}
+
+rownames(out) <- colnames(out) <- channel
 ```
 
+```{r shared-sig,h=7,w=7,fig.cap=fig$cap("sh-sig","Shared significances")}
+corrplot(out,is.corr=FALSE,method="color",
+         tl.col=ccol[ford],  mar=c(0,0,1,0))
+corrRect(as.numeric(table(fchannel)),col=Syncol,lwd=4)
+title("Shared significances across F0-5")
+```
+
+A blue $a_{ij}$ element in the above matrix plot implies 
+that the null hypothesis that markers $i$ and $j$ are 
+independant was rejected at signficance level 0.01.
 
 ## Scatterplots 
 
