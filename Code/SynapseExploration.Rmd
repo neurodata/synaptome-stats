@@ -314,7 +314,7 @@ ggJ1 <-
   scale_color_manual(values=ggCol) + 
   geom_point(alpha=0.25, position=position_jitterdodge()) + 
   geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
-  annotate("text", x = levels(tmp$ind)[c(2,20)], y = max(tmp$values)+25, 
+  annotate("text", x = levels(tmp$ind)[c(2,20)], y = 1.15*max(tmp$values), 
            label= cf1[1:2,]) + 
   theme(axis.title.x = element_blank()) + 
   theme(axis.text.x = element_text(color = ccol[ford], 
@@ -421,7 +421,7 @@ ggJ2 <-
   scale_color_manual(values=ggCol) + 
   geom_point(alpha=0.25, position=position_jitterdodge()) + 
   geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
-  annotate("text", x = levels(tmp$ind)[c(2,8,14,20)], y = max(tmp$values)+25, 
+  annotate("text", x = levels(tmp$ind)[c(2,8,14,20)], y = 1.15*max(tmp$values), 
            label= cf2[1:4,]) + 
   theme(axis.title.x = element_blank()) + 
   theme(axis.text.x = element_text(color = ccol[ford], 
@@ -551,8 +551,10 @@ ggJ3 <-
   ggplot(data = tmp, aes(x = ind, y = values, 
                          color = label)) +
   scale_color_manual(values=ggCol) + 
-  geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
   geom_point(alpha=0.25, position=position_jitterdodge()) + 
+  geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
+  annotate("text", x = levels(tmp$ind)[c(2,20)], y = 1.15*max(tmp$values), 
+           label= cf1[1:2,]) + 
   #geom_jitter(width=2) + 
   theme(axis.title.x = element_blank()) + 
   theme(axis.text.x = element_text(color = ccol[ford], 
