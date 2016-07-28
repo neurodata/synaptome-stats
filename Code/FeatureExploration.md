@@ -137,11 +137,49 @@ We now have the following data sets:
 ```r
 synF <- feat[, grep("Synap_", names(feat)),with=FALSE]
 lsynF <- synF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+
+synF <- synF[, lapply(.SD, 
+              function(x){
+                qs <- quantile(x, probs=c(0.01,0.99))
+                x[x < qs[1]] <- NA
+                x[x > qs[2]] <- NA
+                return(x)
+                }
+              )]
+                   
+lsynF <- lsynF[, lapply(.SD, 
+              function(x){
+                qs <- quantile(x, probs=c(0.01,0.99), na.rm=TRUE)
+                x[x < qs[1]] <- NA
+                x[x > qs[2]] <- NA
+                return(x)
+                }
+              )]
+
 names(synF) <- paste0(names(synF), "_linear")
 names(lsynF) <- paste0(names(lsynF), "_logscale")
 
 vglutF <- feat[,grep("VGlut1_t",names(feat)),with=FALSE]
 lvglutF <- vglutF[,lapply(.SD,function(x){scale(log10(x+1),center=TRUE,scale=TRUE)})]
+
+vglutF <- vglutF[, lapply(.SD, 
+              function(x){
+                qs <- quantile(x, probs=c(0.01,0.99))
+                x[x < qs[1]] <- NA
+                x[x > qs[2]] <- NA
+                return(x)
+                }
+              )]
+                   
+lvglutF <- lvglutF[, lapply(.SD, 
+              function(x){
+                qs <- quantile(x, probs=c(0.01,0.99), na.rm=TRUE)
+                x[x < qs[1]] <- NA
+                x[x > qs[2]] <- NA
+                return(x)
+                }
+              )]
+
 names(vglutF) <- paste0(names(vglutF), "_linear")
 names(lvglutF) <- paste0(names(lvglutF),"_logscale")
 ```
@@ -150,21 +188,23 @@ names(lvglutF) <- paste0(names(lvglutF),"_logscale")
 ```r
 df1 <- melt(as.matrix(cbind(synF,lsynF)))
 ggplot(data=df1,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
-    geom_density() + 
-    facet_wrap( ~ Var2,scales='free',ncol=6)
+    geom_density(size = 1.5) + 
+    facet_wrap( ~ Var2,scales='free',ncol=6) + 
+    guides(col = guide_legend(ncol=1))
 ```
 
-<figure><img src="../Figures/FeatureExploration_figure/cc-kde-syn-1.png"><figcaption><b>Figure 1: KDE for Synapsin1 and Synapsin2 accross all features.</b><br><br></figcaption></figure>
+<figure><img src="../Figures/FeatureExploration_figure/cc-kde-syn-1.png"><figcaption><b>Figure 1: KDE for Synapsin1 and Synapsin2 accross all features outer 2% trimmed.</b><br><br></figcaption></figure>
 
 
 ```r
 df2 <- melt(as.matrix(cbind(vglutF,lvglutF)))
 ggplot(data=df2,aes(x=value,y=..density..,group=as.factor(Var2),colour=Var2)) + 
-    geom_density() + 
-    facet_wrap( ~ Var2,scales='free', ncol=6)
+    geom_density(size = 1.5) + 
+    facet_wrap( ~ Var2,scales='free', ncol=6) +
+    guides(col = guide_legend(ncol=1))
 ```
 
-<figure><img src="../Figures/FeatureExploration_figure/cc-kde-vglut-1.png"><figcaption><b>Figure 2: KDE for VGlut1_t1 and VGlut1_t2 accross all features.</b><br><br></figcaption></figure>
+<figure><img src="../Figures/FeatureExploration_figure/cc-kde-vglut-1.png"><figcaption><b>Figure 2: KDE for VGlut1_t1 and VGlut1_t2 accross all features outer 2% trimmed.</b><br><br></figcaption></figure>
 
 ## Synapsin1 Vs. Synapsin2 for all features
 
