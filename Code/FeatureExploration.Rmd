@@ -116,17 +116,25 @@ to explore if filtering improves the outcome of clustering.
 
 # Feature Definitions
 
-Features 0-3 are defined in [BBSS13][References] as follows:
+The features defined below were found in [BBSS13][References] (F0-F3) and 
+via correspondance with the authors (F4-F5):
 
-Let $V$ be an 11x11x11 voxel cube.  For every $i \in V$, let $b_i$
-denote the brightness of voxel $i$ and $d_i$ the
+Let $V$ be an 11x11x11 volume.  For every $i \in V$, let $b_i$
+denote the brightness of pixel $i$ and $d_i$ the
 pixelwise distance from $i$ to
-the synaptic locus (which seems to be the center voxel), then  
+the synaptic locus (which seems to be the center pixel).
+
 
 - `F0` Integrated Brightness $:= \sum_{i\in V} b_i =: B$
 - `F1` Local Brightness $:= \sum_{i\in V} b_i/d_{i}^{2}$
 - `F2` Center of Mass $:= \sum_{i\in V} b_id_i/B$
 - `F3` Moment of Inertia $:= \sum_{i\in V} b_id{_i}^{2}/B$
+
+The local maximum $m$ in $V$ for each channel is noted and a smaller 5x5x5 
+volume $V'$ is created about $m$.
+
+- `F4` Restricted Integrated Brightness $:= \sum_{i\in V'} b_i$
+- `F5` Distance between centers of $V'$ and $V$.
 
 
 # Data 
