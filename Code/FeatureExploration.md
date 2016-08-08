@@ -280,10 +280,32 @@ rm(gg1)
 
 
 ```r
-do.call("grid.arrange",args=c(ggS, ncol=3))
+do.call("grid.arrange",args=c(ggS[1:16], ncol=3))
 ```
 
 <figure><img src="../Figures/FeatureExploration_figure/cc-VF1-5-1.png"><figcaption><b>Figure 3: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
+
+The folling is a 2d density of feature F5 
+
+```r
+cols.pal <- colorRampPalette(c("white", "darkgreen", "chartreuse"))
+
+par(mfrow = c(1,3))
+smoothScatter(synF[, Synap_1F5], synF[, Synap_2F5],colramp=cols.pal, 
+              xlab="Synap_1F5", ylab="Synap_2F5")
+points(synF[, Synap_1F5], synF[, Synap_2F5], pch= 20, col='darkgray')
+
+smoothScatter(lsynF[, Synap_1F5], lsynF[, Synap_2F5],colramp=cols.pal, 
+              xlab="Log Synap_1F5", ylab="Log Synap_2F5")
+points(lsynF[, Synap_1F5], lsynF[, Synap_2F5], pch= 20, col='darkgray')
+
+smoothScatter(rsynF[, Synap_1F5], rsynF[, Synap_2F5],colramp=cols.pal, 
+              xlab="Rank Synap_1F5", ylab="Rank Synap_2F5")
+points(rsynF[, Synap_1F5], rsynF[, Synap_2F5], pch= 20, col='darkgray')
+```
+
+<figure><img src="../Figures/FeatureExploration_figure/cc-SynF5heatmap-1.png"><figcaption></figcaption></figure>
+
 
 
 ```r
@@ -309,7 +331,7 @@ data.frame(r2 = matrix(r2, nrow=6,byrow=TRUE),
 
 
 ```r
-vglutF <- feat[,grep("VGlut", names(feat)),with=FALSE]
+vglutF <- feat[,grep("VGlut1_t[1-2]", names(feat)),with=FALSE]
 ans2 <- apply(vglutF,1,function(row){ any(row == 0)})
 lvglutF <- vglutF[!ans2,lapply(.SD, 
                                function(x){
@@ -321,19 +343,38 @@ print(paste("removed", sum(ans2), "zero entries"))
 ```
 
 ```
-# [1] "removed 25365 zero entries"
+# [1] "removed 23063 zero entries"
 ```
 
 
 
 
 ```r
-do.call("grid.arrange",args=c(ggV, ncol=3))
+do.call("grid.arrange",args=c(ggV[1:16], ncol=3))
 ```
 
 <figure><img src="../Figures/FeatureExploration_figure/cc-F1-5-1.png"><figcaption><b>Figure 4: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
 
-The
+
+
+```r
+par(mfrow = c(1,3))
+smoothScatter(vglutF[, VGlut1_t1F5], vglutF[, VGlut1_t2F5],colramp=cols.pal, 
+              xlab="VGlut1_t11F5", ylab="VGlut1_t2F5")
+points(vglutF[, VGlut1_t1F5], vglutF[, VGlut1_t2F5], pch= 20, col='darkgray')
+
+smoothScatter(lvglutF[, VGlut1_t1F5], lvglutF[, VGlut1_t2F5],colramp=cols.pal, 
+              xlab="Log VGlut1_t11F5", ylab="Log VGlut1_t2F5")
+points(lvglutF[, VGlut1_t1F5], lvglutF[, VGlut1_t2F5], pch= 20, col='darkgray')
+
+smoothScatter(rvglutF[, VGlut1_t1F5], rvglutF[, VGlut1_t2F5],colramp=cols.pal, 
+              xlab="Rank VGlut1_t11F5", ylab="Rank VGlut1_t2F5")
+points(rvglutF[, VGlut1_t1F5], rvglutF[, VGlut1_t2F5], pch= 20, col='darkgray')
+```
+
+<figure><img src="../Figures/FeatureExploration_figure/cc-VGF5heatmap-1.png"><figcaption></figcaption></figure>
+
+
 
 ```r
 lm.fits2 <-lapply(ggV,function(x){x <- x$data;lm(as.formula(paste0(names(x)[2],"~",names(x)[1])),data=x)})
@@ -346,12 +387,12 @@ data.frame(r2 = matrix(r2, nrow=6,byrow=TRUE),
 
 ```
 #        r2.1      r2.2      r2.3 pval.1 pval.2 pval.3
-# 1 0.7350859 0.6507219 0.7179416      0      0      0
-# 2 0.7788203 0.6747710 0.7588826      0      0      0
-# 3 0.4391983 0.4803462 0.4975225      0      0      0
-# 4 0.4989981 0.5177206 0.5248931      0      0      0
-# 5 0.5526672 0.5081580 0.5238186      0      0      0
-# 6 0.1384548 0.1205998 0.1270797      0      0      0
+# 1 0.7350859 0.6507228 0.7179416      0      0      0
+# 2 0.7788203 0.6748344 0.7588826      0      0      0
+# 3 0.4391983 0.4803640 0.4975225      0      0      0
+# 4 0.4989981 0.5177710 0.5248931      0      0      0
+# 5 0.5526672 0.5081095 0.5238186      0      0      0
+# 6 0.1384548 0.1205634 0.1270797      0      0      0
 ```
 
 

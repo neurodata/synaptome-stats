@@ -338,8 +338,8 @@ rglwidget(elementId="rgl-pcaB",width=720,height=720)
 
 ```{r cc-lda1}
 el2 <- lapply(pcaL, function(x) getElbows(x$sdev, plot=FALSE))
-del2 <- lapply(pcaL, function(x) {
-                 elb <- getElbows(x$sdev, plot=FALSE)[1]
+del2 <- lapply(pcaL[1:5], function(x) {
+                 elb <- getElbows(x$sdev, plot=FALSE)[2]
                  return(x$x[,1:elb])
         })
 
