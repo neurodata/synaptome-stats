@@ -239,7 +239,9 @@ The following block needs to be re-written.
 gg1 <- list()
 ind <- matrix(c(1:12), ncol=2)
 rownames(ind) <- paste0("F", 0:5)
+
 cols <- colorRampPalette(c("darkgreen", "chartreuse"))(10)
+cols.pal <- colorRampPalette(c("white", "darkgreen", "chartreuse"))
 
 for ( i in c(1:6)) {
   tmp1 <- synF[,ind[i,], with=FALSE]
@@ -280,16 +282,17 @@ rm(gg1)
 
 
 ```r
-do.call("grid.arrange",args=c(ggS[1:16], ncol=3))
+do.call("grid.arrange",args=c(ggS[1:15], ncol=3))
 ```
 
 <figure><img src="../Figures/FeatureExploration_figure/cc-VF1-5-1.png"><figcaption><b>Figure 3: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
 
-The folling is a 2d density of feature F5 
+The folling is a 2d density of the different transformations of feature F5.  
+Due to the nature of this feature the scatter plot alone does not convey much
+information. 
+
 
 ```r
-cols.pal <- colorRampPalette(c("white", "darkgreen", "chartreuse"))
-
 par(mfrow = c(1,3))
 smoothScatter(synF[, Synap_1F5], synF[, Synap_2F5],colramp=cols.pal, 
               xlab="Synap_1F5", ylab="Synap_2F5")
@@ -304,7 +307,7 @@ smoothScatter(rsynF[, Synap_1F5], rsynF[, Synap_2F5],colramp=cols.pal,
 points(rsynF[, Synap_1F5], rsynF[, Synap_2F5], pch= 20, col='darkgray')
 ```
 
-<figure><img src="../Figures/FeatureExploration_figure/cc-SynF5heatmap-1.png"><figcaption></figcaption></figure>
+<figure><img src="../Figures/FeatureExploration_figure/cc-SynF5heatmap-1.png"><figcaption><b>Figure 4: 2d Density of Synapsin1 and Synapsin2 on linear, log, and rank scale.</b><br><br></figcaption></figure>
 
 
 
@@ -350,29 +353,32 @@ print(paste("removed", sum(ans2), "zero entries"))
 
 
 ```r
-do.call("grid.arrange",args=c(ggV[1:16], ncol=3))
+do.call("grid.arrange",args=c(ggV[1:15], ncol=3))
 ```
 
-<figure><img src="../Figures/FeatureExploration_figure/cc-F1-5-1.png"><figcaption><b>Figure 4: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
+<figure><img src="../Figures/FeatureExploration_figure/cc-F1-5-1.png"><figcaption><b>Figure 5: Scatter plots of Synapsin1 and Synapsin2 on linear and log scale.</b><br><br></figcaption></figure>
 
+The folling is a 2d density of the different transformations of feature F5.  
+Due to the nature of this feature the scatter plot alone does not convey much
+information. 
 
 
 ```r
 par(mfrow = c(1,3))
 smoothScatter(vglutF[, VGlut1_t1F5], vglutF[, VGlut1_t2F5],colramp=cols.pal, 
-              xlab="VGlut1_t11F5", ylab="VGlut1_t2F5")
+              xlab="VGlut1_t1F5", ylab="VGlut1_t2F5")
 points(vglutF[, VGlut1_t1F5], vglutF[, VGlut1_t2F5], pch= 20, col='darkgray')
 
 smoothScatter(lvglutF[, VGlut1_t1F5], lvglutF[, VGlut1_t2F5],colramp=cols.pal, 
-              xlab="Log VGlut1_t11F5", ylab="Log VGlut1_t2F5")
+              xlab="Log VGlut1_t1F5", ylab="Log VGlut1_t2F5")
 points(lvglutF[, VGlut1_t1F5], lvglutF[, VGlut1_t2F5], pch= 20, col='darkgray')
 
 smoothScatter(rvglutF[, VGlut1_t1F5], rvglutF[, VGlut1_t2F5],colramp=cols.pal, 
-              xlab="Rank VGlut1_t11F5", ylab="Rank VGlut1_t2F5")
+              xlab="Rank VGlut1_t1F5", ylab="Rank VGlut1_t2F5")
 points(rvglutF[, VGlut1_t1F5], rvglutF[, VGlut1_t2F5], pch= 20, col='darkgray')
 ```
 
-<figure><img src="../Figures/FeatureExploration_figure/cc-VGF5heatmap-1.png"><figcaption></figcaption></figure>
+<figure><img src="../Figures/FeatureExploration_figure/cc-VGF5heatmap-1.png"><figcaption><b>Figure 6: 2d Density of VGlut1_t1F5 and VGlut1_t2F5 on linear, log, and rank scale.</b><br><br></figcaption></figure>
 
 
 
