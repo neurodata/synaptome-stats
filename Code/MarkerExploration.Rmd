@@ -336,23 +336,118 @@ rglwidget(elementId="rgl-pcaB",width=720,height=720)
 
 # LDA 
 
-```{r cc-lda1}
-el2 <- lapply(pcaL, function(x) getElbows(x$sdev, plot=FALSE))
-del2 <- lapply(pcaL[1:5], function(x) {
-                 elb <- getElbows(x$sdev, plot=FALSE)[2]
-                 return(x$x[,1:elb])
-        })
+First we will take a look at the scree plots for each of the primitives
+along with their corresponding elbows as given by Zhu and Ghodsi 2006.
 
-d1 <- lapply(del2, function(x) data.frame(type = exType, x))
-lda.fit <- lapply(d1, function(x) lda(type ~ ., data = x) )
-rf.fit <- lapply(d1, function(x) randomForest(type ~ ., data=x))
-rf.pred <- lapply(rf.fit, '[[', 3)
+
+```{r cc-scree1, echo=FALSE, h=6, w=7, fig.cap=fig$cap("scree1","Scree plots for F0-F5")}
+par(mfrow= c(2,3))
+el2 <- lapply(pcaL, function(x) getElbows(x$sdev, plot = FALSE))
+tmp <- mapply(function(x,y) {
+  getElbows(x$sdev, plot = TRUE)
+    title(y)
+  },
+  pcaL, paste0("Scree plot F", 0:5))
 ```
 
-<FONT COLOR=#750000> 
-LDA was run using only the principal 
-components up to and including the first elbow from ZG from the untransformed correlation matrix.
-</FONT>  
+```{r cc-cumsum1, h=6, w=7, fig.cap=fig$cap("cumsum1","% Variance Explained for  F0-F5")}
+par(mfrow= c(2,3))
+for(i in 1:length(pcaL)){
+  zs <- rep(1, dim(pcaL[[i]]$x)[2])
+  zb <- rep(0, dim(pcaL[[i]]$x)[2])
+  zs[el2[[i]]] <- 2
+  zb[el2[[i]]] <- 2
+  plot(100 * cumsum(pcaL[[i]]$sdev) / sum(pcaL[[i]]$sdev), 
+       axes = TRUE,
+       type='b', pch = 21, 
+       bg = zb, col = zs, 
+       xlab = 'd', ylab = '% Var',
+       main = paste0('% Var Explained for F', i - 1))
+  axis(side = 1, at = el2[[i]], padj = 1.25)
+}
+```
+
+
+```{r cc-lda1}
+dat <- lapply(pcaL, function(x) data.frame(x$x))
+type <- truth <- factor(exType, ordered = FALSE)
+
+lda.fit <- list()
+
+lda.fit[[1]] <- lda(type ~ ., data = dat[[1]][,1:el2[[1]][2]])
+lda.fit[[2]] <- lda(type ~ ., data = dat[[2]][,1:el2[[2]][2]])
+lda.fit[[3]] <- lda(type ~ ., data = dat[[3]][,1:el2[[3]][2]])
+lda.fit[[4]] <- lda(type ~ ., data = dat[[4]][,1:el2[[4]][2]])
+lda.fit[[5]] <- lda(type ~ ., data = dat[[5]][,1:el2[[5]][2]])
+lda.fit[[6]] <- lda(type ~ ., data = dat[[6]][,1:el2[[6]][1]])
+
+lda.pred <- lapply(lda.fit, predict)
+```
+
+```{r cc-ldacep}
+L <- 
+foreach(i = 1:6, .combine=rbind) %:% 
+foreach(j = 1:24, .combine=rbind) %do% {
+  out <- NULL
+  try({
+    set.seed(12)
+    ldapred <- as.numeric(predict(lda(type ~ ., dat[[i]][1:j]))$class)
+    er <- 1/24 * sum(ldapred != as.numeric(truth))
+    out <- data.frame(Lhat = er, d = j, feat = as.factor(i))
+    }, silent=TRUE)
+  out
+}
+
+rownames(L) <- NULL
+
+L <- data.table(L)
+
+Lcv <- 
+foreach(i = 1:6, .combine=rbind) %:% 
+foreach(j = 1:24, .combine=rbind) %do% {
+  out <- NULL
+  try({
+    set.seed(12)
+    ldapred <- as.numeric((lda(type ~ ., dat[[i]][1:j], CV = TRUE))$class)
+    er <- 1/24 * sum(ldapred != as.numeric(truth))
+    out <- data.frame(Lhat = er, d = j, feat = as.factor(i))
+    }, silent=TRUE)
+  out
+}
+
+rownames(Lcv) <- NULL
+
+Lcv <- data.table(Lcv)
+
+
+L$CV <- "Without CV"
+Lcv$CV <- "With CV"
+
+tmp <- data.table(rbind(L, Lcv))
+tmp$CV <- factor(tmp$CV)
+tmp$feat <- factor(tmp$feat)
+
+size <- foreach(i = 1:6, .combine=c) %do% {
+  size <- rep(1, 23)
+  size[el2[[i]]] <- 2
+  size
+}
+
+tmp$size <- factor(c(size,size))
+levels(tmp$size) <- c("non-elbow", "elbow")
+```
+
+```{r cc-cvPlot, h=6, w = 8, fig.cap=fig$cap("cvPlot","Lhat vs $d$ for FLD on F0-F5")}
+xvalVr <- 
+ggplot(tmp, aes(x = d, y = Lhat, color = feat)) + 
+  facet_grid(. ~ CV) +
+  geom_line(alpha = 0.5) +
+  geom_point(alpha = 0.65, aes(size = size)) + 
+  geom_hline(yintercept = 0.64236) +
+  ggtitle("FLD (LDA): xval vs. re-substitution")
+
+print(xvalVr)
+```
 
 
 ```{r cc-voronoi,h=12,w=8,fig.cap=fig$cap("voronoi","Voronoi diagrams on class means from LDA on PCA of untransformed correlation matrices")}
@@ -364,11 +459,11 @@ voronoidf <- lapply(lapply(lda.fit, '[[', 3), data.frame)
 #This creates the voronoi line segments
 
 par(mfrow = c(3,2))
-for(i in 1:length(d1)){
-  plot(d1[[i]][,2:3], col=ccol3[ford], pch=20, cex=1.5)
+for(i in 1:length(dat)){
+  plot(dat[[i]][,1:2], col=ccol3[ford], pch=20, cex=1.5)
   title(titlesvor[i])
-  text(d1[[i]][,2:3], labels=rownames(d1[[i]]), 
-       pos=ifelse(d1[[i]][,2]<max(d1[[i]][,2] -0.5),4,2), 
+  text(dat[[i]][,1:2], labels=rownames(dat[[i]]), 
+       pos=ifelse(dat[[i]][,1]<max(dat[[i]][,1] -0.5),4,2), 
        col=ccol3[ford], cex=1.2)
 
   deldir(x = voronoidf[[i]][,1],y = voronoidf[[i]][,2], rw = c(-15,15,-15,15), 
@@ -379,16 +474,15 @@ for(i in 1:length(d1)){
 
 
 ```{r contingency-table}
-truth <- lapply(d1, '[[', 1)
 pred <- lapply(lapply(lda.fit, predict), '[[', 1)
 
-for( i in 1:length(truth)) {
- print(table(truth = truth[[i]],pred = pred[[i]]) )
+for( i in 1:length(pred)) {
+ print(table(truth,pred = pred[[i]]) )
 }
 
 lda.err <- list()
-for(i in 1:6) {
- tr <- as.numeric(truth[[i]])
+for(i in 1:length(pred)) {
+ tr <- as.numeric(truth)
  pr <- as.numeric(pred[[i]])
  lda.err[[i]] <- sum( tr != pr ) / length(tr)
 }
@@ -396,7 +490,7 @@ for(i in 1:6) {
 Reduce('c', lda.err)
 ```
 
-The above gives the LDA error rates for each of the features.
+The above gives the LDA re-substitution error rates for each of the features.
 
 
 
