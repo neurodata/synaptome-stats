@@ -25,7 +25,7 @@ rm(list=ls());
 system.time(rmarkdown::render(grep("MarkerExploration.Rmd", dir(), value=TRUE)))
 system('open MarkerExploration.html')
 ```
-```{r setup,include=FALSE,results='asis',message=FALSE}
+```{r setup,include=FALSE,results='asis'}
 ### Library calls here.
 library(rmarkdown)
 library(knitr)
@@ -44,7 +44,7 @@ require(corrplot)
 require(rgl)
 require(rglwidget)
 require(randomForest)
-require(doMC); registerDoMC(6)
+require(doMC); registerDoMC(6L)
 require(foreach)
 require(MASS)
 require(abind)
@@ -271,21 +271,21 @@ sTitle <- paste("dcor.ttest statistic", paste0("F", 0:5))
 pTitle <- paste("dcor.ttest log10(p-value)", paste0("F", 0:5))
 
 
-par(mfcol=c(6,2), oma=c(1,1,1,1))
+par(mfcol=c(6,2), oma=2*c(1,1,1,1))
 for(i in 1:length(mdcor)){
   corrplot(mdcor[[i]][[1]][ford,ford],is.corr=FALSE,method="color",
-           tl.col=ccol[ford], tl.cex=0.8, mar=c(1,0,1,1.5))
-  title(sTitle[i]) 
+           tl.col=ccol[ford], tl.cex=0.8, mar=3*c(1,0,1,1.5))
   corrRect(as.numeric(table(fchannel)),col=Syncol,lwd=4)
+  title(sTitle[i]) 
 }
 
 for(i in 1:length(mdcor)){
   corrplot((log10(mdcor[[i]][[2]][ford,ford]+.Machine$double.eps)),is.corr=FALSE,method="color",tl.col=ccol[ford], 
-           tl.cex=0.8, mar=c(1,0,1,1.5),
+           tl.cex=0.8, mar=3*c(1,0,1,1.5),
            p.mat=mdcor[[i]][[2]][ford,ford], 
            sig.level=0.01, pch = 'x', pch.cex=0.5)
-  title(pTitle[i])
   corrRect(as.numeric(table(fchannel)),col=Syncol,lwd=4)
+  title(pTitle[i])
 }
 ```
 
@@ -336,6 +336,7 @@ rglwidget(elementId="rgl-pcaB",width=720,height=720)
 
 # LDA 
 
+## Scree Plots
 First we will take a look at the scree plots for each of the primitives
 along with their corresponding elbows as given by Zhu and Ghodsi 2006.
 
@@ -349,6 +350,8 @@ tmp <- mapply(function(x,y) {
   },
   pcaL, paste0("Scree plot F", 0:5))
 ```
+
+## Cumulative Variance plots
 
 ```{r cc-cumsum1, h=6, w=7, fig.cap=fig$cap("cumsum1","% Variance Explained for  F0-F5")}
 par(mfrow= c(2,3))
@@ -371,6 +374,7 @@ for(i in 1:length(pcaL)){
 ```{r cc-lda1}
 dat <- lapply(pcaL, function(x) data.frame(x$x))
 type <- truth <- factor(exType, ordered = FALSE)
+tr <- as.numeric(truth)
 
 lda.fit <- list()
 
@@ -384,8 +388,8 @@ lda.fit[[6]] <- lda(type ~ ., data = dat[[6]][,1:el2[[6]][1]])
 lda.pred <- lapply(lda.fit, predict)
 ```
 
-```{r cc-ldacep}
-L <- 
+```{r cc-lda-cep}
+Lm <- 
 foreach(i = 1:6, .combine=rbind) %:% 
 foreach(j = 1:24, .combine=rbind) %do% {
   out <- NULL
@@ -393,16 +397,16 @@ foreach(j = 1:24, .combine=rbind) %do% {
     set.seed(12)
     ldapred <- as.numeric(predict(lda(type ~ ., dat[[i]][1:j]))$class)
     er <- 1/24 * sum(ldapred != as.numeric(truth))
-    out <- data.frame(Lhat = er, d = j, feat = as.factor(i))
+    out <- data.frame(Lhat = er, d = j, feat = as.factor(i - 1))
     }, silent=TRUE)
   out
 }
 
-rownames(L) <- NULL
+rownames(Lm) <- NULL
 
-L <- data.table(L)
+Lm <- data.table(Lm)
 
-Lcv <- 
+Lcvm <- 
 foreach(i = 1:6, .combine=rbind) %:% 
 foreach(j = 1:24, .combine=rbind) %do% {
   out <- NULL
@@ -410,20 +414,20 @@ foreach(j = 1:24, .combine=rbind) %do% {
     set.seed(12)
     ldapred <- as.numeric((lda(type ~ ., dat[[i]][1:j], CV = TRUE))$class)
     er <- 1/24 * sum(ldapred != as.numeric(truth))
-    out <- data.frame(Lhat = er, d = j, feat = as.factor(i))
+    out <- data.frame(Lhat = er, d = j, feat = as.factor(i - 1))
     }, silent=TRUE)
   out
 }
 
-rownames(Lcv) <- NULL
+rownames(Lcvm) <- NULL
 
-Lcv <- data.table(Lcv)
+Lcvm <- data.table(Lcvm)
 
 
-L$CV <- "Without CV"
-Lcv$CV <- "With CV"
+Lm$CV <- "Without CV"
+Lcvm$CV <- "With CV"
 
-tmp <- data.table(rbind(L, Lcv))
+tmp <- data.table(rbind(Lm, Lcvm))
 tmp$CV <- factor(tmp$CV)
 tmp$feat <- factor(tmp$feat)
 
@@ -437,7 +441,9 @@ tmp$size <- factor(c(size,size))
 levels(tmp$size) <- c("non-elbow", "elbow")
 ```
 
-```{r cc-cvPlot, h=6, w = 8, fig.cap=fig$cap("cvPlot","Lhat vs $d$ for FLD on F0-F5")}
+## Misclassification rates for LDA w/ and w/o CV.
+
+```{r cc-cvPlot, h=6, w = 8, fig.cap=fig$cap("cvPlot","Lhat vs $d$ for FLD on F0-F5 with an h-line at chance")}
 xvalVr <- 
 ggplot(tmp, aes(x = d, y = Lhat, color = feat)) + 
   facet_grid(. ~ CV) +
@@ -449,6 +455,43 @@ ggplot(tmp, aes(x = d, y = Lhat, color = feat)) +
 print(xvalVr)
 ```
 
+## Misclasifications vs $\hat d$.
+
+```{r cc-lda-missclass, h=10, w=8, fig.cap = fig$cap("misclassLDAcv", "Misclassifications using LDA with CV for various $d$.")}
+L <- 
+foreach(i = 1:6) %:% 
+foreach(j = 1:24, .combine = cbind) %do% {
+  out <- NULL
+  try({
+    set.seed(12)
+    ldapredcv <- as.numeric(lda(type ~ ., dat[[i]][1:j], CV = TRUE)$class)
+    out <- ldapredcv
+    }, silent=TRUE)
+  out 
+}
+
+A <- lapply(L, function(x) { apply(x, 2, function(y) y != tr ) })
+B <- lapply(A, function(x) { x[,1:10] } )
+
+B <- lapply(B, function(x) { 
+                 rownames(x) <- channel[ford]
+                 colnames(x) <- paste0('d', 1:dim(x)[2]) 
+                 return(x)
+    }) 
+
+par(mfrow = c(2,3))
+corT <- paste0("Misclassifications ", "F", 0:5)
+for(i in 1:6) {
+corrplot(B[[i]], method='color', addgrid.col=1, 
+         tl.col = ccol[ford],
+         mar=3*c(1,0,1,1.5))
+title(corT[i])
+}
+```
+
+The above plots show when LDA with cross-validation misclassifies each
+datapoint.  A misclassification is denoted by a filled block and columns
+denote the embeddign dimension $\hat d$.
 
 ```{r cc-voronoi,h=12,w=8,fig.cap=fig$cap("voronoi","Voronoi diagrams on class means from LDA on PCA of untransformed correlation matrices")}
 
@@ -472,17 +515,20 @@ for(i in 1:length(dat)){
 }
 ```
 
+Recall that these are two-dimensional visualizations of a 24-dimensional
+structure. 
 
 ```{r contingency-table}
 pred <- lapply(lapply(lda.fit, predict), '[[', 1)
 
+tabN <- paste0("Table for F", 0:5)
 for( i in 1:length(pred)) {
+ print(tabN[i])
  print(table(truth,pred = pred[[i]]) )
 }
 
 lda.err <- list()
 for(i in 1:length(pred)) {
- tr <- as.numeric(truth)
  pr <- as.numeric(pred[[i]])
  lda.err[[i]] <- sum( tr != pr ) / length(tr)
 }
