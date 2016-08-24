@@ -1,5 +1,5 @@
 ---
-title: "Synapse Stats: Synapse Exploration"
+title: "Synapse Stats: Synapse Exploration on *Lin F0*"
 author: "JLP"
 date: '`r Sys.Date()`'
 output:
@@ -178,22 +178,12 @@ featF0 <- featF[[1]]
 f01e3 <- 1e3*data.table(apply(X=featF0, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
 
 fs <- f01e3
-
-### Taking log_10 on data with 0's removed
-ans <- apply(featF0, 1, function(row){ any(row == 0)})
-
-logF0 <- log10(featF0[!ans,])
-slogF0 <- logF0[,lapply(.SD,scale, center=TRUE,scale=TRUE)]
 ```
 
 We now have the following data sets:
 
 - `featF0`: The feature vector looking only at the integrated brightness features.
 - `fs`:  The feature vector scaled between $[0,1000]$.
-- `logF0`: The feature vector, with 0's removed, then $log_{10}$ is applied. 
-- `slogF0`: The feature vector, with 0's removed, then $log_{10}$, then scaled by
-  subtracting the mean and dividing by the sample standard deviation.
-
 
 # Level 0 
 
@@ -225,21 +215,23 @@ Percentage of data within cluster is presented on the right side of the heatmap.
 
 ## Jittered scatter plot: Lv 0
 
+```{r cc-kmpp0,eval=TRUE,echo=FALSE}
+set.seed(2^13)
+L <- bhkmpp(dat,blevels=4)
+```
 
 ```{r ggJitter}
-ggJdat <- stack(dat)
-ggD <- data.table(ggJdat)
-
 set.seed(1024)
-s2 <- sample(dim(ggD)[1], 5e4)
-tmp <- ggD[s2,]
-tmp$ind <- as.factor(tmp$ind)
-levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
+s2 <- sample(dim(dat)[1], 1e4)
+ggJdat <- data.table(cbind(stack(dat[s2]),L[s2]))
+ggJdat$ind <- as.factor(ggJdat$ind)
+levels(ggJdat$ind) <- names(dat)[ford]
 
 ggJ0 <- 
-  ggplot(data = tmp, aes(x = ind, y = values)) +
+  ggplot(data = ggJdat, aes(x = ind, y = values)) +
   geom_point(alpha=0.75) + 
   geom_jitter(width = 1) + 
+  geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
   theme(axis.title.x = element_blank()) + 
   theme(axis.text.x = element_text(color = ccol[ford], 
                                    angle=45,
@@ -255,7 +247,7 @@ The above scatter plot is a random sample of the data points.
 ## Correlations: Lv 0
 
 ```{r cc_cor,w=5,h=5, eval=TRUE,fig.cap=fig$cap("cor","Correlation on untransformed F0 data, reordered by synapse type.")}
-cmatfs <- cor(fs)
+cmatfs <- cor(fs)[ford, ford]
 corrplot(cmatfs,method="color",tl.col=ccol[ford], tl.cex=1)
 ```
 
@@ -295,26 +287,17 @@ Percentage of data within cluster is presented on the right side of the heatmap.
 
 
 ```{r ggJitter1}
-ggJdat <- stack(dat)
-ggD <- data.table(ggJdat)
-ggD$label <- L[[1]]
-
 ggCol <- brewer.pal(4,"Set1")[order(table(L[[1]]))]
-
-tmp <- ggD[s2, ]
-tmp$label <- as.factor(tmp$lab)
-tmp$ind <- as.factor(tmp$ind)
-levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
 
 cf1 <- data.frame(cf = clusterFraction(L[[1]]))
 
 ggJ1 <- 
-  ggplot(data = tmp, aes(x = ind, y = values, 
-                         color = label)) +
-  scale_color_manual(values=ggCol) + 
+  ggplot(data = ggJdat, aes(x = ind, y = values, 
+                         color = as.factor(lv1))) +
+  scale_color_manual(values=ggCol, name="Cluster") + 
   geom_point(alpha=0.25, position=position_jitterdodge()) + 
   geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
-  annotate("text", x = levels(tmp$ind)[c(2,20)], y = 1.15*max(tmp$values), 
+  annotate("text", x = levels(ggJdat$ind)[c(2,20)], y = 1.15*max(ggJdat$values), 
            label= cf1[1:2,]) + 
   theme(axis.title.x = element_blank()) + 
   theme(axis.text.x = element_text(color = ccol[ford], 
@@ -329,18 +312,18 @@ print(ggJ1)
 ## Within cluster correlations (Lv 1)
 
 ```{r cc-wcc1, h=8,w=8,fig.cap=fig$cap("corkp1","Within cluster correlations, clock-wise from top left, Cluster 1, Cluster 2, difference C1 - C2")}
-corkp1 <- cor(dat[L[[1]] == 1,])
-corkp2 <- cor(dat[L[[1]] == 2,])
+corkp1 <- cor(dat[L[[1]] == 1,])[ford, ford]
+corkp2 <- cor(dat[L[[1]] == 2,])[ford, ford]
 difCor12 <- (corkp1 - corkp2)
 
 layout(matrix(c(1,2,3,3), 2, 2, byrow=TRUE))
-corrplot(corkp1,method="color",tl.col=ccol[ford], tl.cex=0.8, mar=c(0,0,1,0))
+corrplot(corkp1,method="color",tl.col=ccol[ford], tl.cex=0.8, mar=c(0,0,3,0))
 title("Cluster 1")
-corrplot(corkp2,method="color",tl.col=ccol[ford], tl.cex=0.8, mar=c(0,0,1,0))
+corrplot(corkp2,method="color",tl.col=ccol[ford], tl.cex=0.8, mar=c(0,0,3,0))
 title("Cluster 2")
 corrplot(difCor12,is.corr=FALSE,method="color",
          tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0),
+         mar=c(0,0,3,0),
          col=colorRampPalette(c("#998ec3","white","darkorange"))(50))
 title("Difference(1,2)")
 ```
@@ -403,25 +386,16 @@ Percentage of data within cluster is presented on the right side of the heatmap.
 
 
 ```{r ggJitter2}
-ggJdat <- stack(dat)
-ggD <- data.table(ggJdat)
-ggD$label <- L[[2]]
-
 ggCol <- brewer.pal(8,"Set1")[order(table(L[[2]]))]
-
-tmp <- ggD[s2, ]
-tmp$label <- as.factor(tmp$lab)
-tmp$ind <- as.factor(tmp$ind)
-levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
-
 cf2 <- data.frame(cf = clusterFraction(L[[2]]))
+
 ggJ2 <- 
-  ggplot(data = tmp, aes(x = ind, y = values, 
-                         color = label)) +
-  scale_color_manual(values=ggCol) + 
+  ggplot(data = ggJdat, aes(x = ind, y = values, 
+                         color = as.factor(lv2))) +
+  scale_color_manual(values=ggCol, name="Cluster") + 
   geom_point(alpha=0.25, position=position_jitterdodge()) + 
   geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
-  annotate("text", x = levels(tmp$ind)[c(2,8,14,20)], y = 1.15*max(tmp$values), 
+  annotate("text", x = levels(ggJdat$ind)[c(2,8,14,20)], y = 1.15*max(ggJdat$values), 
            label= cf2[1:4,]) + 
   theme(axis.title.x = element_blank()) + 
   theme(axis.text.x = element_text(color = ccol[ford], 
@@ -440,35 +414,35 @@ the plot window.
 ## Within cluster correlations (Lv 2)
 
 ```{r cc-wccLV2,h=12,w=7,fig.cap=fig$cap("corkp2","Within cluster correlations for level 2. (c11, c12, c21, c22) with differences")}
-corLV2 <- lapply(c(1:4),function(x){cor(dat[L[[2]] == x,])})
+corLV2 <- lapply(c(1:4),function(x){cor(dat[L[[2]] == x,])[ford, ford]})
 
 difCor1112 <- ((corLV2[[1]] - corLV2[[2]]))
 difCor2122 <- ((corLV2[[3]] - corLV2[[4]]))
 
 layout(matrix(c(1,2,3,3,4,5,6,6), 4, 2, byrow=TRUE))
 corrplot(corLV2[[1]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title("Cluster 1")
 corrplot(corLV2[[2]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title("Cluster 2")
 corrplot(difCor1112, method="color", tl.col=ccol[ford], 
          tl.cex=0.8,
-         mar = c(0,0,1,0),
+         mar = c(0,0,3,0),
          cl.lim = c(min(difCor1112,difCor2122),max(difCor1112,difCor2122)),
          col=colorRampPalette(c("#998ec3", 
                                 "white",
                                 "darkorange"))(100))
 title("Difference(1,2)")
 corrplot(corLV2[[3]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title("Cluster 3")
 corrplot(corLV2[[4]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title("Cluster 4")
 corrplot(difCor2122, method="color", tl.col=ccol[ford], 
          tl.cex=0.8,
-         mar=c(0,0,1,0),
+         mar=c(0,0,3,0),
          cl.lim = c(min(difCor1112,difCor2122),max(difCor1112,difCor2122)),
          col=colorRampPalette(c("#998ec3", 
                                 "white",
@@ -536,25 +510,17 @@ Percentage of data within cluster is presented on the right side of the heatmap.
 
 
 ```{r ggJitter3}
-ggJdat <- stack(dat)
-ggD <- data.table(ggJdat)
-ggD$label <- L[[3]]
-
 ggCol <- brewer.pal(8,"Set1")[order(table(L[[3]]))]
-
-tmp <- ggD[s2, ]
-tmp$label <- as.factor(tmp$lab)
-tmp$ind <- as.factor(tmp$ind)
-levels(tmp$ind) <- names(feat)[seq(1,144,by=6)][ford]
+cf3 <- data.frame(cf = clusterFraction(L[[3]]))
 
 ggJ3 <- 
-  ggplot(data = tmp, aes(x = ind, y = values, 
-                         color = label)) +
-  scale_color_manual(values=ggCol) + 
+  ggplot(data = ggJdat, aes(x = ind, y = values, 
+                         color = as.factor(lv3))) +
+  scale_color_manual(values=ggCol, name="Cluster") + 
   geom_point(alpha=0.25, position=position_jitterdodge()) + 
   geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
-  annotate("text", x = levels(tmp$ind)[c(2,20)], y = 1.15*max(tmp$values), 
-           label= cf1[1:2,]) + 
+  annotate("text", x = levels(ggJdat$ind)[seq(2,22,length=8)], y = 1.05*max(ggJdat$values), 
+           label= cf3[1:8,]) + 
   #geom_jitter(width=2) + 
   theme(axis.title.x = element_blank()) + 
   theme(axis.text.x = element_text(color = ccol[ford], 
@@ -569,7 +535,7 @@ print(ggJ3)
 ## Within cluster correlations (Lv 3)
 
 ```{r cc-wcc3,h=17,w=5,fig.cap=fig$cap("corkp3","Within cluster correlations for level 3. (c111, c112, c121, c122, c211, c212, c221, c222)")}
-corLV3 <- lapply(c(1:8),function(x){cor(dat[L[[3]] == x,])})
+corLV3 <- lapply(c(1:8),function(x){cor(dat[L[[3]] == x,])[ford, ford]})
 
 difCor1 <- (corLV3[[1]] - corLV3[[2]])
 difCor2 <- (corLV3[[3]] - corLV3[[4]])
@@ -584,53 +550,53 @@ layout(matrix(c(1, 2, 3, 3,
                 10, 11, 12, 12), 8,2, byrow=TRUE))
 
 corrplot(corLV3[[1]],method="color",tl.col=ccol[ford], tl.cex=0.8,
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title('Cluster 1')
 corrplot(corLV3[[2]],method="color",tl.col=ccol[ford], tl.cex=0.8,
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title('Cluster 2')
 corrplot(difCor1,method="color",tl.col=ccol[ford], tl.cex=0.8,
          cl.lim=c(m,M), 
-         mar=c(0,0,1,0),
+         mar=c(0,0,3,0),
          col=colorRampPalette(c("#998ec3",
                                 "white",
                                 "darkorange"))(50))
 title('Difference(1,2)')
 corrplot(corLV3[[3]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title('Cluster 3')
 corrplot(corLV3[[4]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title('Cluster 4')
 corrplot(difCor2,method="color",tl.col=ccol[ford], tl.cex=0.8, 
          cl.lim= c(m,M),
-         mar=c(0,0,1,0),
+         mar=c(0,0,3,0),
          col=colorRampPalette(c("#998ec3",
                                 "white",
                                 "darkorange"))(50))
 title('Difference(3,4)')
 corrplot(corLV3[[5]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title('Cluster 5')
 corrplot(corLV3[[6]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title('Cluster 6')
 corrplot(difCor3,method="color",tl.col=ccol[ford], tl.cex=0.8,
          cl.lim= c(m,M),
-         mar=c(0,0,1,0),
+         mar=c(0,0,3,0),
          col=colorRampPalette(c("#998ec3",
                                 "white",
                                 "darkorange"))(50))
 title('Difference(5,6)')
 corrplot(corLV3[[7]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title('Cluster 7')
 corrplot(corLV3[[8]],method="color",tl.col=ccol[ford], tl.cex=0.8, 
-         mar=c(0,0,1,0))
+         mar=c(0,0,3,0))
 title('Cluster 8')
 corrplot(difCor4,method="color",tl.col=ccol[ford], tl.cex=0.8,
          cl.lim= c(m,M),
-         mar=c(0,0,1,0),
+         mar=c(0,0,3,0),
          col=colorRampPalette(c("#998ec3",
                                 "white",
                                 "darkorange"))(50))

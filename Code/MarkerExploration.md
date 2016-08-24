@@ -418,7 +418,7 @@ title(corT[i])
 
 The above plots show when LDA with cross-validation misclassifies each
 datapoint.  A misclassification is denoted by a filled block and columns
-denote the embeddign dimension $\hat d$.
+denote the embedding dimension $\hat d$.
 
 
 ```r
