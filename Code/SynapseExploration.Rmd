@@ -206,7 +206,7 @@ dat <- fs
 ```{r cc_agg0, eval=TRUE}
 ## Formatting data for heatmap
 aggp <- apply(dat, 2, mean)
-aggp <- t(cbind(aggp, aggp))
+aggp <- t(cbind(aggp, aggp))[, ford]
 ```
 
 The following are heatmaps generated from clustering 
@@ -273,7 +273,7 @@ L <- bhkmpp(dat,blevels=4)
 ```{r cc_agg, eval=TRUE}
 ## Formatting data for heatmap
 aggp <- aggregate(dat,by=list(lab=L[[1]]),FUN=mean)
-aggp <- as.matrix(aggp[,-1])
+aggp <- as.matrix(aggp[,-1])[, ford]
 rownames(aggp) <- clusterFraction(L[[1]])
 ```
 
@@ -381,7 +381,7 @@ rglwidget(elementId="plot3dLocations", height=720, width=720)
 ```{r cc-agg2, eval=TRUE}
 ## Formatting data for heatmap
 aggp2 <- aggregate(dat,by=list(lab=L[[2]]),FUN=function(x){mean(x)}) 
-aggp2 <- as.matrix(aggp2[,-1])
+aggp2 <- as.matrix(aggp2[,-1])[, ford]
 rownames(aggp2) <- clusterFraction(L[[2]])
 ```
 
@@ -514,7 +514,7 @@ rglwidget(elementId="plot3dLocationsLV2", height=720, width=720)
 ```{r cc-agg3, eval=TRUE}
 ## Formatting data for heatmap
 aggp3 <- aggregate(dat,by=list(lab=L[[3]]),FUN=function(x){mean(x)})
-aggp3 <- as.matrix(aggp3[,-1])
+aggp3 <- as.matrix(aggp3[,-1])[, ford]
 rownames(aggp3) <- clusterFraction(L[[3]])
 ```
 
