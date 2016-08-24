@@ -1,4 +1,5 @@
---- title: "Synapse Stats: Synapse Exploration on *Log F1*"
+--- 
+title: "Synapse Stats: Synapse Exploration on *Log F1*"
 author: "JLP"
 date: '`r Sys.Date()`'
 output:
