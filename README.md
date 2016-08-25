@@ -12,11 +12,7 @@ knit        : slidify::knit2slides #
 ---
 
 
-### Progress Reports
-- [Y3 Progress Report](http://docs.neurodata.io/synaptome-stats/Code/Y3progress.html)
-- [Y2 Progress Report](http://docs.neurodata.io/synaptome-stats/Code/Y2progress.html)
-
-### Explorations
+## Explorations
 - [Feature Exploration](http://docs.neurodata.io/synaptome-stats/Code/FeatureExploration.html)
 - [Marker Exploration](http://docs.neurodata.io/synaptome-stats/Code/MarkerExploration.html)
 - Synapse Exploration
@@ -33,4 +29,7 @@ knit        : slidify::knit2slides #
 - [Correlation matrices on a random half](http://docs.neurodata.io/synaptome-stats/Code/randomHalf.html)
 
 
+### Progress Reports
+- [Y3 Progress Report](http://docs.neurodata.io/synaptome-stats/Code/Y3progress.html)
+- [Y2 Progress Report](http://docs.neurodata.io/synaptome-stats/Code/Y2progress.html)
 

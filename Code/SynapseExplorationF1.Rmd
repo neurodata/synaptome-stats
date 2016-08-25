@@ -206,7 +206,7 @@ via K-means++ (at level 1)
 ```{r cc-kmpp-heatmapSortedLV0,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
 heatmap.2(as.matrix(aggp),dendrogram='none',Colv=NA,trace="none", 
           col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,
-          symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.", 
+          symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs F1` data.", 
           labRow = "") 
 ```
 
@@ -247,13 +247,13 @@ The above scatter plot is a random sample of the data points.
 ## Correlations: Lv 0
 
 ```{r cc_cor,w=5,h=5, eval=TRUE,fig.cap=fig$cap("cor","Correlation on linearly scaled F1 data, reordered by synapse type.")}
-cmatfs <- cor(fs)[ford, ford]
-corrplot(cmatfs,method="color",tl.col=ccol[ford], tl.cex=1)
+cmat <- cor(fs)[ford, ford]
+corrplot(cmat,method="color",tl.col=ccol[ford], tl.cex=1)
 ```
 
 
 # Level 1: K-means++ for $K=2$. 
-We run a Hierachical K-means++ for $K=2$ on the `fs` data with 4 levels.
+We run a Hierachical K-means++ for $K=2$ on the `fs F1` data with 4 levels.
 
 ```{r cc-kmpp,eval=TRUE,echo=TRUE}
 set.seed(2^13)
@@ -273,11 +273,11 @@ The following are heatmaps generated from clustering
 via K-means++ (at level 1)
 
 ```{r cc-kmpp-heatmapLV1,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
-heatmap.2(as.matrix(aggp), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data") # 
+heatmap.2(as.matrix(aggp), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs F1` data") # 
 ```
 
 ```{r cc-kmpp-heatmapSortedLV1,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
-heatmap.2(as.matrix(aggp),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.") 
+heatmap.2(as.matrix(aggp),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs F1` data.") 
 ```
 
 Percentage of data within cluster is presented on the right side of the heatmap.
@@ -376,7 +376,7 @@ heatmap.2(as.matrix(aggp2), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysi
 ```
 
 ```{r cc-kmpp-heatmapSortedLV2,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
-heatmap.2(as.matrix(aggp2),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.") 
+heatmap.2(as.matrix(aggp2),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs F1` data.") 
 ```
 
 Percentage of data within cluster is presented on the right side of the heatmap.
@@ -496,11 +496,11 @@ The following are heatmaps generated from clustering
 via K-means++
 
 ```{r cc-kmpp-heatmapLV3,eval=FALSE,echo=FALSE,w=6,h=6,fig.cap=fig$cap("heat3", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to hclust.")}
-heatmap.2(as.matrix(aggp3), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data") # 
+heatmap.2(as.matrix(aggp3), trace="none",col=mycol,colCol=ccol,cexRow=0.8, keysize=1,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs F1` data") # 
 ```
 
 ```{r cc-kmpp-heatmapSortedLV3,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
-heatmap.2(as.matrix(aggp3),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.") 
+heatmap.2(as.matrix(aggp3),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs F1` data.") 
 ```
 
 Percentage of data within cluster is presented on the right side of the heatmap.
