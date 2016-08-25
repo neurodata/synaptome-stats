@@ -20,10 +20,10 @@ knit        : slidify::knit2slides #
 - [Feature Exploration](http://docs.neurodata.io/synaptome-stats/Code/FeatureExploration.html)
 - [Marker Exploration](http://docs.neurodata.io/synaptome-stats/Code/MarkerExploration.html)
 - Synapse Exploration
-  --[Lin F0] (http://docs.neurodata.io/synaptome-stats/Code/SynapseExploration.html)
-  --[Log F0] (http://docs.neurodata.io/synaptome-stats/Code/SynapseExplorationLogF0.html)
-  --[Lin F1] (http://docs.neurodata.io/synaptome-stats/Code/SynapseExplorationF1.html)
-  --[Log F1] (http://docs.neurodata.io/synaptome-stats/Code/SynapseExplorationLogF1.html)
+    - [Lin F0](http://docs.neurodata.io/synaptome-stats/Code/SynapseExploration.html)
+    - [Log F0](http://docs.neurodata.io/synaptome-stats/Code/SynapseExplorationLogF0.html)
+    - [Lin F1](http://docs.neurodata.io/synaptome-stats/Code/SynapseExplorationF1.html)
+    - [Log F1](http://docs.neurodata.io/synaptome-stats/Code/SynapseExplorationLogF1.html)
 
 --- 
 
