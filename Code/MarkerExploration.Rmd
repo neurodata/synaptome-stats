@@ -24,6 +24,7 @@ require(rmarkdown)
 rm(list=ls()); 
 system.time(rmarkdown::render(grep("MarkerExploration.Rmd", dir(), value=TRUE)))
 system('open MarkerExploration.html')
+system('say -r 200 Your R-script has completed')
 ```
 ```{r setup,include=FALSE,results='asis'}
 ### Library calls here.
@@ -182,9 +183,11 @@ f <- lapply(1:6,function(x){seq(x,ncol(feat),by=nfeat)})
 featF <- lapply(f,function(x){subset(feat,select=x)})
 
 featF0 <- featF[[1]]
-f01e3 <- 1e3*data.table(apply(X=featF0,2,function(x){((x-min(x))/(max(x)-min(x)))}))
+f01e3 <- lapply(featF,function(x){
+                  1e3*data.table(apply(X=x,2,function(y){((y-min(y))/(max(y)-min(y)))}))
+                   })
 
-fs <- f01e3
+fs <- f01e3[[1]]
 
 ### Taking log_10 on data + 1.
 log1f <- log10(featF0 + 1)
@@ -204,6 +207,7 @@ We now have the following data sets:
 ## Correlation Matrix of markers 
 
 ```{r cc_corRawF0,w=7,h=14, eval=TRUE,fig.cap=fig$cap("corr","Correlation on untransformed F0 data, reordered by synapse type.")}
+#corrf <- lapply(lapply(f01e3, cor), function(x) x[ford, ford])
 corrf <- lapply(lapply(featF, cor), function(x) x[ford, ford])
 
 titles <- paste('Correlation Matrix of', paste0("F", 0:5))
@@ -292,7 +296,7 @@ for(i in 1:length(mdcor)){
 The `X`'s in the above right figure denote a p-value greater than 0.01.
 
 
-## Scatterplots 
+## PCA Scatterplots 
 
 We will run PCA on the untransformed correlation matrix so the data can be 
 viewed in 2-dimensions.  The colors correspond to synapse type.
@@ -306,11 +310,13 @@ for(i in 1:length(pcaL)) {
 }
 ```
 
-
-```{r cc_3dCorr,echo=FALSE, eval=FALSE, fig.cap=fig$cap("rgl1","PCA 1-3 on untransformed correlation matrix")}
-pca <- pca1$x
-rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol3[ford], size=1)
+### PCA on cor(F0)
+```{r cc_3dCorr,echo=TRUE, eval=TRUE, fig.cap=fig$cap("rgl1","PCA 1-3 on untransformed correlation matrix")}
+pca <- pcaL[[1]]$x
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol3[ford], size=1,
+            xlab = "PC1", ylab = "PC2", zlab = "PC3")
 rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(rownames(pca)), col=ccol3[ford], adj=c(0,2))
+title3d(main = "PCA on cor(F0)")
 subid <- currentSubscene3d()
 rglwidget(elementId="rgl-pca1",width=720,height=720)
 ```
