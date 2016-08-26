@@ -23,6 +23,7 @@ require(rmarkdown)
 rm(list=ls()); 
 rmarkdown::render(grep("^SynapseExploration.Rmd", dir(), value=TRUE))
 system('open SynapseExploration.html')
+system('say -r 200 Your R-script has completed')
 ```
 
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE}
@@ -156,8 +157,10 @@ ford <- order(fchannel)
 
 
 ## Setting up colors for channel types
-Syncol <- c("#197300","#5ed155","#660000","#cc0000","#ff9933","mediumblue","gold")
+Syncol <-  c("#197300","#5ed155","#660000","#cc0000","#ff9933","#0000cd","#ffd700")
+Syncol3 <- c("#197300","#197300","#cc0000","#cc0000","#0000cd","#0000cd","#0000cd")
 ccol <- Syncol[fchannel]
+ccol3 <- Syncol3[fchannel]
 
 exType <- factor(c(rep("ex",11),rep("in",6),rep("other",7)),ordered=TRUE)
 exCol<-exType;levels(exCol) <- c("#197300","#990000","mediumblue");
@@ -333,6 +336,35 @@ clusters.  Also note that the correlations between (`gad, VGAT, PV,
 Gephyr`) and `VGlut1` at both times change significantly between
 clusters.
 
+Next we compute PCA for the within cluster correlation matrices and
+embed in 3d.
+
+### PCA of the within cluster correlation matrices at level 1.
+```{r cc-pca1,h=7,w=7,fig.cap=fig$cap("pairs1","PCA of untransformed correlation matrix")}
+pcaL <- lapply(list(corkp1, corkp2), prcomp, center=TRUE, scale=TRUE)
+```
+
+#### PCA C1 Lv1
+```{r cc_3dCorr1,echo=TRUE, eval=TRUE, fig.cap=fig$cap("rgl1","PCA 1-3 on untransformed correlation matrix")}
+pca <- pcaL[[1]]$x
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol3[ford], size=1,
+            xlab = "PC1", ylab = "PC2", zlab = "PC3")
+rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(rownames(pca)), col=ccol3[ford], adj=c(0,2))
+title3d(main = "Cluster 1: Lv 1")
+subid <- currentSubscene3d()
+rglwidget(elementId="rgl-pca1",width=720,height=720)
+```
+
+#### PCA C1 Lv1
+```{r cc_3dCorr2,echo=TRUE, eval=TRUE, fig.cap=fig$cap("rgl2","PCA 1-3 on untransformed correlation matrix")}
+pca <- pcaL[[2]]$x
+rgl::plot3d(pca[,1],pca[,2],pca[,3],type='s',col=ccol3[ford], size=1,
+            xlab = "PC1", ylab = "PC2", zlab = "PC3")
+rgl::rgl.texts(pca[,1],pca[,2],pca[,3],abbreviate(rownames(pca)), col=ccol3[ford], adj=c(0,2))
+title3d(main = "Cluster 2: Lv 1")
+subid <- currentSubscene3d()
+rglwidget(elementId="rgl-pca2",width=720,height=720)
+```
 
 ## Clusters and Spatial Location (Lv 1)
 Using the location data and the results of K-means++ we show a 3d scatter
