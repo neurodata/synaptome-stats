@@ -29,6 +29,7 @@ system('say -r 200 Your R-script has completed')
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE}
 ### Library calls here.
 require(Matrix)
+require(MASS)
 require(colorRamps)
 require(RColorBrewer)
 require(hexbin)
@@ -47,7 +48,7 @@ require(mclust)
 require(doMC)
 require(rgl)
 require(rglwidget)
-
+require(deldir)
 source("./bic.r")
 source("./clusterFraction.r")
 source("./kmpp.r")
@@ -254,6 +255,51 @@ cmatfs <- cor(fs)[ford, ford]
 corrplot(cmatfs,method="color",tl.col=ccol[ford], tl.cex=1)
 ```
 
+### PCA of the within cluster correlation matrices at level 0.
+```{r cc-pca0}
+pcaL0 <- prcomp(cmatfs, center=TRUE, scale=TRUE)
+```
+
+#### PCA Lv0
+```{r cc_3dCorr0,echo=TRUE, eval=TRUE, fig.cap=fig$cap("rgl0","PCA 1-3 on untransformed correlation matrix")}
+pca0 <- data.frame(pcaL0$x)
+rgl::plot3d(pca0[,1],pca0[,2],pca0[,3],type='s',col=ccol3[ford], size=1,
+            xlab = "PC1", ylab = "PC2", zlab = "PC3")
+rgl::rgl.texts(pca0[,1],pca0[,2],pca0[,3],abbreviate(rownames(pca0)), col=ccol3[ford], adj=c(0,2))
+title3d(main = "Lv 0")
+subid <- currentSubscene3d()
+rglwidget(elementId="rgl-pca0",width=720,height=720)
+```
+
+### LDA on Lv 0
+
+Using LDA with re-substitution to create a voronoi diagram for Lv 0.
+```{r cc-lda0}
+tr <- factor(exType, ordered = FALSE)
+lda.fit0 <- lda(tr ~ ., data = pca0[, 1:10])
+lda.pred0 <- predict(lda.fit0)
+
+table(lda.pred0$class == tr)
+
+titlesvor <- paste("LDA decision boundaries for", paste0("F", 0:5))
+voronoidf <- data.frame(lda.fit0$means)
+#voronoidf <- data.frame(x=lda.fit$means[,1],y=lda.fit$means[,2])
+
+#This creates the voronoi line segments
+
+plot(pca0[,1:2], col=ccol3[ford], pch=20, cex=1.5)
+text(pca0[,1:2], labels=rownames(pca0), 
+     pos=ifelse(pca0[,1]<max(pca0[,1] -0.5),4,2), 
+     col=ccol3[ford], cex=1.2)
+
+deldir(x = voronoidf[,1],y = voronoidf[,2], 
+       rw = c(-15,15,-15,15), 
+       plotit=TRUE, add=TRUE, wl='te')
+text(voronoidf[,1:2], labels=rownames(voronoidf), cex=1.25, pos=1)
+```
+
+
+
 
 # Level 1: K-means++ for $K=2$. 
 We run a Hierachical K-means++ for $K=2$ on the `fs` data with 4 levels.
@@ -342,6 +388,7 @@ embed in 3d.
 ### PCA of the within cluster correlation matrices at level 1.
 ```{r cc-pca1,h=7,w=7,fig.cap=fig$cap("pairs1","PCA of untransformed correlation matrix")}
 pcaL <- lapply(list(corkp1, corkp2), prcomp, center=TRUE, scale=TRUE)
+elB <- lapply(pcaL, function(x) {getElbows(x$sdev, plot=FALSE)})
 ```
 
 #### PCA C1 Lv1
@@ -365,6 +412,37 @@ title3d(main = "Cluster 2: Lv 1")
 subid <- currentSubscene3d()
 rglwidget(elementId="rgl-pca2",width=720,height=720)
 ```
+
+### LDA on Lv1
+
+```{r cc-voronoi1Lv1,h=8,w=12,fig.cap=fig$cap("voronoiLv1","Voronoi diagrams on class means from LDA on PCA of untransformed correlation matrices")}
+lda.fit <- 
+  lapply(list(pcaL[[1]]$x[,1:elB[[1]][2]],
+              pcaL[[2]]$x[,1:elB[[2]][2]]),
+                function(y) {
+                  lda(tr ~ ., data = as.data.frame(y))
+                })
+
+titlesvor <- paste("LDA decision boundaries for", paste0("C", 1:2))
+voronoidf <- lapply(lapply(lda.fit, '[[', 3), data.frame)
+
+#This creates the voronoi line segments
+
+par(mfrow = c(1,2))
+for(i in 1:length(pcaL)){
+  plot(pcaL[[i]]$x[,1:2], col=ccol3[ford], pch=20, cex=1.5)
+  title(titlesvor[i])
+  text(pcaL[[i]]$x[,1:2], labels=rownames(pcaL[[i]]$x), 
+       pos=ifelse(pcaL[[i]]$x[,1]<max(pcaL[[i]]$x[,1] -0.5),4,2), 
+       col=ccol3[ford], cex=1.2)
+
+  deldir(x = voronoidf[[i]][,1],y = voronoidf[[i]][,2], rw = c(-15,15,-15,15), 
+       plotit=TRUE, add=TRUE, wl='te')
+  text(voronoidf[[i]], labels=rownames(voronoidf[[i]]), cex=1.5, pos=1)
+}
+```
+
+
 
 ## Clusters and Spatial Location (Lv 1)
 Using the location data and the results of K-means++ we show a 3d scatter
@@ -481,6 +559,46 @@ corrplot(difCor2122, method="color", tl.col=ccol[ford],
                                 "darkorange"))(100))
 title("Difference(3,4)")
 ```
+
+
+## PCA of the within cluster correlation matrices at level 2.
+```{r cc-pca1lv2,h=7,w=7,fig.cap=fig$cap("pairsLV2","PCA of untransformed correlation matrix")}
+pcaL <- lapply(corLV2, prcomp, center=TRUE, scale=TRUE)
+elB <- lapply(pcaL, function(x) {getElbows(x$sdev, plot=FALSE)})
+pcaLel2 <- mapply(function(x,y){ x$x[,1:y[2]] }, pcaL, elB)
+```
+
+## LDA on Lv 2
+
+```{r cc-voronoiLv2,h=10,w=12,fig.cap=fig$cap("voronoiLv2","Voronoi diagrams on class means from LDA on PCA of untransformed correlation matrices")}
+lda.fit <- 
+  lapply(pcaLel2, 
+         function(y) {
+                  lda(tr ~ ., data = as.data.frame(y))
+                })
+
+titlesvor <- paste("LDA decision boundaries for", paste0("C", 1:4))
+voronoidf <- lapply(lapply(lda.fit, '[[', 3), data.frame)
+
+#This creates the voronoi line segments
+
+par(mfrow = c(2,2))
+for(i in 1:length(pcaL)){
+  plot(pcaL[[i]]$x[,1:2], col=ccol3[ford], pch=20, cex=1.5)
+  title(titlesvor[i])
+  text(pcaL[[i]]$x[,1:2], labels=rownames(pcaL[[i]]$x), 
+       pos=ifelse(pcaL[[i]]$x[,1]<max(pcaL[[i]]$x[,1] -0.5),4,2), 
+       col=ccol3[ford], cex=1.2)
+
+  deldir(x = voronoidf[[i]][,1],y = voronoidf[[i]][,2], rw = c(-15,15,-15,15), 
+       plotit=TRUE, add=TRUE, wl='te')
+  text(voronoidf[[i]], labels=rownames(voronoidf[[i]]), cex=1.5, pos=1)
+}
+```
+
+
+
+
 
 ## Clusters and Spatial Location (Lv 2)
 Using the location data and the results of K-means++ we show a 3d scatter
@@ -634,6 +752,44 @@ corrplot(difCor4,method="color",tl.col=ccol[ford], tl.cex=0.8,
                                 "darkorange"))(50))
 title('Difference(7,8)')
 ```
+
+
+## PCA of the within cluster correlation matrices at level 3.
+```{r cc-pca1lv3}
+pcaL <- lapply(corLV3, prcomp, center=TRUE, scale=TRUE)
+elB <- lapply(pcaL, function(x) {getElbows(x$sdev, plot=FALSE)})
+pcaLel3 <- mapply(function(x,y){ x$x[,1:y[2]] }, pcaL, elB)
+```
+
+## LDA on Lv 3
+
+```{r cc-voronoiLv3,h=18,w=12,fig.cap=fig$cap("voronoiLv3","Voronoi diagrams on class means from LDA on PCA of untransformed correlation matrices")}
+lda.fit <- 
+  lapply(pcaLel3, 
+         function(y) {
+                  lda(tr ~ ., data = as.data.frame(y))
+                })
+
+titlesvor <- paste("LDA decision boundaries for", paste0("C", 1:8))
+voronoidf <- lapply(lapply(lda.fit, '[[', 3), data.frame)
+
+#This creates the voronoi line segments
+
+par(mfrow = c(4,2))
+for(i in 1:length(pcaL)){
+  plot(pcaL[[i]]$x[,1:2], col=ccol3[ford], pch=20, cex=1.5)
+  title(titlesvor[i])
+  text(pcaL[[i]]$x[,1:2], labels=rownames(pcaL[[i]]$x), 
+       pos=ifelse(pcaL[[i]]$x[,1]<max(pcaL[[i]]$x[,1] -0.5),4,2), 
+       col=ccol3[ford], cex=1.2)
+
+  deldir(x = voronoidf[[i]][,1],y = voronoidf[[i]][,2], rw = c(-15,15,-15,15), 
+       plotit=TRUE, add=TRUE, wl='te')
+  text(voronoidf[[i]], labels=rownames(voronoidf[[i]]), cex=1.5, pos=1)
+}
+```
+
+
 ## Clusters and Spatial Location (Lv 3)
 Using the location data and the results of K-means++ we show a 3d scatter
 plot colored according to cluster.

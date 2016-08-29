@@ -5,7 +5,7 @@
 #' k: The number of clusters desired. \code{k < nrows(x)}
 #' 
 #'
-#' REFERNCE:
+#' REFERENCE:
 #' Arthur, David and Vassilvitskii, Sergei k-means++: The Advantages of Careful Seeding
 #'
 
