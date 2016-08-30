@@ -279,27 +279,58 @@ tr <- factor(exType, ordered = FALSE)
 lda.fit0 <- lda(tr ~ ., data = pca0[, 1:10])
 lda.pred0 <- predict(lda.fit0)
 
-table(lda.pred0$class == tr)
-
 titlesvor <- paste("LDA decision boundaries for", paste0("F", 0:5))
 voronoidf <- data.frame(lda.fit0$means)
 #voronoidf <- data.frame(x=lda.fit$means[,1],y=lda.fit$means[,2])
 
 #This creates the voronoi line segments
 
-plot(pca0[,1:2], col=ccol3[ford], pch=20, cex=1.5)
+plot(pca0[,1:2], col=ccol3[ford], pch=20, cex=1.5, xlim =
+     c(min(pca0[,1:2]) -3, 5))
 text(pca0[,1:2], labels=rownames(pca0), 
-     pos=ifelse(pca0[,1]<max(pca0[,1] -0.5),4,2), 
+     pos=ifelse(exType %in% c('ex', 'in'), 2, 4), 
      col=ccol3[ford], cex=1.2)
 
 deldir(x = voronoidf[,1],y = voronoidf[,2], 
        rw = c(-15,15,-15,15), 
        plotit=TRUE, add=TRUE, wl='te')
-text(voronoidf[,1:2], labels=rownames(voronoidf), cex=1.25, pos=1)
+text(voronoidf[,1:2], labels=rownames(voronoidf), cex=1.25, pos=2)
 ```
 
 
+### Mean-difference space projections
 
+Staring from the correlation matrix `cmatfs` we compute the class means;
+$v_1 = column\_mean($Excitatory$)$, 
+$v_2 = column\_mean($Inhibatory$)$,
+$v_3 = column\_mean($Other$)$.
+
+We then compute $r_1 = v_1 - v_2$ and $r_2 = v_1 - v_3$.
+
+We then multiply $[cmatfs] \cdot [r_1 |\, r_2]$.
+The transformed points are then plotted below.
+
+```{r cc-msp}
+exMat <- cmatfs[exType == 'ex',]
+inMat <- cmatfs[exType == 'in',]
+otMat <- cmatfs[exType == 'other',]
+
+mEx <- apply(exMat, 2, mean)
+mIn <- apply(inMat, 2, mean)
+mOt <- apply(otMat, 2, mean)
+
+mXI <- mEx - mIn
+mXO <- mEx - mOt
+
+rotM <- data.frame(XI = mXI, XO = mXO)
+
+mdm <- cmatfs %*% as.matrix(rotM)
+```
+
+```{r p-mdp, fig.cap=fig$cap("mdp", "Mean-difference projections")}
+plot(mdm, col = ccol3[ford], pch = 20, cex=3, type = 'n')
+text(mdm, labels=rownames(mdm), col=ccol3[ford], cex = 0.75)
+```
 
 # Level 1: K-means++ for $K=2$. 
 We run a Hierachical K-means++ for $K=2$ on the `fs` data with 4 levels.
