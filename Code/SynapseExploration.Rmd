@@ -329,8 +329,16 @@ mdm <- cmatfs %*% as.matrix(rotM)
 
 ```{r p-mdp, fig.cap=fig$cap("mdp", "Mean-difference projections")}
 plot(mdm, col = ccol3[ford], pch = 20, cex=3, type = 'n')
+abline(h = 0, v = 0)
 text(mdm, labels=rownames(mdm), col=ccol3[ford], cex = 0.75)
+
+lm.fit <- lm(mdm[,2] ~ mdm[,1])
+abline(a = lm.fit$coefficients[1], b = lm.fit$coefficients[2], col =
+       'darkorange', lty=2)
+legend(list(x= -1.5,y=1.6), legend = c('regression line'), col = 'darkorange', lty=2)
+title("Mean-difference projections of markers")
 ```
+
 
 # Level 1: K-means++ for $K=2$. 
 We run a Hierachical K-means++ for $K=2$ on the `fs` data with 4 levels.
