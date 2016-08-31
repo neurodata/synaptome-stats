@@ -324,19 +324,78 @@ mXO <- mEx - mOt
 
 rotM <- data.frame(XI = mXI, XO = mXO)
 
-mdm <- cmatfs %*% as.matrix(rotM)
+mdm2 <- data.frame(cmatfs %*% as.matrix(rotM))
+mdm1 <- data.frame(XI = mdm2[,1], row.names=rownames(mdm2))
 ```
 
-```{r p-mdp, fig.cap=fig$cap("mdp", "Mean-difference projections")}
-plot(mdm, col = ccol3[ford], pch = 20, cex=3, type = 'n')
+```{r p-mdp2, results='hold', w=7,h=7,fig.cap=fig$cap("mdp2", "Mean-difference projections 2d")}
+plot(mdm2, col = ccol3[ford], pch = 20, cex=1)
 abline(h = 0, v = 0)
-text(mdm, labels=rownames(mdm), col=ccol3[ford], cex = 0.75)
+text(mdm2, labels=rownames(mdm2), col=ccol3[ford], cex = 0.75, pos=1)
 
-lm.fit <- lm(mdm[,2] ~ mdm[,1])
-abline(a = lm.fit$coefficients[1], b = lm.fit$coefficients[2], col =
-       'darkorange', lty=2)
+
+lm.fit <- lm(mdm2[,2] ~ mdm2[,1])
+rL <- list(a = lm.fit$coefficients[1],
+          b = lm.fit$coefficients[2])
+L1 <- function(x){ rL$a + rL$b * x }
+
+summary(lm.fit)
+
+abline(rL$a,rL$b, col = 'darkorange', lty=2)
+text(-0.1,L1(0.1) , labels=expression(L[1]), col='darkorange', cex = 1) 
+
 legend(list(x= -1.5,y=1.6), legend = c('regression line'), col = 'darkorange', lty=2)
 title("Mean-difference projections of markers")
+```
+
+
+The following is the projection onto $r_1$. 
+
+```{r p-mdp1, w=7,h=3,fig.cap=fig$cap("mdp1", "Mean-difference projections 1d")}
+set.seed(2^13)
+print(ggplot(mdm1, aes(x = XI, y = 0, label=rownames(mdm1))) +
+  geom_point(color = ccol3[ford]) + 
+  geom_text(color = ccol3[ford], check_overlap=TRUE,
+            position='jitter'))
+```
+
+We will now project the individual synapse points onto the  
+line $L_1$ by first projecting into the mean-difference
+space then projecting onto $L_1$ followed by a rotation into
+$\mathbb{R}$.
+
+```{r cc-synProj21, eval=FALSE}
+mfs <- as.matrix(fs)
+r <- as.matrix(mdm1)
+projR1 <- mfs %*% r
+
+plot(density(projR1))
+
+if(FALSE){
+data.frame(projR1) %>% ggvis(x = ~XI) %>%
+    layer_densities(
+      adjust = input_slider(.1, 2, value = 1, step = .1, label = "Bandwidth adjustment"),
+      kernel = input_select(
+        c("Gaussian" = "gaussian",
+          "Epanechnikov" = "epanechnikov",
+          "Rectangular" = "rectangular",
+          "Triangular" = "triangular",
+          "Biweight" = "biweight",
+          "Cosine" = "cosine",
+          "Optcosine" = "optcosine"),
+        label = "Kernel")
+    )
+}
+```
+
+```{r cc-svdRSV,eval=TRUE,w=6,h=6,fig.cap=fig$cap("svdRSV", "Heatmap of 1:2 right singular vectors of 'fs' data ordered by projection on L_1." )}
+newFord <- order(mdm2$XI)
+svdfs <- svd(as.matrix(fs)[,newFord])
+
+rightSV <- data.frame(t(svdfs$v[,1:2]))
+colnames(rightSV) <- rownames(mdm2[order(mdm2$XI),])
+
+heatmap.2(as.matrix(rightSV),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol3[ford][newFord],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="r. singular vectors of 'fs' data") 
 ```
 
 
