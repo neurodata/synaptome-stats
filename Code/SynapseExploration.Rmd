@@ -392,10 +392,10 @@ title("Mean-difference projections of markers")
 The following is the projection onto $r_1$. 
 
 ```{r p-mdp1, w=7,h=3,fig.cap=fig$cap("mdp1", "Mean-difference projections 1d")}
-set.seed(2^13)
+set.seed(2^8)
 print(ggplot(mdm1, aes(x = XI, y = 0, label=rownames(mdm1))) +
   geom_point(color = ccol3[ford]) + 
-  geom_text(color = ccol3[ford], check_overlap=TRUE,
+  geom_text(color = ccol3[ford], check_overlap=FALSE,
             position='jitter'))
 ```
 
@@ -429,6 +429,11 @@ data.frame(projR1) %>% ggvis(x = ~XI) %>%
 }
 ```
 
+```{r cc-BIC}
+
+
+```
+
 ```{r cc-svdRSV,eval=TRUE,w=6,h=6,fig.cap=fig$cap("svdRSV", "Heatmap of 1:2 right singular vectors of 'fs' data ordered by projection on L_1." )}
 svdfs <- svd(as.matrix(fs)[,newFord])
 
@@ -437,7 +442,6 @@ colnames(rightSV) <- rownames(mdm2[order(mdm2$XI),])
 
 heatmap.2(as.matrix(rightSV),dendrogram='row',Colv=NA,trace="none", col=mycol,colCol=ccol3[ford][newFord],cexRow=0.8, keysize=1.25,symkey=FALSE,symbreaks=FALSE,scale="none", srtCol=90,main="r. singular vectors of 'fs' data") 
 ```
-
 
 # Level 1: K-means++ for $K=2$. 
 We run a Hierachical K-means++ for $K=2$ on the `fs` data with 4 levels.
