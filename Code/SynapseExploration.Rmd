@@ -311,13 +311,13 @@ We then multiply $[cmatfs] \cdot [r_1 |\, r_2]$.
 The transformed points are then plotted below.
 
 ```{r cc-msp}
-exMat <- cmatfs[exType == 'ex',] -> v1
-inMat <- cmatfs[exType == 'in',] -> v2
-otMat <- cmatfs[exType == 'other',] -> v3
+exMat <- cmatfs[exType == 'ex',] -> g1
+inMat <- cmatfs[exType == 'in',] -> g2
+otMat <- cmatfs[exType == 'other',] -> g3
 
-mEx <- apply(exMat, 2, mean)
-mIn <- apply(inMat, 2, mean)
-mOt <- apply(otMat, 2, mean)
+mEx <- apply(exMat, 2, mean) -> v1   
+mIn <- apply(inMat, 2, mean) -> v2 
+mOt <- apply(otMat, 2, mean) -> v3 
 
 mXI <- mEx - mIn
 mXO <- mEx - mOt
@@ -330,30 +330,60 @@ mdm1 <- data.frame(XI = mdm2[,1], row.names=rownames(mdm2))
 newFord <- order(mdm2$XI)
 ```
 
+```{r cc-heatG123,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatg123", "Heatmaps of groups Ex, In, Ot" )}
+heatmap.2(as.matrix(g1[, newFord]),dendrogram='none',
+          Colv=NA,trace="none", 
+          col=mycol,colCol=ccol3[ford][newFord],
+          cexRow=0.8, keysize=1.25,
+          symkey=FALSE,symbreaks=FALSE,
+          scale="none", srtCol=90,
+          main="Excitatory") 
+
+heatmap.2(as.matrix(g2[, newFord]),dendrogram='none',
+          Colv=NA,trace="none", 
+          col=mycol,colCol=ccol3[ford][newFord],
+          cexRow=0.8, keysize=1.25,
+          symkey=FALSE,symbreaks=FALSE,
+          scale="none", srtCol=90,
+          main="Inhibatory") 
+
+heatmap.2(as.matrix(g3[, newFord]),dendrogram='none',
+          Colv=NA,trace="none", 
+          col=mycol,colCol=ccol3[ford][newFord],
+          cexRow=0.8, keysize=1.25,
+          symkey=FALSE,symbreaks=FALSE,
+          scale="none", srtCol=90,
+          main="Other") 
+```
+
 ```{r cc-heatV123,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatV123", "Heatmaps of v1, v2, v3" )}
-heatmap.2(as.matrix(v1[, newFord]),dendrogram='none',
+tmp <- t(cbind(v1, v1))[, newFord]
+heatmap.2(as.matrix(tmp),dendrogram='none',
           Colv=NA,trace="none", 
           col=mycol,colCol=ccol3[ford][newFord],
           cexRow=0.8, keysize=1.25,
           symkey=FALSE,symbreaks=FALSE,
-          scale="none", srtCol=90,
-          main="V1") 
+          scale="none", srtCol=90, labRow='',
+          main="v1 = Mean Excitatory") 
 
-heatmap.2(as.matrix(v2[, newFord]),dendrogram='none',
+tmp <- t(cbind(v2, v2))[, newFord]
+heatmap.2(as.matrix(tmp),dendrogram='none',
           Colv=NA,trace="none", 
           col=mycol,colCol=ccol3[ford][newFord],
           cexRow=0.8, keysize=1.25,
           symkey=FALSE,symbreaks=FALSE,
-          scale="none", srtCol=90,
-          main="V2") 
+          scale="none", srtCol=90, labRow='',
+          main="v2 = Mean Inhibatory") 
 
-heatmap.2(as.matrix(v3[, newFord]),dendrogram='none',
+tmp <- t(cbind(v3, v3))[, newFord]
+heatmap.2(as.matrix(tmp),dendrogram='none',
           Colv=NA,trace="none", 
           col=mycol,colCol=ccol3[ford][newFord],
           cexRow=0.8, keysize=1.25,
           symkey=FALSE,symbreaks=FALSE,
-          scale="none", srtCol=90,
-          main="V3") 
+          scale="none", srtCol=90, labRow='',
+          main="v3 = Mean Other") 
+rm(tmp)
 ```
 
 ```{r cc-heatR1R2, eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatR1R2", "Heatmap of r1 and r2." )}
@@ -429,9 +459,22 @@ data.frame(projR1) %>% ggvis(x = ~XI) %>%
 }
 ```
 
-```{r cc-BIC}
+```{r cc-BIC, eval=FALSE, echo=FALSE}
+#bic on mdm1
+    n <- nrow(mdm1)
+    d <- ncol(mdm1)
+    G <- 2
+    emDat <- cbind(mdm1, type=as.numeric(exType))
+    emEst <- me(modelName = 'V', data=as.matrix(emDat[, -2]), unmap(emDat[,2]))
 
+    names(emEst)
+    args(bic)
+    do.call('bic', emEst)
 
+    B <- foreach(i = 1:25, .combine='c') %do% {
+      bic(modelName="V", loglik=emEst$loglik, n=n, d=d, G=i)
+    }
+    plot(B, type = 'b')
 ```
 
 ```{r cc-svdRSV,eval=TRUE,w=6,h=6,fig.cap=fig$cap("svdRSV", "Heatmap of 1:2 right singular vectors of 'fs' data ordered by projection on L_1." )}
