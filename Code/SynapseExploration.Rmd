@@ -311,9 +311,9 @@ We then multiply $[cmatfs] \cdot [r_1 |\, r_2]$.
 The transformed points are then plotted below.
 
 ```{r cc-msp}
-exMat <- cmatfs[exType == 'ex',]
-inMat <- cmatfs[exType == 'in',]
-otMat <- cmatfs[exType == 'other',]
+exMat <- cmatfs[exType == 'ex',] -> v1
+inMat <- cmatfs[exType == 'in',] -> v2
+otMat <- cmatfs[exType == 'other',] -> v3
 
 mEx <- apply(exMat, 2, mean)
 mIn <- apply(inMat, 2, mean)
@@ -322,11 +322,51 @@ mOt <- apply(otMat, 2, mean)
 mXI <- mEx - mIn
 mXO <- mEx - mOt
 
-rotM <- data.frame(XI = mXI, XO = mXO)
+rotM <- data.frame(XI = mXI, XO = mXO) -> r1r2
+colnames(r1r2) <- c("r1", "r2")
 
 mdm2 <- data.frame(cmatfs %*% as.matrix(rotM))
 mdm1 <- data.frame(XI = mdm2[,1], row.names=rownames(mdm2))
+newFord <- order(mdm2$XI)
 ```
+
+```{r cc-heatV123,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatV123", "Heatmaps of v1, v2, v3" )}
+heatmap.2(as.matrix(v1[, newFord]),dendrogram='none',
+          Colv=NA,trace="none", 
+          col=mycol,colCol=ccol3[ford][newFord],
+          cexRow=0.8, keysize=1.25,
+          symkey=FALSE,symbreaks=FALSE,
+          scale="none", srtCol=90,
+          main="V1") 
+
+heatmap.2(as.matrix(v2[, newFord]),dendrogram='none',
+          Colv=NA,trace="none", 
+          col=mycol,colCol=ccol3[ford][newFord],
+          cexRow=0.8, keysize=1.25,
+          symkey=FALSE,symbreaks=FALSE,
+          scale="none", srtCol=90,
+          main="V2") 
+
+heatmap.2(as.matrix(v3[, newFord]),dendrogram='none',
+          Colv=NA,trace="none", 
+          col=mycol,colCol=ccol3[ford][newFord],
+          cexRow=0.8, keysize=1.25,
+          symkey=FALSE,symbreaks=FALSE,
+          scale="none", srtCol=90,
+          main="V3") 
+```
+
+```{r cc-heatR1R2, eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatR1R2", "Heatmap of r1 and r2." )}
+heatmap.2(as.matrix(t(r1r2)[, newFord]),dendrogram='none',
+          Colv=NA,trace="none", 
+          col=mycol,colCol=ccol3[ford][newFord],
+          cexRow=0.8, keysize=1.25,
+          symkey=FALSE,symbreaks=FALSE,
+          scale="none", srtCol=90,
+          main="r1r2") 
+```
+
+
 
 ```{r p-mdp2, results='hold', w=7,h=7,fig.cap=fig$cap("mdp2", "Mean-difference projections 2d")}
 plot(mdm2, col = ccol3[ford], pch = 20, cex=1)
@@ -372,6 +412,7 @@ projR1 <- mfs %*% r
 plot(density(projR1))
 
 if(FALSE){
+require(ggvis)
 data.frame(projR1) %>% ggvis(x = ~XI) %>%
     layer_densities(
       adjust = input_slider(.1, 2, value = 1, step = .1, label = "Bandwidth adjustment"),
@@ -389,7 +430,6 @@ data.frame(projR1) %>% ggvis(x = ~XI) %>%
 ```
 
 ```{r cc-svdRSV,eval=TRUE,w=6,h=6,fig.cap=fig$cap("svdRSV", "Heatmap of 1:2 right singular vectors of 'fs' data ordered by projection on L_1." )}
-newFord <- order(mdm2$XI)
 svdfs <- svd(as.matrix(fs)[,newFord])
 
 rightSV <- data.frame(t(svdfs$v[,1:2]))
