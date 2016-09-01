@@ -65,7 +65,7 @@ library(knitr)
 knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
 dep_auto() # figure out dependencies automatically
 opts_chunk$set(cache=FALSE, echo=TRUE, 
-               warning=FALSE, message=FALSE, 
+               warning=FALSE, message=FALSE, fig.show='hold',
                comment="#", fig.path='../Figures/SynapseExploration_figure/',
                dpi=227,dev=c('png','pdf'))
 
@@ -184,9 +184,25 @@ f01e3 <- 1e3*data.table(apply(X=featF0, 2, function(x){((x-min(x))/(max(x)-min(x
 fs <- f01e3
 ```
 
-We now have the following data sets:
+# Definition of Markers
 
-- `featF0`: The feature vector looking only at the integrated brightness features.
+From email correspondance with Kristina Micheva we have the following
+definitions of the given markers and their corresponding class colors used
+throughout this document. 
+
+> On Feb 8, 2016, at 2:00 PM, Kristina Micheva <kmicheva@stanford.edu> wrote:
+
+* <FONT COLOR=#197300>_Excitatory presynaptic: 'Synap', 'Synap', 'VGlut1', 'VGlut1', 'VGlut2'_</FONT>,
+* <FONT COLOR=#5ed155>_Excitatory postsynaptic: 'psd', 'glur2', 'nmdar1', 'nr2b', 'NOS', 'Synapo'_</FONT> (but further away than PSD, gluR2, nmdar1 and nr2b)
+* <FONT COLOR=#660000>_Inhibitory presynaptic: 'gad', 'VGAT', 'PV'_</FONT>,
+* <FONT COLOR=#ff3333>_Inhibitory postsynaptic: 'Gephyr', 'GABAR1', 'GABABR', 'NOS'_</FONT>,
+* <FONT COLOR=#ff9933>_At a very small number of inhibitory: 'Vglut3' (presynaptic), 'CR1'(presynaptic)_</FONT>,
+* <FONT COLOR="mediumblue">_Other synapses:'5HT1A', 'TH', 'VACht'_</FONT>,
+* <FONT COLOR="gold">_Not at synapses: 'tubuli', 'DAPI'_</FONT>.
+
+
+We will be using the data scaled to $[0,1000]$ for this exploration. 
+
 - `fs`:  The feature vector scaled between $[0,1000]$.
 
 # Level 0 
@@ -207,14 +223,12 @@ The following are heatmaps generated from clustering
 via K-means++ (at level 1)
 
 
-```{r cc-kmpp-heatmapSortedLV0,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the cluster means vs channels. Rows and columns are rearranged according to synapse type.")}
+```{r cc-kmpp-heatmapSortedLV0,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the marker means. Columns are rearranged according to synapse type.")}
 heatmap.2(as.matrix(aggp),dendrogram='none',Colv=NA,trace="none", 
           col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,
           symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.", 
           labRow = "") 
 ```
-
-Percentage of data within cluster is presented on the right side of the heatmap.
 
 
 ## Jittered scatter plot: Lv 0
@@ -332,7 +346,7 @@ newFord <- order(mdm2$XI)
 
 ### Within Group Heatmaps
 
-```{r cc-heatG123,eval=TRUE, results='hold',w=6,h=6,fig.cap=fig$cap("heatg123", "Heatmaps of groups Ex, In, Ot" )}
+```{r cc-heatG123,eval=TRUE, fig.show='hold',w=6,h=6,fig.cap=fig$cap("heatg123", "Heatmaps of groups Ex, In, Ot" )}
 heatmap.2(as.matrix(g1[, newFord]),dendrogram='none',
           Colv=NA,trace="none", 
           col=mycol,colCol=ccol3[ford][newFord],
@@ -360,7 +374,7 @@ heatmap.2(as.matrix(g3[, newFord]),dendrogram='none',
 
 ### Group Mean Heatmaps
 
-```{r cc-heatV123,eval=TRUE, results='hold',w=6,h=4,fig.cap=fig$cap("heatV123", "Heatmaps of v1, v2, v3" )}
+```{r cc-heatV123,eval=TRUE, fig.show='hold',w=6,h=4,fig.cap=fig$cap("heatV123", "Heatmaps of v1, v2, v3" )}
 tmp <- t(cbind(v1, v1))[, newFord]
 heatmap.2(as.matrix(tmp),dendrogram='none',
           Colv=NA,trace="none", key= FALSE,
