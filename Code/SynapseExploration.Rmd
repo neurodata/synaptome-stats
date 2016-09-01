@@ -274,7 +274,7 @@ rglwidget(elementId="rgl-pca0",width=720,height=720)
 ### LDA on Lv 0
 
 Using LDA with re-substitution to create a voronoi diagram for Lv 0.
-```{r cc-lda0}
+```{r cc-lda0, h = 7, w = 7, fig.cap=fig$cap("lda0", "LDA for 3 classes on Lv 0" )}
 tr <- factor(exType, ordered = FALSE)
 lda.fit0 <- lda(tr ~ ., data = pca0[, 1:10])
 lda.pred0 <- predict(lda.fit0)
@@ -298,7 +298,7 @@ text(voronoidf[,1:2], labels=rownames(voronoidf), cex=1.25, pos=2)
 ```
 
 
-### Mean-difference space projections
+## Mean-difference Explorations
 
 Staring from the correlation matrix `cmatfs` we compute the class means;
 $v_1 = column\_mean($Excitatory$)$, 
@@ -330,7 +330,9 @@ mdm1 <- data.frame(XI = mdm2[,1], row.names=rownames(mdm2))
 newFord <- order(mdm2$XI)
 ```
 
-```{r cc-heatG123,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatg123", "Heatmaps of groups Ex, In, Ot" )}
+### Within Group Heatmaps
+
+```{r cc-heatG123,eval=TRUE, results='hold',w=6,h=6,fig.cap=fig$cap("heatg123", "Heatmaps of groups Ex, In, Ot" )}
 heatmap.2(as.matrix(g1[, newFord]),dendrogram='none',
           Colv=NA,trace="none", 
           col=mycol,colCol=ccol3[ford][newFord],
@@ -356,10 +358,12 @@ heatmap.2(as.matrix(g3[, newFord]),dendrogram='none',
           main="Other") 
 ```
 
-```{r cc-heatV123,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatV123", "Heatmaps of v1, v2, v3" )}
+### Group Mean Heatmaps
+
+```{r cc-heatV123,eval=TRUE, results='hold',w=6,h=4,fig.cap=fig$cap("heatV123", "Heatmaps of v1, v2, v3" )}
 tmp <- t(cbind(v1, v1))[, newFord]
 heatmap.2(as.matrix(tmp),dendrogram='none',
-          Colv=NA,trace="none", 
+          Colv=NA,trace="none", key= FALSE,
           col=mycol,colCol=ccol3[ford][newFord],
           cexRow=0.8, keysize=1.25,
           symkey=FALSE,symbreaks=FALSE,
@@ -368,7 +372,7 @@ heatmap.2(as.matrix(tmp),dendrogram='none',
 
 tmp <- t(cbind(v2, v2))[, newFord]
 heatmap.2(as.matrix(tmp),dendrogram='none',
-          Colv=NA,trace="none", 
+          Colv=NA,trace="none", key = FALSE,
           col=mycol,colCol=ccol3[ford][newFord],
           cexRow=0.8, keysize=1.25,
           symkey=FALSE,symbreaks=FALSE,
@@ -377,7 +381,7 @@ heatmap.2(as.matrix(tmp),dendrogram='none',
 
 tmp <- t(cbind(v3, v3))[, newFord]
 heatmap.2(as.matrix(tmp),dendrogram='none',
-          Colv=NA,trace="none", 
+          Colv=NA,trace="none", key = FALSE,
           col=mycol,colCol=ccol3[ford][newFord],
           cexRow=0.8, keysize=1.25,
           symkey=FALSE,symbreaks=FALSE,
@@ -385,6 +389,8 @@ heatmap.2(as.matrix(tmp),dendrogram='none',
           main="v3 = Mean Other") 
 rm(tmp)
 ```
+
+### Mean Difference Vectors Heatmap
 
 ```{r cc-heatR1R2, eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatR1R2", "Heatmap of r1 and r2." )}
 heatmap.2(as.matrix(t(r1r2)[, newFord]),dendrogram='none',
@@ -396,7 +402,7 @@ heatmap.2(as.matrix(t(r1r2)[, newFord]),dendrogram='none',
           main="r1r2") 
 ```
 
-
+### Mean-difference Marker Projections
 
 ```{r p-mdp2, results='hold', w=7,h=7,fig.cap=fig$cap("mdp2", "Mean-difference projections 2d")}
 plot(mdm2, col = ccol3[ford], pch = 20, cex=1)
