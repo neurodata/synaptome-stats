@@ -117,7 +117,6 @@ The formatted source code for this file is
 And a [raw version here](https://raw.githubusercontent.com/neurodata/synaptome-stats/gh-pages/Code/SynapseExploration.Rmd).    
 Previous work by Youngser Park can be found [here](http://www.cis.jhu.edu/~parky/Synapse/synapse.html).  
 
-
 ```{r cc-data, eval=TRUE, echo=FALSE}
 featFull <- fread("../data/synapsinR_7thA.tif.Pivots.txt.2011Features.txt",
                   showProgress=FALSE)
@@ -406,14 +405,14 @@ rm(tmp)
 
 ### Mean Difference Vectors Heatmap
 
-```{r cc-heatR1R2, eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatR1R2", "Heatmap of r1 and r2." )}
+```{r cc-heatR1R2, eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatR1R2", "Heatmap of the mean difference vectors r1 and r2." )}
 heatmap.2(as.matrix(t(r1r2)[, newFord]),dendrogram='none',
           Colv=NA,trace="none", 
           col=mycol,colCol=ccol3[ford][newFord],
           cexRow=0.8, keysize=1.25,
           symkey=FALSE,symbreaks=FALSE,
           scale="none", srtCol=90,
-          main="r1r2") 
+          main="Mean difference vectors") 
 ```
 
 ### Mean-difference Marker Projections
@@ -479,17 +478,17 @@ data.frame(projR1) %>% ggvis(x = ~XI) %>%
 }
 ```
 
-```{r cc-BIC, eval=FALSE, echo=FALSE}
+```{r cc-BIC, eval=TRUE, echo=TRUE}
 #bic on mdm1
     n <- nrow(mdm1)
     d <- ncol(mdm1)
-    G <- 2
+    G <- 3
     emDat <- cbind(mdm1, type=as.numeric(exType))
     emEst <- me(modelName = 'V', data=as.matrix(emDat[, -2]), unmap(emDat[,2]))
 
-    names(emEst)
-    args(bic)
-    do.call('bic', emEst)
+    #names(emEst)
+    #args(bic)
+    #do.call('bic', emEst)
 
     B <- foreach(i = 1:25, .combine='c') %do% {
       bic(modelName="V", loglik=emEst$loglik, n=n, d=d, G=i)
