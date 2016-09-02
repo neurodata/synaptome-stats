@@ -241,12 +241,11 @@ L <- bhkmpp(dat,blevels=4)
 set.seed(1024)
 s2 <- sample(dim(dat)[1], 1e4)
 ggJdat <- data.table(cbind(stack(dat[s2]),L[s2]))
-ggJdat$ind <- as.factor(ggJdat$ind)
-levels(ggJdat$ind) <- names(dat)[ford]
+ggJdat$ind <- factor(ggJdat$ind, ordered=TRUE, levels=names(dat))
 
 ggJ0 <- 
   ggplot(data = ggJdat, aes(x = ind, y = values)) +
-  geom_point(alpha=0.75) + 
+  geom_point(alpha=0.25) + 
   geom_jitter(width = 1) + 
   geom_boxplot(alpha =0.35, outlier.color = 'NA') + 
   theme(axis.title.x = element_blank()) + 
