@@ -323,9 +323,10 @@ We then multiply $[cmatfs] \cdot [r_1 |\, r_2]$.
 The transformed points are then plotted below.
 
 ```{r cc-msp}
-exMat <- cmatfs[exType == 'ex',] -> g1
-inMat <- cmatfs[exType == 'in',] -> g2
-otMat <- cmatfs[exType == 'other',] -> g3
+tmp <- cmatfs; diag(tmp) <- 0
+exMat <- tmp[exType == 'ex',] -> g1
+inMat <- tmp[exType == 'in',] -> g2
+otMat <- tmp[exType == 'other',] -> g3
 
 mEx <- apply(exMat, 2, mean) -> v1   
 mIn <- apply(inMat, 2, mean) -> v2 
@@ -368,6 +369,7 @@ heatmap.2(as.matrix(g3[, newFord]),dendrogram='none',
           symkey=FALSE,symbreaks=FALSE,
           scale="none", srtCol=90,
           main="Other") 
+rm(tmp)
 ```
 
 ### Group Mean Heatmaps
