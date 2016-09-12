@@ -129,6 +129,7 @@ half1 <- sample(dim(featFull)[1],dim(featFull)[1]/2)
 half2 <- setdiff(1:dim(featFull)[1],half1)
 
 feat <- featFull[half1,]
+feat2 <- featFull[half2,]
 loc <- locFull[half1,]
 
 ## Setting the channel names
@@ -167,27 +168,34 @@ exCol<-exType;levels(exCol) <- c("#197300","#990000","mediumblue");
 exCol <- as.character(exCol)
 
 fname <- as.vector(sapply(channel,function(x) paste0(x,paste0("F",0:5))))
-names(feat) <- fname
+names(feat) <- names(feat2) <- fname
 fcol <- rep(ccol, each=6)
-mycol <- colorpanel(100, "purple", "black", "green")
+#mycol <- colorpanel(100, "purple", "black", "green")
+mycol <- colorpanel(100, "black", "pink")
 mycol2 <- matlab.like(nchannel)
 ```
 
 ```{r cc-datatrans, eval=TRUE, echo=FALSE}
 f <- lapply(1:6,function(x){seq(x,ncol(feat),by=nfeat)})
+f2 <- lapply(1:6,function(x){seq(x,ncol(feat2),by=nfeat)})
 featF <- lapply(f,function(x){subset(feat,select=x)})
+featF2 <- lapply(f2,function(x){subset(feat2,select=x)})
 
 featF0 <- featF[[1]]
+featF02 <- featF2[[1]]
 f01e3 <- 1e3*data.table(apply(X=featF0, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
+f01e32 <- 1e3*data.table(apply(X=featF02, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
 
 fs <- f01e3
+fs2 <- f01e32
 ```
 
 # Definition of Markers
 
-From email correspondance with Kristina Micheva we have the following
+From email correspondence with Kristina Micheva we have the following
 definitions of the given markers and their corresponding class colors used
-throughout this document. 
+throughout this document. The abbreviations are presented as they were
+given. 
 
 > On Feb 8, 2016, at 2:00 PM, Kristina Micheva <kmicheva@stanford.edu> wrote:
 
@@ -199,6 +207,15 @@ throughout this document.
 * <FONT COLOR="mediumblue">_Other synapses:'5HT1A', 'TH', 'VACht'_</FONT>,
 * <FONT COLOR="gold">_Not at synapses: 'tubuli', 'DAPI'_</FONT>.
 
+Notes from correspondence :
+- `Synap` is listed twice, this is not a mistake as
+it was used twice with different antibodies -- I was not told which.
+- `VGlut1` is also listed twice.  It was measured at two different times
+  using the same antibody.
+- `NOS` is listed in two different categories and the analysis so far
+  does not allow that. It will be considered as **Excitatory
+  postsynaptic** from here on.
+
 
 We will be using the data scaled to $[0,1000]$ for this exploration. 
 
@@ -206,23 +223,29 @@ We will be using the data scaled to $[0,1000]$ for this exploration.
 
 # Level 0 
 
+Level 0 refers to the un-clustered data, that is all of the data lives
+in one cluster.
+
 ```{r cc-dat0,eval=TRUE,echo=TRUE}
 dat <- fs
+dat2 <- fs2
 ```
 
 ## Heat maps (Lv 0):
 
 ```{r cc_agg0, eval=TRUE}
-## Formatting data for heatmap
+## Formatting data for heatmap by taking the column means.
+## heatmap.2 requires at least two rows and columns. 
 aggp <- apply(dat, 2, mean)
 aggp <- t(cbind(aggp, aggp))[, ford]
 ```
 
-The following are heatmaps generated from clustering 
-via K-means++ (at level 1)
+The following is a heatmap showing the averages of the marker values
+over the entire dataset.  The reader should notice that the markers
+believed to be excitatory have higher means than do markersthe difference
+between groups of markers as compared with their believed classes.
 
-
-```{r cc-kmpp-heatmapSortedLV0,eval=TRUE,w=6,h=6,fig.cap=fig$cap("heatfs1", "Heatmap of the marker means. Columns are rearranged according to synapse type.")}
+```{r cc-kmpp-heatmapSortedLV0,eval=TRUE,w=6,h=5,fig.cap=fig$cap("heatfs1", "Heatmap of the marker means. Columns are rearranged according to synapse type.")}
 heatmap.2(as.matrix(aggp),dendrogram='none',Colv=NA,trace="none", 
           col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,
           symbreaks=FALSE,scale="none", srtCol=90,main="Heatmap of `fs` data.", 
@@ -277,11 +300,102 @@ pcaL0 <- prcomp(cmatfs, center=TRUE, scale=TRUE)
 pca0 <- data.frame(pcaL0$x)
 rgl::plot3d(pca0[,1],pca0[,2],pca0[,3],type='s',col=ccol3[ford], size=1,
             xlab = "PC1", ylab = "PC2", zlab = "PC3")
+abclines3d(0, 0, 0, a = diag(3), col = "gray")
 rgl::rgl.texts(pca0[,1],pca0[,2],pca0[,3],abbreviate(rownames(pca0)), col=ccol3[ford], adj=c(0,2))
 title3d(main = "Lv 0")
 subid <- currentSubscene3d()
 rglwidget(elementId="rgl-pca0",width=720,height=720)
 ```
+
+```{r cc-reg3d, eval=FALSE, echo=FALSE}
+(pcaOt <- pca0[exType == 'other', 1:3])
+
+names(pcaOt) <- letters[24:26]
+
+lm.fit3d <- lm(z ~ 1 + x + y, data = pcaOt)
+lm.fit3d <- lm(z ~ 0 + x + y, data = pcaOt)
+Z <- predict(lm.fit3d)
+
+(coefs <- coef(lm.fit3d))
+
+rgl::plot3d(pcaOt[,1],pcaOt[,2],pcaOt[,3],type='s',col='blue', size=1,
+            xlab = "PC1", ylab = "PC2", zlab = "PC3")
+rgl::plot3d(pca0[,1],pca0[,2],pca0[,3],type='s',col=ccol3[ford], size=1,
+            xlab = "PC1", ylab = "PC2", zlab = "PC3")
+
+a <- coefs["x"]
+b <- coefs["y"]
+c <- 1
+d <- coefs["(Intercept)"]
+nv <- as.numeric(c(-a,-b,1))
+
+D4 <- data.frame(pcaOt[,1:2], z = Z)
+rgl.clear()
+plot3d(D4, col='red', type = 's', size = 1, xlim= c(-5,5), ylim=c(-5,5), zlim=c(-5,5))
+plot3d(pcaOt, type = 's', add=TRUE, size = 1, col = 'green')
+
+## z = ax + by + d 
+## => -ax - by + 1z - d = 0
+#planes3d(-a,-b,1,0, col='red', alpha = 0.25)
+#planes3d(1,1,1,0, col='red', alpha = 0.25)
+
+
+
+r0 <- apply(pcaOt, 2, mean)
+tmp <- scale(pcaOt,center=TRUE, scale=FALSE)
+
+
+abclines3d(r0, a = svd(tmp)$v[,1])
+
+(pcaOt <- pca0[exType == 'other', 1:3])
+(pcaEx <- pca0[exType == 'ex', 1:3][-11,])
+(pcaIn <- pca0[exType == 'in', 1:3][-6,])
+
+colnames(pcaEx) <-
+colnames(pcaIn) <-
+colnames(pcaOt) <- c('x', 'y', 'z')
+
+ex0 <- apply(pcaEx,2, mean)
+in0 <- apply(pcaIn,2, mean)
+ot0 <- apply(pcaOt,2, mean)
+r0 <- apply(pca0, 2, mean)
+
+vEx <- svd(scale(pcaEx,center=FALSE,scale=FALSE))$v[,1]
+vIn <- svd(scale(pcaIn,center=FALSE,scale=FALSE))$v[,1]
+vOt <- svd(scale(pcaOt,center=FALSE,scale=FALSE))$v[,1]
+
+rgl.clear()
+
+rgl::plot3d(pca0[,1],pca0[,2],pca0[,3],type='s',col=ccol3[ford], size=1,
+            xlab = "PC1", ylab = "PC2", zlab = "PC3")
+abclines3d(c(0,0,0), a=diag(3))
+
+lmEx <- lm(z ~ 0 + x + y, data = pcaEx)
+lmIn <- lm(z ~ 0 + x + y, data = pcaIn)
+lmOt <- lm(z ~ 0 + x + y, data = pcaOt)
+
+cEx <- coef(lmEx)
+cIn <- coef(lmIn)
+cOt <- coef(lmOt)
+
+planes3d(a = -cEx[1], b = -cEx[2], c = 1, d = ex0[3], col='green', alpha=0.25)
+planes3d(a = -cIn[1], b = -cIn[2], c = 1, d = in0[3], col='red', alpha=0.25)
+planes3d(a = -cOt[1], b = -cOt[2], c = 1, d = ot0[3], col='blue', alpha=0.25)
+
+
+abclines3d(c(0,0,0), a = vEx, col='green',size = 3)
+abclines3d(c(0,0,0), a = vIn, col='red')
+abclines3d(c(0,0,0), a = vOt, col='blue')
+
+rgl::plot3d(pca0[,1],pca0[,2],pca0[,3],type='s',col=ccol3[ford], size=1,
+            xlab = "PC1", ylab = "PC2", zlab = "PC3")
+abclines3d(ex0, a = vEx, col='green',size = 3)
+abclines3d(in0, a = vIn, col='red')
+abclines3d(ot0, a = vOt, col='blue')
+
+
+```
+
 
 ### LDA on Lv 0
 
@@ -314,7 +428,7 @@ text(voronoidf[,1:2], labels=rownames(voronoidf), cex=1.25, pos=2)
 
 Staring from the correlation matrix `cmatfs` we compute the class means;
 $v_1 = column\_mean($Excitatory$)$, 
-$v_2 = column\_mean($Inhibatory$)$,
+$v_2 = column\_mean($Inhibitory$)$,
 $v_3 = column\_mean($Other$)$.
 
 We then compute $r_1 = v_1 - v_2$ and $r_2 = v_1 - v_3$.
@@ -391,7 +505,7 @@ heatmap.2(as.matrix(tmp),dendrogram='none',
           cexRow=0.8, keysize=1.25,
           symkey=FALSE,symbreaks=FALSE,
           scale="none", srtCol=90, labRow='',
-          main="v2 = Mean Inhibatory") 
+          main="v2 = Mean Inhibitory") 
 
 tmp <- t(cbind(v3, v3))[, newFord]
 heatmap.2(as.matrix(tmp),dendrogram='none',
@@ -648,10 +762,14 @@ for(i in 1:length(pcaL)){
 ```
 
 
-
 ## Clusters and Spatial Location (Lv 1)
-Using the location data and the results of K-means++ we show a 3d scatter
-plot colored accoding to cluster.
+We show a 3d scatter plot of the data according to spatial location
+colored according to cluster labels as determined by k-means++.
+
+The reader should notice from this figure that there does not 
+seem to be any correlation between the spatial information and cluster labels.
+
+
 
 ```{r cc-kpp3dLV1}
 set.seed(2^12)
@@ -670,6 +788,7 @@ plot3d(locs1$V1,locs1$V2,locs1$V3,
 subid <- currentSubscene3d()
 rglwidget(elementId="plot3dLocations", height=720, width=720)
 ```
+
 
 # Level 2: K-means++ for $K=2$.
 
@@ -1020,5 +1139,5 @@ rglwidget(elementId="plot3dLocationsLV3", height=720, width=720)
 
 
 <footer>
-<p> [Back to top][Introduction]</p>
+<p> [Back to top][Definition of Markers]</p>
 </footer>
