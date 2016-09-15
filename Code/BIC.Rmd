@@ -1,0 +1,193 @@
+---
+title: "BIC tests"
+author: "JLP"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 10
+    fig_width: 10
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+---
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+rm(list=ls()); 
+rmarkdown::render("BIC.Rmd")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE}
+### Library calls here.
+require(Matrix)
+require(colorRamps)
+require(RColorBrewer)
+require(hexbin)
+require(corrplot)
+require(gplots)
+require(dplyr)
+require(reshape2)
+require(ggplot2)
+require(gridExtra)
+require(lattice)
+require(parallel)
+require(data.table)
+require(fpc)
+require(repr)
+require(mclust)
+require(rgl)
+require(rglwidget)
+require(deldir)
+source("./bic.r")
+source("./clusterFraction.r")
+source("./kmpp.r")
+#source("./getElbows.r")
+source("http://www.cis.jhu.edu/~parky/Synapse/getElbows.R")
+#require(doMC)
+#registerDoMC(6)
+
+library(rmarkdown)
+library(knitr)
+```
+
+```{r cc-data, eval=TRUE, echo=FALSE}
+featFull <- fread("../data/synapsinR_7thA.tif.Pivots.txt.2011Features.txt",
+                  showProgress=FALSE)
+locFull <- fread("../data/synapsinR_7thA.tif.Pivots.txt",showProgress=FALSE)
+
+### Setting a seed and creating an index vector
+### to select half of the data
+set.seed(2^10)
+half1 <- sample(dim(featFull)[1],dim(featFull)[1]/2)
+half2 <- setdiff(1:dim(featFull)[1],half1)
+
+feat <- featFull[half1,]
+feat2 <- featFull[half2,]
+loc <- locFull[half1,]
+
+## Setting the channel names
+channel <- c('Synap_1','Synap_2','VGlut1_t1','VGlut1_t2','VGlut2','Vglut3',
+              'psd','glur2','nmdar1','nr2b','gad','VGAT',
+              'PV','Gephyr','GABAR1','GABABR','CR1','5HT1A',
+              'NOS','TH','VACht','Synapo','tubuli','DAPI')
+
+## Setting the channel types
+channel.type <- c('ex.pre','ex.pre','ex.pre','ex.pre','ex.pre','in.pre.small',
+                  'ex.post','ex.post','ex.post','ex.post','in.pre','in.pre',
+                  'in.pre','in.post','in.post','in.post','in.pre.small','other',
+                  'ex.post','other','other','ex.post','none','none')
+
+nchannel <- length(channel)
+nfeat <- ncol(feat) / nchannel
+
+## Createing factor variables for channel and channel type sorted properly
+ffchannel <- (factor(channel.type,
+    levels= c("ex.pre","ex.post","in.pre","in.post","in.pre.small","other","none")
+    ))
+fchannel <- as.numeric(factor(channel.type,
+    levels= c("ex.pre","ex.post","in.pre","in.post","in.pre.small","other","none")
+    ))
+ford <- order(fchannel)
+
+
+## Setting up colors for channel types
+Syncol <-  c("#197300","#5ed155","#660000","#cc0000","#ff9933","#0000cd","#ffd700")
+Syncol3 <- c("#197300","#197300","#cc0000","#cc0000","#0000cd","#0000cd","#0000cd")
+ccol <- Syncol[fchannel]
+ccol3 <- Syncol3[fchannel]
+
+exType <- factor(c(rep("ex",11),rep("in",6),rep("other",7)),ordered=TRUE)
+exCol<-exType;levels(exCol) <- c("#197300","#990000","mediumblue");
+exCol <- as.character(exCol)
+
+fname <- as.vector(sapply(channel,function(x) paste0(x,paste0("F",0:5))))
+names(feat) <- names(feat2) <- fname
+fcol <- rep(ccol, each=6)
+#mycol <- colorpanel(100, "purple", "black", "green")
+mycol <- colorpanel(100, "black", "pink")
+mycol2 <- matlab.like(nchannel)
+
+f <- lapply(1:6,function(x){seq(x,ncol(feat),by=nfeat)})
+f2 <- lapply(1:6,function(x){seq(x,ncol(feat2),by=nfeat)})
+featF <- lapply(f,function(x){subset(feat,select=x)})
+featF2 <- lapply(f2,function(x){subset(feat2,select=x)})
+
+featF0 <- featF[[1]]
+featF02 <- featF2[[1]]
+f01e3 <- 1e3*data.table(apply(X=featF0, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
+f01e32 <- 1e3*data.table(apply(X=featF02, 2, function(x){((x-min(x))/(max(x)-min(x)))}))
+
+fs <- f01e3
+fs2 <- f01e32
+
+dat <- fs
+dat2 <- fs2
+```
+
+We are working with the linearly scaled [0,1000] dataset on Feature 0
+(integrated brightness). 
+The dataset has been randomly split into two relatively equal halves. 
+We will be using the first half. 
+
+```{r cc-d1}
+set.seed(317)  ## Set seed for reproducibility 
+s1 <- sample(dim(dat)[1], 5e3)
+d1 <- dat[s1]
+```
+
+## Running MCLUST
+
+```{r cc-mclust}
+system.time(BIC <- mclustBIC(d1, G = 1:10))
+```
+
+```{r cc-bic}
+plot(BIC)
+title("BIC, all models, LIN F0")
+```
+
+
+## Exploring VVE
+
+
+```{r cc-vve}
+system.time({
+vve <- Mclust(data = d1, G = 1:4, modelNames='VVE')
+})
+```
+
+### Heat maps of cluster means
+```{r cc-heatVVE}
+vveMeans <- summary(vve, parameters = TRUE)$mean
+vveVar <- summary(vve, parameters = TRUE)$variance
+
+heatmap.2(as.matrix((vveMeans)),dendrogram='none',Colv=NA,trace="none", 
+          col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,
+          symbreaks=FALSE,scale="none") 
+
+heatmap.2(as.matrix(t(vveMeans))[,ford],dendrogram='none',Colv=NA,trace="none",
+          col=mycol,colCol=ccol[ford],cexRow=0.8, keysize=1.25,symkey=FALSE,
+          symbreaks=FALSE,scale="none", labRow = paste0("Cluster ",c(1:4)))
+```
+
+
+### Standardized Covariance matrices
+```{r cc-corr}
+par(mfrow=c(2,2))
+varN <- apply(vveVar, c(2,3), scale, center=TRUE, scale=TRUE)
+rownames(varN) <- colnames(varN)
+corrplot(as.matrix(varN[,,1][ford,ford]),is.corr=FALSE, tl.col=ccol[ford],
+         method = 'ellipse', main ="Cluster 1", mar=c(0,0,3,0))
+corrplot(as.matrix(varN[,,2])[ford,ford],is.corr=FALSE, tl.col=ccol[ford],
+         method = 'ellipse', main ="Cluster 2", mar=c(0,0,3,0))
+corrplot(as.matrix(varN[,,3])[ford,ford],is.corr=FALSE, tl.col=ccol[ford],
+         method = 'ellipse', main ="Cluster 3", mar=c(0,0,3,0))
+corrplot(as.matrix(varN[,,4])[ford,ford],is.corr=FALSE, tl.col=ccol[ford],
+         method = 'ellipse', main ="Cluster 4", mar=c(0,0,3,0))
+```
+
+
+
+
