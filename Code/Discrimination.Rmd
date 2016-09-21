@@ -1,5 +1,5 @@
 ---
-title: "Discrinimation tests"
+title: "Discrimination tests"
 author: "JLP"
 date: '`r Sys.Date()`'
 output:
@@ -12,11 +12,14 @@ output:
     theme: cerulean
     toc: yes
     toc_depth: 3
+    keep_md: yes
+  md_document:
+    variant: markdown_github
 ---
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 rm(list=ls()); 
-rmarkdown::render("Discrimination.Rmd")
+rmarkdown::render("Discrimination.Rmd", "all")
 system('open Discrimination.html')
 ```
 
