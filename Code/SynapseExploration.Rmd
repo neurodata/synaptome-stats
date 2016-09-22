@@ -264,7 +264,7 @@ L <- bhkmpp(dat,blevels=4)
 set.seed(1024)
 s2 <- sample(dim(dat)[1], 1e4)
 ggJdat <- data.table(cbind(stack(dat[s2]),L[s2]))
-ggJdat$ind <- factor(ggJdat$ind, ordered=TRUE, levels=names(dat))
+ggJdat$ind <- factor(ggJdat$ind, ordered=TRUE, levels=names(dat)[ford])
 
 ggJ0 <- 
   ggplot(data = ggJdat, aes(x = ind, y = values)) +
@@ -287,24 +287,30 @@ The above scatter plot is a random sample of the data points.
 
 ```{r cc_cor,w=5,h=5, eval=TRUE,fig.cap=fig$cap("cor","Correlation on untransformed F0 data, reordered by synapse type.")}
 cmatfs <- cor(fs)[ford, ford]
+cmatfs2 <- cor(fs2)[ford, ford]
 corrplot(cmatfs,method="color",tl.col=ccol[ford], tl.cex=1)
 ```
 
 ### PCA of the within cluster correlation matrices at level 0.
 ```{r cc-pca0}
 pcaL0 <- prcomp(cmatfs, center=TRUE, scale=TRUE)
+pcaL02 <- prcomp(cmatfs2, center=TRUE, scale=TRUE)
 ```
 
 #### PCA Lv0
 ```{r cc_3dCorr0,echo=TRUE, eval=TRUE, fig.cap=fig$cap("rgl0","PCA 1-3 on untransformed correlation matrix")}
 pca0 <- data.frame(pcaL0$x)
+pca02 <- data.frame(pcaL02$x)
 rgl::plot3d(pca0[,1],pca0[,2],pca0[,3],type='s',col=ccol3[ford], size=1,
             xlab = "PC1", ylab = "PC2", zlab = "PC3")
-abclines3d(0, 0, 0, a = diag(3), col = "gray")
 rgl::rgl.texts(pca0[,1],pca0[,2],pca0[,3],abbreviate(rownames(pca0)), col=ccol3[ford], adj=c(0,2))
 title3d(main = "Lv 0")
 subid <- currentSubscene3d()
 rglwidget(elementId="rgl-pca0",width=720,height=720)
+#rgl::plot3d(pca02[,1],pca02[,2],pca02[,3],type='s',col=ccol3[ford], size=1,
+#            xlab = "PC1", ylab = "PC2", zlab = "PC3")
+#abclines3d(0, 0, 0, a = diag(3), col = "gray")
+#rgl::rgl.texts(pca02[,1],pca02[,2],pca02[,3],abbreviate(rownames(pca02)), col=ccol3[ford], adj=c(0,2))
 ```
 
 ```{r cc-reg3d, eval=FALSE, echo=FALSE}
@@ -363,8 +369,6 @@ r0 <- apply(pca0, 2, mean)
 vEx <- svd(scale(pcaEx,center=FALSE,scale=FALSE))$v[,1]
 vIn <- svd(scale(pcaIn,center=FALSE,scale=FALSE))$v[,1]
 vOt <- svd(scale(pcaOt,center=FALSE,scale=FALSE))$v[,1]
-
-rgl.clear()
 
 rgl::plot3d(pca0[,1],pca0[,2],pca0[,3],type='s',col=ccol3[ford], size=1,
             xlab = "PC1", ylab = "PC2", zlab = "PC3")
