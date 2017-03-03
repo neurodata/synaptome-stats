@@ -105,7 +105,8 @@ Note the differences on the bottom levels:
 2. The differences in levels of Synap1, Synap2, CR1 are quite different. 
 
 
-```{r stability, echo = FALSE}
+```{r stability, echo = FALSE, include = FALSE}
+## Kristina15 data
 load('~/neurodata/synaptome-stats/Code/cleanDataWithAttributes.RData')
 set.seed(1234)
 ss <- sample(nrow(data01))
@@ -122,6 +123,32 @@ ccol3 <- c("#197300", "#197300", "#197300", "#197300", "#197300", "#197300",
   "#cc0000", "#cc0000", "#cc0000", "#cc0000", "#cc0000", "#0000cd", 
   "#0000cd", "#0000cd", "#0000cd", "#0000cd", "#0000cd", "#0000cd"
   )
+
+## Weiler data
+require(rhdf5)
+#rhdf5::h5ls("~/neurodata/synaptome-stats/Code/Notebooks/Ex10R55_F0.h5")
+datH5 <- rhdf5::h5read("~/neurodata/synaptome-stats/Code/Notebooks/Ex10R55_F0.h5",
+                       name = "F0")
+datW <- as.data.table(t(datH5[,,1]))
+namesEx <- read.csv("~/neurodata/synaptome-stats/Code/Python/chan.csv", head=FALSE, stringsAsFactors = FALSE)[,1]
+names(datW) <- as.vector(namesEx)
+
+d <- c(3,26,1,25, 27:29)
+d <- c(d,setdiff(1:29, d))
+datEx <- datW[,d, with = FALSE]
+
+ccolEx <- 
+  c("#197300", "#197300", "#197300", "#cc0000", "#cc0000", "#cc0000", 
+    "#cc0000", "#197300", "#0000cd", "#197300", "#197300", "#197300", 
+    "#0000cd", "#0000cd", "#197300", "#cc0000", "#cc0000", "#cc0000", 
+    "#197300", "#0000cd", "#197300", "#0000cd", "#0000cd", "#0000cd", 
+    "#0000cd", "#0000cd", "#0000cd", "#0000cd", "#0000cd")
+
+fac <- factor(ccolEx, levels = c("#197300", "#cc0000", "#0000cd"), 
+       ordered = TRUE)
+
+datEx <- as.data.table(datEx[, order(fac), with = FALSE])
+ccolEx <- ccolEx[order(fac)]
 ```
 
 ```{r hmc, fig.show = "hide", echo = FALSE, include = FALSE}
@@ -145,7 +172,33 @@ The cluster structure found in the Kristina15 dataset would seem to be
 more of what we would expect to see. This is less true of the Weiler
 dataset that we have explored thus far.  This could be due to the
 differences in synapse detection algorithm, or the datasets themselves. 
-We will explore this further. 
+We will explore this further.  Notice that the cluster splits in the 
+Weiler dataset tend to be dominated by DAPI and do not look nearly as
+interesting in terms of the feature categories as does the Kristina15
+dataset.
+
+```{r kvw, echo = FALSE, include = FALSE}
+set.seed(135)
+sk <- sample(nrow(data01))
+sk1 <- sk[1:1e4]
+
+set.seed(317)
+sw <- sample(nrow(datEx))
+sw1 <- sw[1:1e4]
+
+k1 <- scale(data01[sk1, 1:24, with = FALSE], center = TRUE, scale = FALSE)
+w1 <- scale(datEx[sw1,], center = TRUE, scale = FALSE)
+
+hk <- p.hmc(k1, modelNames = c("VVV"), maxDepth = 5, maxDim = 8)
+hw <- p.hmc(w1, modelNames = c("VVV"), maxDepth = 5, maxDim = 8)
+
+plk <- p.stackM(hk, maxDepth = 5, ccol = ccol3, centered = TRUE)
+plw <- p.stackM(hw, maxDepth = 5, ccol = ccolEx, centered = TRUE)
+```
+
+```{r kvwP, fig.width = 12, fig.height = 6, echo = FALSE}
+grid.arrange(plk + ggtitle("Kristina15"), plw  + ggtitle("Weiler"), ncol = 2)
+```
 
 --- 
 ---
