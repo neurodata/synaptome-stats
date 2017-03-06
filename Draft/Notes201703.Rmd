@@ -58,8 +58,10 @@ The first pass of BIC on K15 and W, respectively, appear below and both show tha
 <img src="http://docs.neurodata.io/meda/examples/Weiler/bic317_size10000/bicWRaw_Node.pdf" alt="WNode" style="width:350px;height:350px;" title = "W Node" type=application/pdf>
 
 Towards the bottom of the tree, where clusters are getting smaller "VVV"
-tends to suggest against splitting the data. This seems to justify our
-choice "VVV" for further use. 
+tends to suggest against splitting the data. Looking through the
+BIC plots for multiple explorations we also see that "VVV" is not very
+bad when compared to the other models.  
+These observations seem to justify our choice "VVV" for further use. 
 
 [K15](http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node222.pdf) &
 [W](http://docs.neurodata.io/meda/examples/Weiler/bic317_size10000/bicWRaw_Node222.pdf)  
