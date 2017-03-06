@@ -12,6 +12,9 @@ output:
     toc: yes
     toc_depth: 3
 ---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE)
+```
 
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
@@ -22,6 +25,8 @@ system("open Notes201703.html")
 
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
 ### Library calls here.
+require(rmarkdown)
+require(knitr)
 suppressMessages(require(meda))
 ```
 
@@ -106,25 +111,22 @@ When sampling points it seems that analysis on 10,000 points is more stable
 than analysis on 1,000 points. We have yet to come up with a way to
 quantify this objectively. This instability is demonstrated in the
 stacked level means plots below. Two different samples of size 1,000 were taken
-and out hierarchical GMM was performed on each. 
-Note the differences on the bottom levels:
-
-1. The number of clusters is different (4 on left, 3 on right).
-2. The differences in levels of Synap1, Synap2, CR1 are quite different. 
+and our hierarchical GMM was performed on each. 
 
 
 ```{r stability, echo = FALSE, include = FALSE}
 ## Kristina15 data
 load('~/neurodata/synaptome-stats/Code/cleanDataWithAttributes.RData')
-set.seed(1234)
+#set.seed(1234)
+set.seed(74171)
 ss <- sample(nrow(data01))
-s <- list(1:1e3, 1001:2000, 2001:3000, 3001:4000)
+s <- list(1:1e3, 1001:2000, 2001:12000, 12001:22000)
 
 data01 <- transformData(data01, "1e3")$d01e3
-dat1 <- scale(data01[ss[s[[1]]], 1:24, with = FALSE], center = TRUE, scale = FALSE)
-dat2 <- scale(data01[ss[s[[2]]], 1:24, with = FALSE], center = TRUE, scale = FALSE)
-dat3 <- scale(data01[ss[s[[3]]], 1:24, with = FALSE], center = TRUE, scale = FALSE)
-dat4 <- scale(data01[ss[s[[4]]], 1:24, with = FALSE], center = TRUE, scale = FALSE)
+datk1 <- scale(data01[ss[s[[1]]], 1:24, with = FALSE], center = TRUE, scale = FALSE)
+datk2 <- scale(data01[ss[s[[2]]], 1:24, with = FALSE], center = TRUE, scale = FALSE)
+datK3 <- scale(data01[ss[s[[3]]], 1:24, with = FALSE], center = TRUE, scale = FALSE)
+datK4 <- scale(data01[ss[s[[4]]], 1:24, with = FALSE], center = TRUE, scale = FALSE)
 
 ccol3 <- c("#197300", "#197300", "#197300", "#197300", "#197300", "#197300", 
   "#197300", "#197300", "#197300", "#197300", "#197300", "#cc0000", 
@@ -160,41 +162,23 @@ ccolEx <- ccolEx[order(fac)]
 ```
 
 ```{r hmc, fig.show = "hide", echo = FALSE, include = FALSE}
-hmc1 <- p.hmc(dat1, maxDim = 5, modelNames = c("VVV"))
-hmc2 <- p.hmc(dat2, maxDim = 5, modelNames = c("VVV"))
-hmc3 <- p.hmc(dat3, maxDim = 5, modelNames = c("VVV"))
-hmc4 <- p.hmc(dat4, maxDim = 5, modelNames = c("VVV"))
+hmck1 <- p.hmc(datk1, maxDim = 5, modelNames = c("VVV"))
+hmck2 <- p.hmc(datk2, maxDim = 5, modelNames = c("VVV"))
+hmcK3 <- p.hmc(datK3, maxDim = 5, modelNames = c("VVV"))
+hmcK4 <- p.hmc(datK4, maxDim = 5, modelNames = c("VVV"))
 ```
 
-```{r stack, echo = FALSE, fig.width = 12, fig.height = 5}
-p1 <- p.stackM(hmc1, centered = TRUE, ccol = ccol3, maxDepth = 4)
-p2 <- p.stackM(hmc2, centered = TRUE, ccol = ccol3)
-p3 <- p.stackM(hmc3, centered = TRUE, ccol = ccol3)
-p4 <- p.stackM(hmc4, centered = TRUE, ccol = ccol3)
-grid.arrange(p1,p3, ncol = 2)
-```
+```{r stack, echo = FALSE, fig.width = 12, fig.height = 10}
+p1 <- p.stackM(hmck1, centered = TRUE, ccol = ccol3, maxDepth = 5) + 
+  ggtitle("K15 with 1,000 sample points")
+p2 <- p.stackM(hmck2, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+  ggtitle("K15 with 1,000 sample points")
+p3 <- p.stackM(hmcK3, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+  ggtitle("K15 with 10,000 sample points")
+p4 <- p.stackM(hmcK4, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+  ggtitle("K15 with 10,000 sample points")
 
-```{r stab1e4, fig.show = 'hide', include = FALSE, echo = FALSE}
-set.seed(4321)
-sk <- sample(nrow(data01))
-sk0 <- sk[1:1e4]
-
-set.seed(21218)
-sw <- sample(nrow(datEx))
-sw0 <- sw[1:1e4]
-
-k0 <- as.data.table(scale(data01[sk0, 1:24, with = FALSE], center = TRUE, scale = FALSE))
-w0 <- as.data.table(scale(datEx[sw0,], center = TRUE, scale = FALSE))
-
-hmcLK <- p.hmc(k0, maxDim = 8, modelNames = c("VVV"))
-hmcLW <- p.hmc(w0, maxDim = 8, modelNames = c("VVV"))
-```
-
-Here is the same test, but with 10,000 sample points for each plot.
-```{r pstack1e4, echo = FALSE, fig.width = 12, fig.height = 5}
-p5 <- p.stackM(hmcLK, ccol = ccol3, centered = TRUE)
-p6 <- p.stackM(hmcLW, ccol = ccol3, centered = TRUE)
-grid.arrange(p5,p6, ncol = 2)
+grid.arrange(p1,p2,p3,p4, ncol = 2)
 ```
 
 
@@ -221,8 +205,8 @@ sw1 <- sw[1:1e4]
 k1 <- scale(data01[sk1, 1:24, with = FALSE], center = TRUE, scale = FALSE)
 w1 <- scale(datEx[sw1,], center = TRUE, scale = FALSE)
 
-hk <- p.hmc(k1, modelNames = c("VVV"), maxDepth = 5, maxDim = 8)
-hw <- p.hmc(w1, modelNames = c("VVV"), maxDepth = 5, maxDim = 8)
+hk <- p.hmc(k1, modelNames = c("VVV"), maxDepth = 7, maxDim = 8)
+hw <- p.hmc(w1, modelNames = c("VVV"), maxDepth = 7, maxDim = 8)
 
 plk <- p.stackM(hk, maxDepth = 5, ccol = ccol3, centered = TRUE)
 plw <- p.stackM(hw, maxDepth = 5, ccol = ccolEx, centered = TRUE)
