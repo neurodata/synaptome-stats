@@ -13,7 +13,7 @@ output:
     toc_depth: 3
 ---
 ```{r knitOPTS, include=FALSE}
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = TRUE, dev = "png")
 ```
 
 ```{r render, eval=FALSE, echo=FALSE}
@@ -54,8 +54,8 @@ After looking through the BIC plots of each of the 11 models for each
 node of the tree it seemed best to use the unconstrained model "VVV" =
 ellipsoidal, varying volume, shape, and orientation. 
 
-The first pass of BIC on K15 and W, respectively, appear below and both show that
-"VVV" is the best model when comparing for K = {1,2}
+The first pass of BIC on K15 and W with 10,000 sample points, respectively, appear below and both show that
+"VVV" is the best model when comparing for K = {1,2}.
 
 [K15](http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node.pdf) &
 [W](http://docs.neurodata.io/meda/examples/Weiler/bic317_size10000/bicWRaw_Node.pdf)  
@@ -159,28 +159,53 @@ fac <- factor(ccolEx, levels = c("#197300", "#cc0000", "#0000cd"),
 
 datEx <- as.data.table(datEx[, order(fac), with = FALSE])
 ccolEx <- ccolEx[order(fac)]
+
+set.seed(317)
+sww <- sample(nrow(datEx))
+swww <- list(1:1e3, 1001:2000, 2001:12000, 12001:22000)
+
+datEx <- transformData(datEx, "1e3")$d01e3
+datw1 <- scale(datEx[sww[swww[[1]]],], center = TRUE, scale = FALSE)
+datw2 <- scale(datEx[sww[swww[[2]]],], center = TRUE, scale = FALSE)
+datW3 <- scale(datEx[sww[swww[[3]]],], center = TRUE, scale = FALSE)
+datW4 <- scale(datEx[sww[swww[[4]]],], center = TRUE, scale = FALSE)
 ```
 
-```{r hmc, fig.show = "hide", echo = FALSE, include = FALSE}
+```{r hmc, fig.show = "hide", echo = FALSE, include = FALSE, cache = TRUE}
 hmck1 <- p.hmc(datk1, maxDim = 5, modelNames = c("VVV"))
 hmck2 <- p.hmc(datk2, maxDim = 5, modelNames = c("VVV"))
 hmcK3 <- p.hmc(datK3, maxDim = 5, modelNames = c("VVV"))
 hmcK4 <- p.hmc(datK4, maxDim = 5, modelNames = c("VVV"))
+
+hmcw1 <- p.hmc(datw1, maxDim = 5, modelNames = c("VVV"))
+hmcw2 <- p.hmc(datw2, maxDim = 5, modelNames = c("VVV"))
+hmcW3 <- p.hmc(datW3, maxDim = 5, modelNames = c("VVV"))
+hmcW4 <- p.hmc(datW4, maxDim = 5, modelNames = c("VVV"))
 ```
 
-```{r stack, echo = FALSE, fig.width = 12, fig.height = 10}
-p1 <- p.stackM(hmck1, centered = TRUE, ccol = ccol3, maxDepth = 5) + 
+```{r stack, echo = FALSE, cache = TRUE}
+pk1 <- p.stackM(hmck1, centered = TRUE, ccol = ccol3, maxDepth = 5) + 
   ggtitle("K15 with 1,000 sample points")
-p2 <- p.stackM(hmck2, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+pk2 <- p.stackM(hmck2, centered = TRUE, ccol = ccol3, maxDepth = 5) +
   ggtitle("K15 with 1,000 sample points")
-p3 <- p.stackM(hmcK3, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+pk3 <- p.stackM(hmcK3, centered = TRUE, ccol = ccol3, maxDepth = 5) +
   ggtitle("K15 with 10,000 sample points")
-p4 <- p.stackM(hmcK4, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+pk4 <- p.stackM(hmcK4, centered = TRUE, ccol = ccol3, maxDepth = 5) +
   ggtitle("K15 with 10,000 sample points")
 
-grid.arrange(p1,p2,p3,p4, ncol = 2)
+pw1 <- p.stackM(hmcw1, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+  ggtitle("W with 1,000 sample points")
+pw2 <- p.stackM(hmcw2, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+  ggtitle("W with 1,000 sample points")
+pw3 <- p.stackM(hmcW3, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+  ggtitle("W with 1,000 sample points")
+pw4 <- p.stackM(hmcW4, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+  ggtitle("W with 1,000 sample points")
 ```
 
+```{r stack8, echo = FALSE, fig.width = 12, fig.height = 10}
+grid.arrange(pk1,pk2,pk3,pk4, ncol = 2)
+```
 
 ## Kristina15 versus Weiler
 
