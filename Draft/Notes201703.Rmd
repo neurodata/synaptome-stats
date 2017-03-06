@@ -54,8 +54,8 @@ The first pass of BIC on K15 and W, respectively, appear below and both show tha
 
 [K15](http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node.pdf) &
 [W](http://docs.neurodata.io/meda/examples/Weiler/bic317_size10000/bicWRaw_Node.pdf)  
-<img src="http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node.pdf" alt="K15Node" style="width:350px;height:350px;" title = "K15 Node">
-<img src="http://docs.neurodata.io/meda/examples/Weiler/bic317_size10000/bicWRaw_Node.pdf" alt="WNode" style="width:350px;height:350px;" title = "W Node">
+<img src="http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node.pdf" alt="K15Node" style="width:350px;height:350px;" title = "K15 Node" type =application/pdf>
+<img src="http://docs.neurodata.io/meda/examples/Weiler/bic317_size10000/bicWRaw_Node.pdf" alt="WNode" style="width:350px;height:350px;" title = "W Node" type=application/pdf>
 
 Towards the bottom of the tree, where clusters are getting smaller "VVV"
 tends to suggest against splitting the data. This seems to justify our
@@ -63,12 +63,12 @@ choice "VVV" for further use.
 
 [K15](http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node222.pdf) &
 [W](http://docs.neurodata.io/meda/examples/Weiler/bic317_size10000/bicWRaw_Node222.pdf)  
-<img src="http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node222.pdf" alt="HTML5 Icon" style="width:350px;height:350px;" title = "K15 Node222">
-<img src="http://docs.neurodata.io/meda/examples/Weiler/bic317_size10000/bicWRaw_Node222.pdf" alt="HTML5 Icon" style="width:350px;height:350px;" title = "W Node222">
+<img src="http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node222.pdf" alt="HTML5 Icon" style="width:350px;height:350px;" title = "K15 Node222" type=application/pdf>
+<img src="http://docs.neurodata.io/meda/examples/Weiler/bic317_size10000/bicWRaw_Node222.pdf" alt="HTML5 Icon" style="width:350px;height:350px;" title = "W Node222" type=application/pdf>
 
 ## Scaling 
 
-We have looked at various transformations of the data: Raw, $log_10$, and
+We have looked at various transformations of the data: Raw, $log_{10}$, and
 scaling between 0 and 1000. Full lab notebooks can be found 
 [here](http://docs.neurodata.io/meda/) 
 
@@ -76,6 +76,11 @@ Below we have the clustering results from hierarchical GMM.  Each level is shown
 with the means of the features of each node given in color (purple -
 low, orange - high).
 Note that the 0-1000 results are the last in the triple of plots.
+
+Below are our stacked level mean plots which show for each level in the
+cluster tree (separated by black horizonal lines) the means accross each 
+of the features (low - purple, high - orange).  
+
 
 - [K15 Raw](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Raw_seed1234_size10000.png)
 - [K15 Log_10](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Log_seed1234_size10000.png)
@@ -89,7 +94,8 @@ Out of these three different methods of transforming the data we tend to
 prefer the [0-1000] scaling. Empirically it seems to capture —
 interestingly —
 the differences in the feature categories (Excitatory - green, Inhibatory - red, 
-Other - blue). 
+Other - blue). The $log_{10}$ transform fails to reveal any clusters
+that have significantly higher than average excitatory expression. 
 
 
 ## Stability:
@@ -165,6 +171,30 @@ p3 <- p.stackM(hmc3, centered = TRUE, ccol = ccol3)
 p4 <- p.stackM(hmc4, centered = TRUE, ccol = ccol3)
 grid.arrange(p1,p3, ncol = 2)
 ```
+
+```{r stab1e4, fig.show = 'hide', include = FALSE, echo = FALSE}
+set.seed(4321)
+sk <- sample(nrow(data01))
+sk0 <- sk[1:1e4]
+
+set.seed(21218)
+sw <- sample(nrow(datEx))
+sw0 <- sw[1:1e4]
+
+k0 <- as.data.table(scale(data01[sk0, 1:24, with = FALSE], center = TRUE, scale = FALSE))
+w0 <- as.data.table(scale(datEx[sw0,], center = TRUE, scale = FALSE))
+
+hmcLK <- p.hmc(k0, maxDim = 8, modelNames = c("VVV"))
+hmcLW <- p.hmc(w0, maxDim = 8, modelNames = c("VVV"))
+```
+
+Here is the same test, but with 10,000 sample points for each plot.
+```{r pstack1e4, echo = FALSE, fig.width = 12, fig.height = 5}
+p5 <- p.stackM(hmcLK, ccol = ccol3, centered = TRUE)
+p6 <- p.stackM(hmcLW, ccol = ccol3, centered = TRUE)
+grid.arrange(p5,p6, ncol = 2)
+```
+
 
 ## Kristina15 versus Weiler
 
