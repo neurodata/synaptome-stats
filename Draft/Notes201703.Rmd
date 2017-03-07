@@ -184,22 +184,22 @@ hmcW4 <- p.hmc(datW4, maxDim = 5, modelNames = c("VVV"))
 ```
 
 ```{r stack, echo = FALSE, cache = TRUE}
-pk1 <- p.stackM(hmck1, centered = TRUE, ccol = ccol3, maxDepth = 5) + 
+pk1 <- p.stackM(hmck1, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) + 
   ggtitle("K15 with 1,000 sample points")
-pk2 <- p.stackM(hmck2, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+pk2 <- p.stackM(hmck2, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("K15 with 1,000 sample points")
-pk3 <- p.stackM(hmcK3, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+pk3 <- p.stackM(hmcK3, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("K15 with 10,000 sample points")
-pk4 <- p.stackM(hmcK4, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+pk4 <- p.stackM(hmcK4, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("K15 with 10,000 sample points")
 
-pw1 <- p.stackM(hmcw1, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+pw1 <- p.stackM(hmcw1, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("W with 1,000 sample points")
-pw2 <- p.stackM(hmcw2, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+pw2 <- p.stackM(hmcw2, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("W with 1,000 sample points")
-pw3 <- p.stackM(hmcW3, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+pw3 <- p.stackM(hmcW3, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("W with 1,000 sample points")
-pw4 <- p.stackM(hmcW4, centered = TRUE, ccol = ccol3, maxDepth = 5) +
+pw4 <- p.stackM(hmcW4, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("W with 1,000 sample points")
 ```
 
