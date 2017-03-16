@@ -10,5 +10,5 @@
 #SBATCH --mail-user=jpatsol1@jhu.edu
 
 module load R
-Rscript t1.R $SLURM_ARRAY_TASK_ID
+Rscript runDiscriminability.R $SLURM_ARRAY_TASK_ID
 
