@@ -1,0 +1,76 @@
+---
+title: "Synaptograms"
+author: "Jesse L. Patsolic"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+rmarkdown::render("README.Rmd")
+system('open README.html')
+```
+
+The naming scheme corresponds to the clustering obtained 
+[here](http://docs.neurodata.io/meda/examples/K15_1e4/Raw/SynDataRaw.html#cluster-dendrogram)
+
+The synaptograms in this folder are 15x15x15 splayed out 
+horizontally in z.
+
+## Synaptograms
+
+| Cluster 111 | Cluster 1121 | Cluster 1122 | Cluster 12 | Cluster 211 | Cluster 212 | Cluster 221 | Cluster 222 | 
+|:-----------|:------------ |:------------ |:------------ |:------------ |:------------|:------------|:------------|
+| [C-111-syn-01](./Synaptograms_K15_Raw/C111syn01.png) | [C-1121-syn-01](./Synaptograms_K15_Raw/C1121syn01.png)| [C-1122-syn-01](./Synaptograms_K15_Raw/C1122syn01.png)| [C-12-syn-01](./Synaptograms_K15_Raw/C12syn01.png)| [C-211-syn-01](./Synaptograms_K15_Raw/C211syn01.png)| [C-212-syn-01](./Synaptograms_K15_Raw/C212syn01.png)| [C-221-syn-01](./Synaptograms_K15_Raw/C221syn01.png)| [C-222-syn-01](./Synaptograms_K15_Raw/C222syn01.png)|
+| [C-111-syn-02](./Synaptograms_K15_Raw/C111syn02.png) | [C-1121-syn-02](./Synaptograms_K15_Raw/C1121syn02.png)| [C-1122-syn-02](./Synaptograms_K15_Raw/C1122syn02.png)| [C-12-syn-02](./Synaptograms_K15_Raw/C12syn02.png)| [C-211-syn-02](./Synaptograms_K15_Raw/C211syn02.png)| [C-212-syn-02](./Synaptograms_K15_Raw/C212syn02.png)| [C-221-syn-02](./Synaptograms_K15_Raw/C221syn02.png)| [C-222-syn-02](./Synaptograms_K15_Raw/C222syn02.png)|
+| [C-111-syn-03](./Synaptograms_K15_Raw/C111syn03.png) | [C-1121-syn-03](./Synaptograms_K15_Raw/C1121syn03.png)| [C-1122-syn-03](./Synaptograms_K15_Raw/C1122syn03.png)| [C-12-syn-03](./Synaptograms_K15_Raw/C12syn03.png)| [C-211-syn-03](./Synaptograms_K15_Raw/C211syn03.png)| [C-212-syn-03](./Synaptograms_K15_Raw/C212syn03.png)| [C-221-syn-03](./Synaptograms_K15_Raw/C221syn03.png)| [C-222-syn-03](./Synaptograms_K15_Raw/C222syn03.png)|
+| [C-111-syn-04](./Synaptograms_K15_Raw/C111syn04.png) | [C-1121-syn-04](./Synaptograms_K15_Raw/C1121syn04.png)| [C-1122-syn-04](./Synaptograms_K15_Raw/C1122syn04.png)| [C-12-syn-04](./Synaptograms_K15_Raw/C12syn04.png)| [C-211-syn-04](./Synaptograms_K15_Raw/C211syn04.png)| [C-212-syn-04](./Synaptograms_K15_Raw/C212syn04.png)| [C-221-syn-04](./Synaptograms_K15_Raw/C221syn04.png)| [C-222-syn-04](./Synaptograms_K15_Raw/C222syn04.png)|
+| [C-111-syn-05](./Synaptograms_K15_Raw/C111syn05.png) | [C-1121-syn-05](./Synaptograms_K15_Raw/C1121syn05.png)| [C-1122-syn-05](./Synaptograms_K15_Raw/C1122syn05.png)| [C-12-syn-05](./Synaptograms_K15_Raw/C12syn05.png)| [C-211-syn-05](./Synaptograms_K15_Raw/C211syn05.png)| [C-212-syn-05](./Synaptograms_K15_Raw/C212syn05.png)| [C-221-syn-05](./Synaptograms_K15_Raw/C221syn05.png)| [C-222-syn-05](./Synaptograms_K15_Raw/C222syn05.png)|
+| [C-111-syn-06](./Synaptograms_K15_Raw/C111syn06.png) | [C-1121-syn-06](./Synaptograms_K15_Raw/C1121syn06.png)| [C-1122-syn-06](./Synaptograms_K15_Raw/C1122syn06.png)| [C-12-syn-06](./Synaptograms_K15_Raw/C12syn06.png)| [C-211-syn-06](./Synaptograms_K15_Raw/C211syn06.png)| [C-212-syn-06](./Synaptograms_K15_Raw/C212syn06.png)| [C-221-syn-06](./Synaptograms_K15_Raw/C221syn06.png)| [C-222-syn-06](./Synaptograms_K15_Raw/C222syn06.png)|
+| [C-111-syn-07](./Synaptograms_K15_Raw/C111syn07.png) | [C-1121-syn-07](./Synaptograms_K15_Raw/C1121syn07.png)| [C-1122-syn-07](./Synaptograms_K15_Raw/C1122syn07.png)| [C-12-syn-07](./Synaptograms_K15_Raw/C12syn07.png)| [C-211-syn-07](./Synaptograms_K15_Raw/C211syn07.png)| [C-212-syn-07](./Synaptograms_K15_Raw/C212syn07.png)| [C-221-syn-07](./Synaptograms_K15_Raw/C221syn07.png)| [C-222-syn-07](./Synaptograms_K15_Raw/C222syn07.png)|
+| [C-111-syn-08](./Synaptograms_K15_Raw/C111syn08.png) | [C-1121-syn-08](./Synaptograms_K15_Raw/C1121syn08.png)| [C-1122-syn-08](./Synaptograms_K15_Raw/C1122syn08.png)| [C-12-syn-08](./Synaptograms_K15_Raw/C12syn08.png)| [C-211-syn-08](./Synaptograms_K15_Raw/C211syn08.png)| [C-212-syn-08](./Synaptograms_K15_Raw/C212syn08.png)| [C-221-syn-08](./Synaptograms_K15_Raw/C221syn08.png)| [C-222-syn-08](./Synaptograms_K15_Raw/C222syn08.png)|
+| [C-111-syn-09](./Synaptograms_K15_Raw/C111syn09.png) | [C-1121-syn-09](./Synaptograms_K15_Raw/C1121syn09.png)| [C-1122-syn-09](./Synaptograms_K15_Raw/C1122syn09.png)| [C-12-syn-09](./Synaptograms_K15_Raw/C12syn09.png)| [C-211-syn-09](./Synaptograms_K15_Raw/C211syn09.png)| [C-212-syn-09](./Synaptograms_K15_Raw/C212syn09.png)| [C-221-syn-09](./Synaptograms_K15_Raw/C221syn09.png)| [C-222-syn-09](./Synaptograms_K15_Raw/C222syn09.png)|
+| [C-111-syn-10](./Synaptograms_K15_Raw/C111syn10.png) | [C-1121-syn-10](./Synaptograms_K15_Raw/C1121syn10.png)| [C-1122-syn-10](./Synaptograms_K15_Raw/C1122syn10.png)| [C-12-syn-10](./Synaptograms_K15_Raw/C12syn10.png)| [C-211-syn-10](./Synaptograms_K15_Raw/C211syn10.png)| [C-212-syn-10](./Synaptograms_K15_Raw/C212syn10.png)| [C-221-syn-10](./Synaptograms_K15_Raw/C221syn10.png)| [C-222-syn-10](./Synaptograms_K15_Raw/C222syn10.png)|
+
+## Dendrogram 
+
+![](dendRaw.png)
+
+## Order of channels from top to bottom
+<style type="text/css">
+.table {
+
+    width: 200px;
+
+}
+</style>
+
+|Channels |
+|:---------:|
+| CR1_2ndA |
+| GABABR1_3rdA |
+| GABARa1_4thA |
+| GAD_6thA |
+| GluR2_2ndA |
+| NMDAR1_6thA |
+| NOS_9thA |
+| NR2B_9thA |
+| PV_1stA |
+| Synpod_3rdA |
+| TH_5thA |
+| VAChT_4thA |
+| VGAT_5thA |
+| VGluT1_3rdA |
+| VGluT1_8thA |
+| VGluT2_2ndA |
+| VGluT3_1stA |
+| dapi_1stA |
+| gephyrin_1stA |
+| psd_8thA |
+| synapsinGP_5thA |
+| synapsinR_7thA |
+| tubulin_8thA |
+
+---
+
