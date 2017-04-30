@@ -6,8 +6,10 @@
 # Anish ran synapse detection on the chessboard dataset and has provided locations of potential synapses.
 # Here, we pull data from those locations and export it into a nice dataset for further analysis.
 
+# In[8]:
+
 import csv
-import ndio
+import ndio ### MUST HAVE VERSION 1.1.5
 import numpy as np
 import h5py
 import scipy.linalg
@@ -22,19 +24,30 @@ local = False
 TOKEN1 = (sys.argv[1])##"Ex10R55"
 INPUT = (sys.argv[2])
 NAME = (sys.argv[3])
-output = TOKEN1 + "_" + NAME + ".h5"
 
 bf = 5
 
+output = TOKEN1 + "_" + NAME + ".h5"
+
+
 # ### User defined functions
+
+# In[9]:
 
 execfile("functions.py")
 
 
+# In[10]:
+
 public_tokens = nd.get_public_tokens()
+
+
+# In[11]:
 
 TOKEN1 in public_tokens # Should *definitely* be true
 
+
+# In[12]:
 
 size = nd.get_image_size(TOKEN1)
 channels = nd.get_channels(TOKEN1)
@@ -45,6 +58,9 @@ zGlobal = [0,size[2]]
 
 globalMaxs = [size[0], size[1], size[2]]
 
+
+# In[13]:
+
 chan = []
 for key in channels:
     chan.append(key)
@@ -54,6 +70,8 @@ for key in channels:
 # Import the location data from "resultVol_1.csv" making sure that each location is not too 
 # close to the boundary of the data and round to nearest integer.
 # And that the points are far enough away from the boundary.
+
+# In[14]:
 
 loc = genfromtxt(INPUT, delimiter=',').tolist()
 
@@ -71,6 +89,8 @@ L = np.around(np.asarray(L1), decimals = 0).astype(int)
 # 
 # #### N.B. This does take a while
 
+# In[18]:
+
 cols = []
 for ch in chan:
     queryGlobal = {
@@ -85,7 +105,7 @@ for ch in chan:
             'resolution': 0
             }
     gg = nd.get_cutout(**queryGlobal)
-    print "got",ch
+    #print "got",ch
     
     OUT = []
     
@@ -96,16 +116,25 @@ for ch in chan:
         
     out = np.asarray(OUT)
     cols.append(out)
-    print "got F0 for",ch
+    #print "got F0 for",ch
     
-columnDat = np.transpose(np.asarray(cols))
-columnNames = chan
 
-## Save data to HDF5
+
+# In[48]:
+
+columnDat = np.transpose(np.asarray(cols))
+columnNames = np.string_(chan)
+
+
+# ## Save as HDF5
+
+# In[49]:
 
 h5fOUT = h5py.File(output, 'w')
-h5fOUT.create_dataset(TOKEN1, data=np.transpose(out))
+h5fOUT.create_dataset(TOKEN1, data=columnDat)
+h5fOUT.create_dataset('Locations', data=np.transpose(L))
+h5fOUT.close()
 
-print "output " + output
+print "saved " + output
 
 
