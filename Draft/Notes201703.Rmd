@@ -172,34 +172,34 @@ datW4 <- scale(datEx[sww[swww[[4]]],], center = TRUE, scale = FALSE)
 ```
 
 ```{r hmc, fig.show = "hide", echo = FALSE, include = FALSE, cache = TRUE}
-hmck1 <- p.hmc(datk1, maxDim = 5, modelNames = c("VVV"))
-hmck2 <- p.hmc(datk2, maxDim = 5, modelNames = c("VVV"))
-hmcK3 <- p.hmc(datK3, maxDim = 5, modelNames = c("VVV"))
-hmcK4 <- p.hmc(datK4, maxDim = 5, modelNames = c("VVV"))
+hmck1 <- hmc(datk1, maxDim = 5, modelNames = c("VVV"))
+hmck2 <- hmc(datk2, maxDim = 5, modelNames = c("VVV"))
+hmcK3 <- hmc(datK3, maxDim = 5, modelNames = c("VVV"))
+hmcK4 <- hmc(datK4, maxDim = 5, modelNames = c("VVV"))
 
-hmcw1 <- p.hmc(datw1, maxDim = 5, modelNames = c("VVV"))
-hmcw2 <- p.hmc(datw2, maxDim = 5, modelNames = c("VVV"))
-hmcW3 <- p.hmc(datW3, maxDim = 5, modelNames = c("VVV"))
-hmcW4 <- p.hmc(datW4, maxDim = 5, modelNames = c("VVV"))
+hmcw1 <- hmc(datw1, maxDim = 5, modelNames = c("VVV"))
+hmcw2 <- hmc(datw2, maxDim = 5, modelNames = c("VVV"))
+hmcW3 <- hmc(datW3, maxDim = 5, modelNames = c("VVV"))
+hmcW4 <- hmc(datW4, maxDim = 5, modelNames = c("VVV"))
 ```
 
 ```{r stack, echo = FALSE, cache = TRUE}
-pk1 <- p.stackM(hmck1, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) + 
+pk1 <- stackM(hmck1, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) + 
   ggtitle("K15 with 1,000 sample points")
-pk2 <- p.stackM(hmck2, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
+pk2 <- stackM(hmck2, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("K15 with 1,000 sample points")
-pk3 <- p.stackM(hmcK3, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
+pk3 <- stackM(hmcK3, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("K15 with 10,000 sample points")
-pk4 <- p.stackM(hmcK4, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
+pk4 <- stackM(hmcK4, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("K15 with 10,000 sample points")
 
-pw1 <- p.stackM(hmcw1, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
+pw1 <- stackM(hmcw1, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("W with 1,000 sample points")
-pw2 <- p.stackM(hmcw2, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
+pw2 <- stackM(hmcw2, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("W with 1,000 sample points")
-pw3 <- p.stackM(hmcW3, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
+pw3 <- stackM(hmcW3, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("W with 1,000 sample points")
-pw4 <- p.stackM(hmcW4, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
+pw4 <- stackM(hmcW4, centered = TRUE, ccol = ccol3, maxDepth = 5, depth = 5) +
   ggtitle("W with 1,000 sample points")
 ```
 
@@ -230,16 +230,50 @@ sw1 <- sw[1:1e4]
 k1 <- scale(data01[sk1, 1:24, with = FALSE], center = TRUE, scale = FALSE)
 w1 <- scale(datEx[sw1,], center = TRUE, scale = FALSE)
 
-hk <- p.hmc(k1, modelNames = c("VVV"), maxDepth = 7, maxDim = 8)
-hw <- p.hmc(w1, modelNames = c("VVV"), maxDepth = 7, maxDim = 8)
+hk <- hmc(k1, modelNames = c("VVV"), maxDepth = 7, maxDim = 8)
+hw <- hmc(w1, modelNames = c("VVV"), maxDepth = 7, maxDim = 8)
 
-plk <- p.stackM(hk, maxDepth = 5, ccol = ccol3, centered = TRUE)
-plw <- p.stackM(hw, maxDepth = 5, ccol = ccolEx, centered = TRUE)
+plk <- stackM(hk, maxDepth = 5, ccol = ccol3, centered = TRUE)
+plw <- stackM(hw, maxDepth = 5, ccol = ccolEx, centered = TRUE)
 ```
 
 ```{r kvwP, fig.width = 12, fig.height = 6, echo = FALSE}
 grid.arrange(plk + ggtitle("Kristina15"), plw  + ggtitle("Weiler"), ncol = 2)
 ```
+
+## More Weiler Datasets. 
+
+Stacked mean plots resulting from running hierarchcal GMM under the
+"EEE" model in mclust on more of the Weiler data can be found at the
+links below.
+
+[Ex12R75_resultVol_2](./Notes201703_WeilerStackMplots/Ex12R75_resultVol_2_rscale317samp5000_stackM.png)  
+[Ex12R75_resultVol_3](./Notes201703_WeilerStackMplots/Ex12R75_resultVol_3_rscale317samp5000_stackM.png)  
+[Ex12R75_resultVol_6](./Notes201703_WeilerStackMplots/Ex12R75_resultVol_6_rscale317samp5000_stackM.png)  
+[Ex12R75_resultVol_7](./Notes201703_WeilerStackMplots/Ex12R75_resultVol_7_rscale317samp5000_stackM.png)  
+[Ex12R75_resultVol_9](./Notes201703_WeilerStackMplots/Ex12R75_resultVol_9_rscale317samp5000_stackM.png)  
+[Ex12R76_resultVol_1](./Notes201703_WeilerStackMplots/Ex12R76_resultVol_1_rscale317samp5000_stackM.png)  
+[Ex12R76_resultVol_2](./Notes201703_WeilerStackMplots/Ex12R76_resultVol_2_rscale317samp5000_stackM.png)  
+[Ex13R51_resultVol_2](./Notes201703_WeilerStackMplots/Ex13R51_resultVol_2_rscale317samp5000_stackM.png)  
+[Ex13R51_resultVol_3](./Notes201703_WeilerStackMplots/Ex13R51_resultVol_3_rscale317samp5000_stackM.png)  
+[Ex13R51_resultVol_7](./Notes201703_WeilerStackMplots/Ex13R51_resultVol_7_rscale317samp5000_stackM.png)  
+[Ex13R51_resultVol_8](./Notes201703_WeilerStackMplots/Ex13R51_resultVol_8_rscale317samp5000_stackM.png)  
+[Ex2R18C1_resultVol_1](./Notes201703_WeilerStackMplots/Ex2R18C1_resultVol_1_rscale317samp5000_stackM.png)  
+[Ex2R18C1_resultVol_3](./Notes201703_WeilerStackMplots/Ex2R18C1_resultVol_3_rscale317samp5000_stackM.png)  
+[Ex2R18C1_resultVol_6](./Notes201703_WeilerStackMplots/Ex2R18C1_resultVol_6_rscale317samp5000_stackM.png)  
+[Ex2R18C1_resultVol_7](./Notes201703_WeilerStackMplots/Ex2R18C1_resultVol_7_rscale317samp5000_stackM.png)  
+[Ex2R18C2_resultVol_1](./Notes201703_WeilerStackMplots/Ex2R18C2_resultVol_1_rscale317samp5000_stackM.png)  
+[Ex2R18C2_resultVol_2](./Notes201703_WeilerStackMplots/Ex2R18C2_resultVol_2_rscale317samp5000_stackM.png)  
+[Ex2R18C2_resultVol_3](./Notes201703_WeilerStackMplots/Ex2R18C2_resultVol_3_rscale317samp5000_stackM.png)  
+[Ex2R18C2_resultVol_6](./Notes201703_WeilerStackMplots/Ex2R18C2_resultVol_6_rscale317samp5000_stackM.png)  
+[Ex2R18C2_resultVol_9](./Notes201703_WeilerStackMplots/Ex2R18C2_resultVol_9_rscale317samp5000_stackM.png)  
+[Ex3R43C1_resultVol_1](./Notes201703_WeilerStackMplots/Ex3R43C1_resultVol_1_rscale317samp5000_stackM.png)  
+[Ex3R43C1_resultVol_2](./Notes201703_WeilerStackMplots/Ex3R43C1_resultVol_2_rscale317samp5000_stackM.png)  
+[Ex3R43C1_resultVol_6](./Notes201703_WeilerStackMplots/Ex3R43C1_resultVol_6_rscale317samp5000_stackM.png)  
+[Ex3R43C1_resultVol_7](./Notes201703_WeilerStackMplots/Ex3R43C1_resultVol_7_rscale317samp5000_stackM.png)  
+[Ex3R43C1_resultVol_8](./Notes201703_WeilerStackMplots/Ex3R43C1_resultVol_8_rscale317samp5000_stackM.png)  
+[Ex3R43C1_resultVol_9](./Notes201703_WeilerStackMplots/Ex3R43C1_resultVol_9_rscale317samp5000_stackM.png)  
+
 
 --- 
 ---
