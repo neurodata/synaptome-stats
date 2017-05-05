@@ -8,9 +8,11 @@ require(gridExtra)
 require(foreach)
 
 fname <- "Ex12R75vol2_synaptograms11cubes3NN.h5"
+fname <- "~/Desktop/kristina15rscaled317samp5000_synaptograms11cubes3NN.h5"
 
 h5ls(fname) 
-ex12r75v2<- dat <- h5read(fname, name = "Ex12R75")
+#ex12r75v2<- dat <- h5read(fname, name = "Ex12R75")
+dat <- h5read(fname, name = "kristina15")
 datO <- dat
 loc <- h5read(fname, name = "Locations")
 cnames <- h5read(fname, name = "Channels")
@@ -22,7 +24,7 @@ type <- c("Inhibitory", "Other", "Other", "Other", "Other", "Other",
 "Excitatory", "Excitatory", "Inhibitory", "Excitatory", "Inhibitory"
 )
 
-ctype <- data.frame(cnames, type)
+ctype <- data.frame(cnames, type[c(1,1,1,1:21)])
 ord <- order(type)
 
 inpal <- colorpanel(255,"black", "red")

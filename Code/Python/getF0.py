@@ -22,8 +22,8 @@ nd = neurodata()
 local = False
 
 TOKEN1 = (sys.argv[1])##"Ex10R55"
-INPUT = (sys.argv[2])
-NAME = (sys.argv[3])
+INPUT = (sys.argv[2]) ##"../../data/Anish_csvfiles/XYZ/Ex10R55/result
+NAME = (sys.argv[3]) ##
 
 bf = 5
 
@@ -82,6 +82,9 @@ for i in range(len(loc)):
 
 L = np.around(np.asarray(L1), decimals = 0).astype(int)
 
+xLocal = [0, max(L[:,0]) + bf +1]
+yLocal = [0, max(L[:,1]) + bf +1] 
+zLocal = [0, max(L[:,2]) + bf +1] 
 
 # ## Extract 11x11x11 cube around each location 
 # ### 11x11x11 cube is used for features F0-F3, with the buffer needed for features F4-F5
@@ -96,12 +99,12 @@ for ch in chan:
     queryGlobal = {
             'token': TOKEN1,
             'channel': ch,
-            'x_start': xGlobal[0],
-            'x_stop': xGlobal[1],
-            'y_start': yGlobal[0],
-            'y_stop': yGlobal[1],
-            'z_start': zGlobal[0],
-            'z_stop': zGlobal[1],
+            'x_start': xLocal[0],
+            'x_stop': xLocal[1],
+            'y_start': yLocal[0],
+            'y_stop': yLocal[1],
+            'z_start': zLocal[0],
+            'z_stop': zLocal[1],
             'resolution': 0
             }
     gg = nd.get_cutout(**queryGlobal)
