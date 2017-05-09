@@ -1,19 +1,11 @@
----
-title: "Generate ndviz links for synapse detections"
-author: "Jesse Leigh Patsolic"
-output: 
-  html_document:
-    keep_md: true
----
-
-```{r render, eval=FALSE, echo=FALSE}
-require(rmarkdown)
-rmarkdown::render("genLinks.Rmd")
-system('open genLinks.html')
-```
+# Generate ndviz links for synapse detections
+Jesse Leigh Patsolic  
 
 
-```{r cc1}
+
+
+
+```r
 suppressPackageStartupMessages(require(rhdf5))
 suppressPackageStartupMessages(require(meda))
 
@@ -44,6 +36,21 @@ l <- mapply(function(x,y,z){
 
 #lapply(l, function(x){ system(paste("open ", x))})
 print(l)
+```
+
+```
+##  [1] "http://viz.neurodata.io/project/exqc/xy/0/604/65/13/"
+##  [2] "http://viz.neurodata.io/project/exqc/xy/0/602/73/13/"
+##  [3] "http://viz.neurodata.io/project/exqc/xy/0/560/59/13/"
+##  [4] "http://viz.neurodata.io/project/exqc/xy/0/664/59/13/"
+##  [5] "http://viz.neurodata.io/project/exqc/xy/0/600/65/13/"
+##  [6] "http://viz.neurodata.io/project/exqc/xy/0/580/70/13/"
+##  [7] "http://viz.neurodata.io/project/exqc/xy/0/590/77/13/"
+##  [8] "http://viz.neurodata.io/project/exqc/xy/0/544/84/13/"
+##  [9] "http://viz.neurodata.io/project/exqc/xy/0/586/98/13/"
+## [10] "http://viz.neurodata.io/project/exqc/xy/0/590/77/13/"
+## [11] "http://viz.neurodata.io/project/exqc/xy/0/563/51/13/"
+## [12] "http://viz.neurodata.io/project/exqc/xy/0/664/60/13/"
 ```
 
 

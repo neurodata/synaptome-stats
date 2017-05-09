@@ -126,9 +126,9 @@ $(document).ready(function () {
 suppressPackageStartupMessages(require(meda))
 
 #h5ls(&quot;../../data/Anish_csvfiles/XYZ/AnishLocationsFull.h5&quot;)
-dat &lt;- data.table(h5read(&quot;../../data/Anish_csvfiles/XYZ/AnishLocationsFull.h5&quot;, name = &quot;Locations/locs&quot;))
-exlev &lt;- h5read(&quot;../../data/Anish_csvfiles/XYZ/AnishLocationsFull.h5&quot;, name = &quot;Levels/Ex&quot;)
-qlev &lt;-  h5read(&quot;../../data/Anish_csvfiles/XYZ/AnishLocationsFull.h5&quot;, name = &quot;Levels/Q&quot;)
+dat &lt;- data.table(h5read(&quot;../../../data/Anish_csvfiles/XYZ/AnishLocationsFull.h5&quot;, name = &quot;Locations/locs&quot;))
+exlev &lt;- h5read(&quot;../../../data/Anish_csvfiles/XYZ/AnishLocationsFull.h5&quot;, name = &quot;Levels/Ex&quot;)
+qlev &lt;-  h5read(&quot;../../../data/Anish_csvfiles/XYZ/AnishLocationsFull.h5&quot;, name = &quot;Levels/Q&quot;)
 
 dat$Ex &lt;- as.factor(dat$Ex); levels(dat$Ex) &lt;- exlev 
 dat$Q &lt;- as.factor(dat$Q); levels(dat$Q) &lt;- qlev 
