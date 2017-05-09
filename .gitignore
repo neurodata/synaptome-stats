@@ -1,9 +1,14 @@
+# Data directory
+data/
+
 # History files
 .Rhistory
 .Rapp.history
+.ipynb_checkpoints/
 
 # Session Data files
 .RData
+*_cache
 
 # Example code in package build process
 *-Ex.R
@@ -26,6 +31,7 @@ vignettes/*.pdf
 *.fls
 *.out
 *.toc
+*.synctex.gz
 
 ## Intermediate documents:
 *.dvi
@@ -35,6 +41,7 @@ vignettes/*.pdf
 *.ps
 *.eps
 *.pdf
+*.png
 
 ## Vim generated files
 .*.swp
@@ -42,3 +49,4 @@ vignettes/*.pdf
 .*.swn
 *.project.vim
 *_aux
+*_log
