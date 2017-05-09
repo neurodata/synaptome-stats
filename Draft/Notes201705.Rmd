@@ -1,0 +1,63 @@
+---
+title: "Synaptome Statistics: Report 201705"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 5
+    fig_width: 5
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, dev = "png")
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+rm(list=ls()); 
+rmarkdown::render("Notes201705.Rmd")
+system("open Notes201705.html")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+### Library calls here.
+require(rmarkdown)
+require(knitr)
+suppressMessages(require(meda))
+```
+
+# Synaptome Statistics: Notes 
+
+The following is a short report on the exploration of the Kristina15
+(K15).  Putative synapse locations have been
+detected in kristina15 with Forrest's synapse detection algorithm.
+For each feature channel
+(Synapsin, VGlut, psd95, etc.) an 11x11x11 cube is extracted around
+each putative synapse location and the pixel intensities are summed, creating
+a feature vector of length (number of channels, say $d$). This gives us an $n
+\times d$ matrix, where the $n$ rows correspond to putative synapses and
+the $d$ columns correspond to the summed immunoflorescence in each
+channel.
+
+## Synaptogram Code
+
+We currently have code that generates synaptograms
+[here](https://github.com/neurodata/synaptome-stats/blob/17f0c715a365b910794852f5e3741e44aae102c8/Code2/R/k15Synaptograms.R). 
+We are working to make sure that our generated synaptograms correspond
+to the correct locations in the image space and that the proper scaling
+transformations are being applied. We have decided that z-scoreing
+appears to be best and are employing that to all of our analyses.
+
+#### Draft example synaptogram from the K15 dataset.
+
+![](http://cis.jhu.edu/~jesse/fotd/20170505/synaptograms/k15_C112_266_6734_35.png)
+
+
+
+
+--- 
+---
