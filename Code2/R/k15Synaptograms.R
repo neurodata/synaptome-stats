@@ -1,30 +1,25 @@
-
-
-
-
 suppressPackageStartupMessages(require(rhdf5))
 suppressPackageStartupMessages(require(meda))
 require(gridExtra)
 require(foreach)
 
-fname <- "kristina15rscaled317samp5000_synaptograms11cubes5NN_test2.h5"
+fname <- "kristina15rscaled317samp5000_synaptograms11cubes5NN_test3.h5"
 
 h5ls(fname) 
-#ex12r75v2<- dat <- h5read(fname, name = "Ex12R75")
 dat <- h5read(fname, name = "kristina15")
 datO <- dat
 loc <- h5read(fname, name = "Locations")
 trueLoc <- read.csv("K15F0_rscaled317samp5e3_hmc5NN.csv", header = TRUE)
 cseq <- rep(1:10,each =5)
+clusterN <- hmcO$dat$Get("name", filterFun = isLeaf)
 trueLoc <- cbind(trueLoc, cseq)
 trueCl <- trueLoc[trueLoc$z >=5, 'cseq']
+
 
 cnames <- h5read(fname, name = "Channels")
 H5close()
 
 hmcO <- readRDS("data/outputs/K15F0_rscale317samp5000/hmc.rds")
-dat <- (dat[,,,,-c(4,21)])
-cnames <- cnames[-c(4,21)]
 
 type <- c("in", "ex", "in", "ot", 
           "in", "ex", "ot", "in", 
@@ -41,25 +36,20 @@ expal <- colorpanel(255, "black", "green")
 otpal <- colorpanel(255, "black", "blue")
 
 
-### Normalize across channels
-dim(dat)
-### dat[x,y,z, synapse, channel]
-#datN <- 
-#for(i in 1:dim(dat)[4]){
-  for(j in 1:dim(dat)[5]){
-    a1 <- (dat[,,,,j])
+## Normalize across channels
+for(j in 1:dim(dat)[2]){
+    a1 <- (dat[,j,,,])
     if(!all(a1 == 0)){
       a1 <- scale(a1, center = TRUE, scale = TRUE)
-      dat[,,,,j] <- a1
+      dat[,j,,,] <- a1
     }
   }
 
 
-#dat <- A #REMOVE ME
-rr <- foreach(l = 1:dim(dat)[4]) %do% {
-  r <- dat[,,,l,]
+rr <- foreach(l = 1:dim(dat)[1]) %do% {
+  r <- dat[l,,,,]
   mr <- melt(r)
-  names(mr) <- c("x", "y", "z","chN", "value")
+  names(mr) <- c("chN", "x", "y", "z", "value")
   mr$z <- mr$z - (max(mr$z) +1)/2
   mr$ch <- cnames[mr$chN]
   mr$type <- ctype$type[mr$chN]
@@ -73,6 +63,8 @@ th <- theme(axis.text = element_blank(), axis.ticks = element_blank(),
             axis.title.y = element_blank(), axis.title.x = element_blank(),
             panel.spacing = unit(0, "lines"))
 
+#registerDoMC(6)
+#foreach(k = 1:length(rr))%dopar%{
 for(k in 1:length(rr)){
   mr <- rr[[k]]
 
@@ -82,6 +74,7 @@ pex <-
 ggplot(mr[mr$type == "ex",], 
   aes(x,y, group = factor(type), fill = value)) +
   geom_raster() + 
+  scale_y_reverse() + 
   facet_grid(ch ~ z, labeller = label_both) +
   scale_fill_gradient(low = "black", high = "green", limits = c(mm,MM)) + th
 
@@ -91,6 +84,7 @@ pin <-
 ggplot(mr[mr$type == "in",], 
   aes(x,y, group = factor(type), fill = value)) +
   geom_raster() + 
+  scale_y_reverse() + 
   facet_grid(ch ~ z, labeller = label_both) +
   scale_fill_gradient(low = "black", high = "red", limits = c(mm,MM)) + th
 
@@ -100,8 +94,10 @@ pot <-
   ggplot(mr[mr$type == "ot",], 
   aes(x,y, group = factor(type), fill = value)) +
   geom_raster() +
+  scale_y_reverse() + 
   facet_grid(ch ~ z, labeller = label_both) +
   scale_fill_gradient(low = "black", high = "blue", limits = c(mm,MM)) + th
+#
 
 lay <- rbind(matrix(1,11,23), 
       matrix(2,8,23), 
@@ -118,3 +114,22 @@ print(grid.arrange(pex, pin, pot, layout_matrix = lay))
 dev.off()
 }
 
+x <- loc[,1]
+y <- loc[,2]
+z <- loc[,3]
+fgh <- sprintf("http://viz.neurodata.io/project/kristina15_SynDiv_JLP/xy/0/%d/%d/%d/",
+        x,y,z)
+
+write.table(fgh, "~/Desktop/links.csv", row.names = FALSE, quote = FALSE)
+
+cis <-  sprintf("http://viz.neurodata.io/project/kristina15_SynDiv_JLP/xy/0/%d/%d/%d/",
+
+cisbase <- "http://cis.jhu.edu/~jesse/fotd/20170509/synaptograms/k15syn_rscale"
+
+lllfoo <- paste0("C",v,"_",apply(loc, 1, paste, collapse = "_"))
+outName <- sapply(1:length(rr), function(k){ 
+  paste(cisbase,paste0("C", clusterN[cseq[k]]), paste(loc[k,], collapse = "_"), sep = "_", collapse = "_")})
+
+outmlp <- mapply(function(x,y,z){
+  paste0("[", x, "]", "(",y,") | [", x, "](", z,")")
+  }, lllfoo, outName, fgh)
