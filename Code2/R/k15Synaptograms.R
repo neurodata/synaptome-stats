@@ -3,23 +3,24 @@ suppressPackageStartupMessages(require(meda))
 require(gridExtra)
 require(foreach)
 
-fname <- "kristina15rscaled317samp5000_synaptograms11cubes5NN_test3.h5"
+fname <- "run10/kristina15rscaled317samp5000_synaptograms11cubes5NN_test3.h5"
+
+hmcO <- readRDS("run10/data/outputs/K15F0_rscale317samp5000/hmc.rds")
+clusterN <- hmcO$dat$Get("name", filterFun = isLeaf)
 
 h5ls(fname) 
 dat <- h5read(fname, name = "kristina15")
 datO <- dat
 loc <- h5read(fname, name = "Locations")
-trueLoc <- read.csv("K15F0_rscaled317samp5e3_hmc5NN.csv", header = TRUE)
-cseq <- rep(1:10,each =5)
-clusterN <- hmcO$dat$Get("name", filterFun = isLeaf)
-trueLoc <- cbind(trueLoc, cseq)
-trueCl <- trueLoc[trueLoc$z >=5, 'cseq']
+trueLoc <- as.character(clusterN[read.csv("K15F0_rscaled317samp5e3_hmc5NN.csv", header = TRUE)[,4]])
+#cseq <- rep(1:10,each =5)
+#clusterN <- hmcO$dat$Get("name", filterFun = isLeaf)
+#trueLoc <- cbind(trueLoc, cseq)
+#trueCl <- trueLoc[trueLoc$z >=5, 'cseq']
 
 
 cnames <- h5read(fname, name = "Channels")
 H5close()
-
-hmcO <- readRDS("data/outputs/K15F0_rscale317samp5000/hmc.rds")
 
 type <- c("in", "ex", "in", "ot", 
           "in", "ex", "ot", "in", 
@@ -41,6 +42,7 @@ for(j in 1:dim(dat)[2]){
     a1 <- (dat[,j,,,])
     if(!all(a1 == 0)){
       a1 <- scale(a1, center = TRUE, scale = TRUE)
+      #a2 <- (a1 - min(a1))/(max(a1) - min(a1))
       dat[,j,,,] <- a1
     }
   }
@@ -67,7 +69,8 @@ th <- theme(axis.text = element_blank(), axis.ticks = element_blank(),
 #foreach(k = 1:length(rr))%dopar%{
 for(k in 1:length(rr)){
   mr <- rr[[k]]
-
+#mm <- 0
+#MM <- 1
 mm <- min(mr[mr$type == 'ex',]$value)
 MM <- max(mr[mr$type == 'ex',]$value)
 pex <- 
@@ -104,32 +107,40 @@ lay <- rbind(matrix(1,11,23),
       matrix(3,4,23))
 
 
-clusterN <- hmcO$dat$Get("name", filterFun = isLeaf)
-cseq <- trueCl
-outName <- paste("~/Desktop/k15syn_rscale",paste0("C", clusterN[cseq[k]]), paste(loc[k,], collapse = "_"), sep = "_", collapse = "_") 
-#pdf(paste0(outName,".pdf"), height = 23*1.5, width = 11*1.5)
+
+outName <- paste("~/Desktop/k15syn_rscale",
+           paste0("C", trueLoc[k]), paste(loc[k,], collapse = "_"), sep = "_", collapse = "_") 
 png(paste0(outName, ".png"), 
     height = 23*1.5, width = 11*1.5, units = "in", res = 300)
 print(grid.arrange(pex, pin, pot, layout_matrix = lay))
 dev.off()
 }
 
-x <- loc[,1]
-y <- loc[,2]
-z <- loc[,3]
-fgh <- sprintf("http://viz.neurodata.io/project/kristina15_SynDiv_JLP/xy/0/%d/%d/%d/",
-        x,y,z)
 
-write.table(fgh, "~/Desktop/links.csv", row.names = FALSE, quote = FALSE)
+cisbaseZ <- "http://cis.jhu.edu/~jesse/fotd/20170509/synaptograms/k15syn_rscale"
+cisbase0 <- "http://cis.jhu.edu/~jesse/fotd/20170509/synaptograms/k15syn_01scale"
+ndviz <- "http://viz.neurodata.io/project/kristina15_SynDiv_JLP/xy/0/"
 
-cis <-  sprintf("http://viz.neurodata.io/project/kristina15_SynDiv_JLP/xy/0/%d/%d/%d/",
 
-cisbase <- "http://cis.jhu.edu/~jesse/fotd/20170509/synaptograms/k15syn_rscale"
+out <- foreach(k = 1:length(rr), .combine = 'rbind')%do%{
+ outNameZ <- paste(cisbaseZ,
+            paste0("C", trueLoc[k]), paste(loc[k,], collapse = "_"), sep = "_", collapse = "_") 
+ 
+ outName0 <- paste(cisbase0,
+            paste0("C", trueLoc[k]), paste(loc[k,], collapse = "_"), sep = "_", collapse = "_") 
 
-lllfoo <- paste0("C",v,"_",apply(loc, 1, paste, collapse = "_"))
-outName <- sapply(1:length(rr), function(k){ 
-  paste(cisbase,paste0("C", clusterN[cseq[k]]), paste(loc[k,], collapse = "_"), sep = "_", collapse = "_")})
+ cl <- paste0("C", trueLoc[k], "_", paste(loc[k,], collapse = "_"))
 
-outmlp <- mapply(function(x,y,z){
-  paste0("[", x, "]", "(",y,") | [", x, "](", z,")")
-  }, lllfoo, outName, fgh)
+ cluZ <-  paste0(outNameZ, ".png")
+ clu0 <-  paste0(outName0, ".png")
+
+ nd <- paste0(ndviz, paste(loc[k,1], loc[k,2], loc[k,3], sep = "/"))
+
+ sprintf("[rscale%s](%s) \t\t| [01scale%s](%s) \t\t| [viz%s](%s/)  ",cl, cluZ, cl, clu0, cl, nd)
+}
+
+write.table(out, file = "~/Desktop/links.txt", quote = FALSE, row.names = FALSE)
+
+
+
+
