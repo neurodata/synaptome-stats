@@ -97,10 +97,12 @@ of the features (low - purple, high - orange).
 - [K15 Raw](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Raw_seed1234_size10000.png)
 - [K15 Log_10](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Log_seed1234_size10000.png)
 - [K15 0-1000](http://docs.neurodata.io/meda/examples/Kristina15/figs/k1501e3_seed1234_size10000.png)
+- [K15 Z-scored](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Zscored_seed1234_size10000.png)
 
 ![K15 Raw](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Raw_seed1234_size10000.png)
 ![K15 Log_10](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Log_seed1234_size10000.png)
 ![K15 0-1000](http://docs.neurodata.io/meda/examples/Kristina15/figs/k1501e3_seed1234_size10000.png)
+![K15 Z-scored](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Zscored_seed1234_size10000.png)
 
 Out of these three different methods of transforming the data we tend to
 prefer the [0-1000] scaling. Empirically it seems to capture —
