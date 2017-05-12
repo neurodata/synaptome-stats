@@ -43,6 +43,79 @@ a feature vector of length (number of channels, say $d$). This gives us an $n
 the $d$ columns correspond to the summed immunoflorescence in each
 channel.
 
+
+We have run [MEDA](http://github.com/neurodata/meda/) on a sample of
+5000 putative synapse locations in the Kristina15 dataset. The
+hierarchical clustering results are plotted below.  For this particular
+run the data was 
+[Z-scored](https://en.wikipedia.org/wiki/Standard_score#Calculation_from_raw_score)
+
+## Clustering 
+
+We have implemented our own Hierarchical Mclust function by augmenting
+Mclust.  In the course of exploring we used the full suite of models
+available in 
+[mclustModelNames p. 88](https://cran.r-project.org/web/packages/mclust/mclust.pdf)
+
+After looking through the BIC plots of each of the 11 models for each
+node of the tree it seemed best to use the unconstrained model "VVV" =
+ellipsoidal, varying volume, shape, and orientation. 
+
+The first pass of BIC on K15 with 10,000 sample points, appear below and both show that
+"VVV" is the best model when comparing for K = {1,2}.
+
+[K15](http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node.pdf)  
+
+<img src="http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node.pdf" alt="K15Node" style="width:350px;height:350px;" title = "K15 Node" type =application/pdf>
+
+Towards the bottom of the tree, where clusters are getting smaller "VVV"
+tends to suggest against splitting the data. Looking through the
+BIC plots for multiple explorations we also see that "VVV" is not very
+bad when compared to the other models.  
+These observations seem to justify our choice "VVV" for further use. 
+
+[K15](http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node222.pdf)  
+
+<img src="http://docs.neurodata.io/meda/examples/Kristina15/bic317_size10000/bicK15Raw_Node222.pdf" alt="HTML5 Icon" style="width:350px;height:350px;" title = "K15 Node222" type=application/pdf>
+
+## Scaling 
+
+We have looked at various transformations of the data: Raw, $log_{10}$, and
+scaling between 0 and 1000 and Z-scoring. Full lab notebooks can be found 
+[here](http://docs.neurodata.io/meda/) 
+
+Below we have the clustering results from hierarchical GMM.  Each level is shown 
+with the means of the features of each node given in color (purple -
+low, orange - high).
+Note that the 0-1000 results are the last in the triple of plots.
+
+Below are our stacked level mean plots which show for each level in the
+cluster tree (separated by black horizonal lines) the means accross each 
+of the features (low - purple, high - orange).  
+
+
+- [K15 Raw](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Raw_seed1234_size10000.png)
+- [K15 Log_10](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Log_seed1234_size10000.png)
+- [K15 0-1000](http://docs.neurodata.io/meda/examples/Kristina15/figs/k1501e3_seed1234_size10000.png)
+
+![K15 Raw](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Raw_seed1234_size10000.png)
+![K15 Log_10](http://docs.neurodata.io/meda/examples/Kristina15/figs/k15Log_seed1234_size10000.png)
+![K15 0-1000](http://docs.neurodata.io/meda/examples/Kristina15/figs/k1501e3_seed1234_size10000.png)
+
+Out of these three different methods of transforming the data we tend to
+prefer the [0-1000] scaling. Empirically it seems to capture —
+interestingly —
+the differences in the feature categories (Excitatory - green, Inhibatory - red, 
+Other - blue). The $log_{10}$ transform fails to reveal any clusters
+that have significantly higher than average excitatory expression. 
+
+
+#### Dendrogram
+![](http://cis.jhu.edu/~jesse/fotd/20170509/plots/dend.png)
+
+#### Stacked Cluster Means plot
+![](http://cis.jhu.edu/~jesse/fotd/20170509/plots/stackM.png)
+
 ## Synaptogram Code
 
 We currently have code that generates synaptograms
@@ -52,9 +125,9 @@ to the correct locations in the image space and that the proper scaling
 transformations are being applied. We have decided that z-scoreing
 appears to be best and are employing that to all of our analyses.
 
-#### Draft example synaptogram from the K15 dataset.
+#### [Draft example synaptogram from the K15 dataset.](http://cis.jhu.edu/~jesse/fotd/20170509/synaptograms/k15syn_rscale_C122_769_7958_26.png)
 
-![](http://cis.jhu.edu/~jesse/fotd/20170505/synaptograms/k15_C112_266_6734_35.png)
+![](http://cis.jhu.edu/~jesse/fotd/20170509/synaptograms/k15syn_01scale_C122_769_7958_26.png)
 
 
 
