@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2017-05-12" />
+<meta name="date" content="2017-05-15" />
 
 <title>Synaptome Statistics: Report 201705</title>
 
@@ -102,7 +102,7 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">Synaptome Statistics: Report 201705</h1>
-<h4 class="date"><em>2017-05-12</em></h4>
+<h4 class="date"><em>2017-05-15</em></h4>
 
 </div>
 
@@ -135,6 +135,9 @@ These observations seem to justify our choice “VVV” for further use.</p>
 <div id="scaling" class="section level2">
 <h2><span class="header-section-number">1.2</span> Scaling</h2>
 <p>We have looked at various transformations of the data: Raw, <span class="math inline">\(log_{10}\)</span>, and scaling between 0 and 1000 and Z-scoring. Full lab notebooks can be found <a href="http://docs.neurodata.io/meda/">here</a></p>
+<p>When scaling, we transform each feature column individualy. For log_10 scaling we take the base 10 logarithm of the values in each column. If any of the values are 0 we first add 1 to the column and then take the logarithm.</p>
+<p>When scaling between 0 and 1000, we replace each column, x, with the column defined by (x - min(x))/(max(x) - min(x)) * 1000</p>
+<p>When Z-scoring, we subtract the column mean and divide by the column’s sample standard deviation.</p>
 <p>Below we have the clustering results from hierarchical GMM. Each level is shown with the means of the features of each node given in color (purple - low, orange - high). Note that the 0-1000 results are the last in the triple of plots.</p>
 <p>Below are our stacked level mean plots which show for each level in the cluster tree (separated by black horizonal lines) the means accross each of the features (low - purple, high - orange).</p>
 <ul>
