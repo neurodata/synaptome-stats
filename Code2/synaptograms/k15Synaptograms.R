@@ -59,13 +59,14 @@ F0 <-
 
 f0m <- mean(Reduce(c, Reduce(c, F0)))
 f0s <- sd(Reduce(c, Reduce(c, F0)))
-f0min <- min(Reduce(c, Reduce(c, F0)))
-f0max <- max(Reduce(c, Reduce(c, F0)))
 
 
 F0 <- lapply(F0, function(x){ 
          (as.numeric(x) - f0m)/f0s
           })
+
+F0min <- min(Reduce(c, Reduce(c, F0)))
+F0max <- max(Reduce(c, Reduce(c, F0)))
 
 names(F0) <- 1:length(F0)
 for(i in 1:length(F0)){
