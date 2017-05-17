@@ -152,7 +152,7 @@ for(k in 1:length(rr)){
       scale_fill_gradient2(low = "darkorchid4", 
                               mid = "gray99", 
                               high = "darkorange3",
-                              midpoint = 0, limits=c(f0min, f0max)) + th
+                              midpoint = 0, limits=c(F0min, F0max)) + th
       #scale_fill_gradient(low = "#", high = "orange") + th
 
 
@@ -173,7 +173,7 @@ for(k in 1:length(rr)){
       scale_fill_gradient2(low = "darkorchid4", 
                               mid = "gray99", 
                               high = "darkorange3",
-                              midpoint = 0, limits = c(f0min, f0max)) + th
+                              midpoint = 0, limits = c(F0min, F0max)) + th
       #scale_fill_gradient(low = "black", high = "white") + th
 
   pot <- 
@@ -193,7 +193,7 @@ for(k in 1:length(rr)){
       scale_fill_gradient2(low = "darkorchid4", 
                               mid = "gray99", 
                               high = "darkorange3",
-                              midpoint = 0, limits = c(f0min, f0max)) + th
+                              midpoint = 0, limits = c(F0min, F0max)) + th
       #scale_fill_gradient(low = "black", high = "white") + th
 
   xyzloc = c(x = loc[k,1], 
