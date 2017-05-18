@@ -1,5 +1,4 @@
-
-
+#!/usr/bin/env Rscript
 
 basedir <- getwd()
 dir0 <- grep("^Ex", dir(), value = TRUE)
