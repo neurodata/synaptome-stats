@@ -13,6 +13,22 @@ input <- args[1]
 token <- args[2]
 output<- as.character(args[3])
 bf    <- args[4]
+scaleMeans <- read.csv(args[5], header = TRUE)
+scaleSDs <- read.csv(args[6], header = TRUE)
+
+if(FALSE){
+  input <- "~/tmps/k15Run20170518/data/outputs/zscored/outputs/cubesC2111.h5"
+  token <- "kristina15"
+  output<- "~/tmps/k15Run20170518/data/outpus/zscored/outputs/rsynC2111_"
+  bf    <- 5
+  scaleMeans <- h5read("~/tmps/k15Run20170518/data/inputs/K15F0zscored_seed1234_samp1e4.h5", 
+                       name= "data/ColMeans")
+  scaleSDs <- h5read("~/tmps/k15Run20170518/data/inputs/K15F0zscored_seed1234_samp1e4.h5", 
+                       name= "data/ColSDs")
+  H5close()
+
+  hmcO <- readRDS("~/tmps/k15Run20170518/data/outputs/zscored/hmc.rds")
+}
 
 #TOKEN1= (sys.argv[1]) ## e.g. "Ex10R55"  "kristina15"
 #INPUT = (sys.argv[2]) ## a csv file of locations in (x, y, z) order.
@@ -34,12 +50,12 @@ loc <- h5read(input, name = "Locations")
 H5close()
 
 ## Type for kristina data full only!!!
-type <- c("in", "ex", "in", "ot", 
-          "in", "ex", "ot", "in", 
+type <- c("ot", "ex", "in", "ot", 
+          "in", "ex", "ot", "ot", 
           "ot", "ex", "ex", "ex", 
           "ex", "in", "in", "ex", 
           "ex", "ex", "ot", "in", 
-          "ex", "ex", "in")
+          "ex", "in", "in")
 
 tab <- table(type)
 ctype <- data.frame(cnames, type)
@@ -51,41 +67,31 @@ otpal <- colorpanel(255, "black", "blue")
 
 
 ## Calculate feature F0
-F0 <- 
-  foreach(j = 1:dim(dat)[1]) %:%
-  foreach(i = 1:dim(dat)[2]) %do% {
+F0o <- 
+  foreach(j = 1:dim(dat)[1], .combine = rbind) %:%
+  foreach(i = 1:dim(dat)[2], .combine=cbind) %do% {
       f0 <- as.numeric(sum(dat[j,i,,,]))
 }
 
-f0m <- mean(Reduce(c, Reduce(c, F0)))
-f0s <- sd(Reduce(c, Reduce(c, F0)))
 
+colnames(F0o) <- cnames
+F0 <- scale(F0o, center = as.numeric(scaleMeans), scale = as.numeric(scaleSDs))
 
-F0 <- lapply(F0, function(x){ 
-         (as.numeric(x) - f0m)/f0s
-          })
-
-F0min <- min(Reduce(c, Reduce(c, F0)))
-F0max <- max(Reduce(c, Reduce(c, F0)))
-
-names(F0) <- 1:length(F0)
-for(i in 1:length(F0)){
-  names(F0[[i]]) <- cnames
-}
-
-
-
-#f0 <- Reduce(rbind, lapply(F0, function(x) as.numeric(x)))
-#colnames(f0) <- cnames
-#rownames(f0) <- NULL
+F0 <- lapply(1:nrow(F0), function(r) F0[r,])
+### Scaling for color bar according to z-scores
+F0min <-min(Reduce(c, Reduce(c, F0)))
+F0max <-max(Reduce(c, Reduce(c, F0)))
 
 ## Normalize across channels for visualization purposes
 for(j in 1:dim(dat)[2]){
     a1 <- (dat[,j,,,])
     if(!all(a1 == 0)){
-      a2 <- scale(a1, center = TRUE, scale = TRUE)
+      #a2 <- scale(a1, center = TRUE, scale = TRUE)
       #a2 <- (a1 - min(a1))/(max(a1) - min(a1))
       #a3 <- log10(a1 + 1)
+      sm <- as.numeric(scaleMeans[,j])
+      ss <- as.numeric(scaleSDs[,j])
+      a2 <- (a1 - sm)/ss
       dat[,j,,,] <- a2
     }
   }

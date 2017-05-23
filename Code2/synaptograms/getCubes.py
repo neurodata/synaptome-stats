@@ -44,8 +44,10 @@ channels = chan
 
 columnNames = [str(key) for key in channels]
 
-loc = genfromtxt(INPUT, delimiter=',', skip_header = 1).tolist()
+loccsv = genfromtxt(INPUT, delimiter=',', skip_header = 1).tolist()
 
+## Grab first three columns
+loc = [i[0:3] for i in loccsv]
 
 # In[4]:
 
@@ -84,7 +86,17 @@ for i in range(len(L)):
     synCube.append(out)
 
 
-# In[6]:
+### Compute F0 feature 
+F0col = []
+for syn in synCube:
+        F0col.append([np.sum(f0) for f0 in syn])
+
+        F0 = np.asarray(F0col)
+
+### Write F0 features to csv file
+np.savetxt("/home/meda/data/"+output+"_"+TOKEN1+"_F0.csv", F0, delimiter = ',', header = ','.join(columnNames), comments='', fmt = "%d")
+
+
 
 ### Save as an hdf5 file
 h5fOUT = h5py.File(output, 'a')

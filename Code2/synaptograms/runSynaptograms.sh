@@ -4,6 +4,8 @@ INPUT=$2 #"testLocations.csv"
 OUTPUT1=$3 #"outJ.h5"
 OUTPUT2=$4 #"k15Synaptograms1000"
 BF=$5 #"5" ## Buffer size around each center point
+MEANS=$6
+SDS=$7
 
 mkdir ~/data/outputs
 
@@ -12,12 +14,14 @@ echo $2
 echo $3 
 echo $4 
 echo $5 
+echo $6
+echo $7
 
 ##python getCub*.py <token> <input> <output> <buffer> 
 cd /home/meda/data
 
-getCubes.py $TOKEN1 $INPUT outputs/$OUTPUT1 $BF
+getCubes.py $TOKEN1 $INPUT $OUTPUT1 $BF
 #
 ##Rscript k15Synaptogr*.R <input>  <token> <output> <buffer>
-k15Synaptograms.R outputs/$OUTPUT1 $TOKEN1 outputs/$OUTPUT2 $BF
+k15Synaptograms.R $OUTPUT1 $TOKEN1 $OUTPUT2 $BF $MEANS $SDS
 

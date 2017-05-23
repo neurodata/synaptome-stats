@@ -1,5 +1,5 @@
 # Commencing 
-FROM neurodata/meda:v0.1.2.9006
+FROM neurodata/meda:v0.1.2.9009
 
 ## Updates and software that I like
 # Install vnc, xvfb in order to create a 'fake' display and firefox
