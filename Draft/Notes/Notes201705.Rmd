@@ -1,0 +1,44 @@
+---
+title: "Synaptome Statistics: Report 201705"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 5
+    fig_width: 5
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, dev = "png")
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+rm(list=ls()); 
+rmarkdown::render("Notes201705.Rmd")
+system("open Notes201705.html")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+### Library calls here.
+require(rmarkdown)
+require(knitr)
+suppressMessages(require(meda))
+```
+
+# Synaptome Statistics: Notes 
+
+We have checked that when working with a 3x3x3 cube from the
+kristina15 data, located in `ndstore`, that the summation used to
+calculate the "integrated brightness" is correct.  The lab notebook can
+be viewed [here.](https://gist.github.com/MrAE/871036419464957c6f9af42e59614624)
+
+
+## More to come when F0 is fixed.
+
+--- 
+---
