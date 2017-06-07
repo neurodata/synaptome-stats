@@ -3,6 +3,7 @@
 ### Folder/file structure on S3?
 
 * Raw feature data
+  * Putative Synapse Locations
   * F0
   * F1
   * ⋮ 
