@@ -68,6 +68,7 @@ for i in range(len(L)):
     yLocal = L[i][1]
     zLocal = L[i][2]
     syn = []
+    print xLocal, yLocal, zLocal
     for ch in chan:
         queryGlobal = {
                 'token': TOKEN1,

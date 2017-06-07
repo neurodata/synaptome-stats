@@ -57,33 +57,28 @@ def F0(L, bf, TOKEN, channels):
 
 
 def F0k15(l):
-    channels = ['CR1_2ndA', 'GABABR1_3rdA', 'GABARa1_4thA', 
-        'GAD_6thA', 'GluR2_2ndA', 'NMDAR1_6thA', 
-        'NOS_9thA', 'NR2B_9thA', 'PV_1stA',
-        'Synpod_3rdA', 'TH_5thA', 'VAChT_4thA', 'VGAT_5thA',
-        'VGluT1_3rdA', 'VGluT1_8thA', 'VGluT2_2ndA', 'VGluT3_1stA',
-        'dapi_1stA', 'gephyrin_1stA', 'psd_8thA', 'synapsinGP_5thA',
-        'synapsinR_7thA', 'tubulin_8thA']
+    channels = ["synapsinR_7thA", "synapsinGP_5thA", "VGluT1_3rdA", 
+         "VGluT1_8thA", "VGluT2_2ndA", "psd_8thA", "GluR2_2ndA",
+         "NMDAR1_6thA", "NR2B_9thA", "NOS_9thA", "Synpod_3rdA",
+         "GAD_6thA", "VGAT_5thA", "PV_1stA", "gephyrin_1stA",
+         "GABARa1_4thA", "GABABR1_3rdA", "VGluT3_1stA", "CR1_2ndA",
+         "TH_5thA", "VAChT_4thA", "tubulin_8thA", "dapi_1stA"]
+
     return(F0(l, 5, "kristina15", channels))
 
 
 def main():
-    channels = ['CR1_2ndA', 'GABABR1_3rdA', 'GABARa1_4thA', 
-        'GAD_6thA', 'GluR2_2ndA', 'NMDAR1_6thA', 
-        'NOS_9thA', 'NR2B_9thA', 'PV_1stA',
-        'Synpod_3rdA', 'TH_5thA', 'VAChT_4thA', 'VGAT_5thA',
-        'VGluT1_3rdA', 'VGluT1_8thA', 'VGluT2_2ndA', 'VGluT3_1stA',
-        'dapi_1stA', 'gephyrin_1stA', 'psd_8thA', 'synapsinGP_5thA',
-        'synapsinR_7thA', 'tubulin_8thA']
+    channels = ["synapsinR_7thA", "synapsinGP_5thA", "VGluT1_3rdA", 
+         "VGluT1_8thA", "VGluT2_2ndA", "psd_8thA", "GluR2_2ndA",
+         "NMDAR1_6thA", "NR2B_9thA", "NOS_9thA", "Synpod_3rdA",
+         "GAD_6thA", "VGAT_5thA", "PV_1stA", "gephyrin_1stA",
+         "GABARa1_4thA", "GABABR1_3rdA", "VGluT3_1stA", "CR1_2ndA",
+         "TH_5thA", "VAChT_4thA", "tubulin_8thA", "dapi_1stA"]
     ## input parameters
-    #TOKEN = sys.argv[1] ## e.g. "Ex10R55"  "kristina15"
-    #INPUT = sys.argv[2] ## a csv file of locations in (x, y, z) order.
-    #OUTPUT = sys.argv[3] ## A base name for output
-    #BF     = sys.argv[4] ## Buffer size around each center point
-    TOKEN = 'kristina15'
-    INPUT = './locationTest48bad.csv'
-    OUTPUT = './testOUT'
-    BF = 5
+    TOKEN = sys.argv[1] ## e.g. "Ex10R55"  "kristina15"
+    INPUT = sys.argv[2] ## a csv file of locations in (x, y, z) order.
+    OUTPUT = sys.argv[3] ## A base name for output
+    BF     = sys.argv[4] ## Buffer size around each center point
 
     loc = genfromtxt(INPUT, delimiter=',', skip_header = 1).tolist()
     L = np.around(np.asarray(loc), decimals = 0).astype(int)
@@ -99,7 +94,8 @@ def main():
     h5f0OUT.create_dataset("Locations", data = np.transpose(L))
     h5f0OUT.close()
 
-    np.savetxt(OUTPUT+".csv", out, delimiter=",")
+    np.savetxt(OUTPUT+".csv", out, delimiter=",", fmt = "%d", header =
+            ','.join(channels), comments = "")
     np.savetxt("testLocationsOUT.csv",L, delimiter=",")
     #return(out)
 
