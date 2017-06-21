@@ -36,13 +36,15 @@ if(FALSE){
 #bf = (sys.argv[4]) ## Buffer size around each center point
 
 suppressPackageStartupMessages(require(rhdf5))
-suppressPackageStartupMessages(require(meda))
-require(gridExtra)
-require(foreach)
+suppressWarnings(suppressPackageStartupMessages(require(meda)))
+suppressPackageStartupMessages(require(data.table))
+suppressPackageStartupMessages(require(gridExtra))
+suppressPackageStartupMessages(require(foreach))
 
 cnames <- h5read(input, name = "Channels")
-abcnames <- abbreviate(gsub("_", "", cnames), minlength = 3)
-dat <- h5read(input, name = token)
+abc <- abbreviate(gsub("_", "", cnames), minlength = 3)
+abcnames <- factor(abc, levels = abc)
+dat <- h5read(input, name = paste0(token, "_cubes"))
 
 dimnames(dat) <- list(1:dim(dat)[1], cnames, NULL, NULL, NULL)
 datO <- dat
@@ -50,12 +52,13 @@ loc <- h5read(input, name = "Locations")
 H5close()
 
 ## Type for kristina data full only!!!
-type <- c("ot", "ex", "in", "ot", 
-          "in", "ex", "ot", "ot", 
-          "ot", "ex", "ex", "ex", 
-          "ex", "in", "in", "ex", 
-          "ex", "ex", "ot", "in", 
-          "ex", "in", "in")
+#type <- c("ot", "ex", "in", "ot", 
+#          "in", "ex", "ot", "ot", 
+#          "ot", "ex", "ex", "ex", 
+#          "ex", "in", "in", "ex", 
+#          "ex", "ex", "ot", "in", 
+#          "ex", "in", "in")
+type <- c(rep("ex", 11), rep("in", 8), rep("ot", 4))
 
 tab <- table(type)
 ctype <- data.frame(cnames, type)
@@ -75,6 +78,13 @@ F0o <-
 
 
 colnames(F0o) <- cnames
+
+if(!all(colnames(F0o) == colnames(scaleMeans)) |
+  !all(colnames(F0o) == colnames(scaleSDs))){
+  stop("Column names do not match!") 
+}
+
+
 F0 <- scale(F0o, center = as.numeric(scaleMeans), scale = as.numeric(scaleSDs))
 
 F0 <- lapply(1:nrow(F0), function(r) F0[r,])
@@ -83,18 +93,18 @@ F0min <-min(Reduce(c, Reduce(c, F0)))
 F0max <-max(Reduce(c, Reduce(c, F0)))
 
 ## Normalize across channels for visualization purposes
-for(j in 1:dim(dat)[2]){
-    a1 <- (dat[,j,,,])
-    if(!all(a1 == 0)){
-      #a2 <- scale(a1, center = TRUE, scale = TRUE)
-      #a2 <- (a1 - min(a1))/(max(a1) - min(a1))
-      #a3 <- log10(a1 + 1)
-      sm <- as.numeric(scaleMeans[,j])
-      ss <- as.numeric(scaleSDs[,j])
-      a2 <- (a1 - sm)/ss
-      dat[,j,,,] <- a2
-    }
-  }
+#for(j in 1:dim(dat)[2]){
+#    a1 <- (dat[,j,,,])
+#    if(!all(a1 == 0)){
+#      #a2 <- scale(a1, center = TRUE, scale = TRUE)
+#      #a2 <- (a1 - min(a1))/(max(a1) - min(a1))
+#      #a3 <- log10(a1 + 1)
+#      sm <- as.numeric(scaleMeans[,j])
+#      ss <- as.numeric(scaleSDs[,j])
+#      a2 <- (a1 - sm)/ss
+#      dat[,j,,,] <- a2
+#    }
+#  }
 
 rr <- foreach(l = 1:dim(dat)[1]) %do% {
   r <- dat[l,,,,]
@@ -146,7 +156,8 @@ for(k in 1:length(rr)){
     aes(x,y, group = factor(type), fill = value)) +
     geom_raster() + 
     scale_y_reverse() + 
-    facet_grid(ch + F0 ~ z, labeller = label_both) +
+    #facet_grid(ch + F0 ~ z, labeller = label_both) +
+    facet_grid(ch ~ z, labeller = label_both) +
     scale_fill_gradient(low = "black", high = "green", limits = c(mmex,MMex)) + th
 
   pexF0 <- 
@@ -154,7 +165,7 @@ for(k in 1:length(rr)){
       aes(x,y, group = factor(type), fill = F0)) +
       geom_raster() + 
       scale_y_reverse() + 
-      facet_grid(ch +F0 ~ type, labeller = label_both) +
+      facet_grid(F0 ~ type, labeller = label_both) +
       scale_fill_gradient2(low = "darkorchid4", 
                               mid = "gray99", 
                               high = "darkorange3",
@@ -167,7 +178,8 @@ for(k in 1:length(rr)){
     aes(x,y, group = factor(type), fill = value)) +
     geom_raster() + 
     scale_y_reverse() + 
-    facet_grid(ch + F0 ~ z, labeller = label_both) +
+    #facet_grid(ch + F0 ~ z, labeller = label_both) +
+    facet_grid(ch ~ z, labeller = label_both) +
     scale_fill_gradient(low = "black", high = "red", limits = c(mmin,MMin)) + th
 
   pinF0 <- 
@@ -175,7 +187,7 @@ for(k in 1:length(rr)){
       aes(x,y, group = factor(type), fill = F0)) +
       geom_raster() + 
       scale_y_reverse() + 
-      facet_grid(ch +F0 ~ type, labeller = label_both) +
+      facet_grid(F0 ~ type, labeller = label_both) +
       scale_fill_gradient2(low = "darkorchid4", 
                               mid = "gray99", 
                               high = "darkorange3",
@@ -187,7 +199,7 @@ for(k in 1:length(rr)){
     aes(x,y, group = factor(type), fill = value)) +
     geom_raster() +
     scale_y_reverse() + 
-    facet_grid(ch + F0 ~ z, labeller = label_both) +
+    facet_grid(ch ~ z, labeller = label_both) +
     scale_fill_gradient(low = "black", high = "blue", limits = c(mmot,MMot)) + th
 
   potF0 <- 
@@ -195,7 +207,7 @@ for(k in 1:length(rr)){
       aes(x,y, group = factor(type), fill = F0)) +
       geom_raster() + 
       scale_y_reverse() + 
-      facet_grid(ch +F0 ~ type, labeller = label_both) +
+      facet_grid(F0 ~ type, labeller = label_both) +
       scale_fill_gradient2(low = "darkorchid4", 
                               mid = "gray99", 
                               high = "darkorange3",
@@ -213,13 +225,16 @@ for(k in 1:length(rr)){
   for(i in seq(1,5,2)){
     inner <- c()
     for(j in 1:table(type)[kj]){
-      inner <- rbind(inner, c(rep(i, lz),rep(i+1,2)))
+      inner <- rbind(inner, c(rep(i, lz),rep(i+1,3)))
     }
   kj <- kj +1
   laysep <- rbind(laysep, inner)
   }
 
+  tmpd <- tempdir()
+  png(file.path(tmpd, "tmp.png"))
   psep <- arrangeGrob(pex, pexF0, pin, pinF0, pot, potF0, layout_matrix = laysep)
+  dev.off()
 
   ggpsep[[k]] <- list(xyzloc=xyzloc, p=psep, 
                    pex=pex, pexF0=pexF0,
@@ -227,8 +242,18 @@ for(k in 1:length(rr)){
                    pot=pot, potF0=potF0)
 }
 
+## DEBUG
+if(FALSE){
+  pdf("~/Desktop/tmp.pdf", 
+      height = sum(tab)*1.5, 
+      width = (dim(dat)[5]+1)*1.5)
+  plot(ggpsep[[2]][[2]])
+  dev.off()
+}
+
 save(ggpsep, file = paste0(output, "synaptograms.RData"))
 
+invisible(
 mapply(function(grob,locs){
   outName <- paste0(output, token,
                paste0(c("x", "y", "z"),locs, collapse="_"),
@@ -239,4 +264,4 @@ mapply(function(grob,locs){
   plot(grob)
   dev.off()},
   lapply(ggpsep, '[[', 2), lapply(ggpsep, '[[', 1))
-
+)
