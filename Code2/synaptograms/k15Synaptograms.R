@@ -153,7 +153,7 @@ for(k in 1:length(rr)){
   mr <- rr[[k]]
   pex <- 
   ggplot(mr[mr$type == "ex",], 
-    aes(x,y, group = factor(type), fill = value)) +
+    aes(x,y, group = type, fill = value)) +
     geom_raster() + 
     scale_y_reverse() + 
     #facet_grid(ch + F0 ~ z, labeller = label_both) +
@@ -162,10 +162,10 @@ for(k in 1:length(rr)){
 
   pexF0 <- 
     ggplot(mr[mr$type == "ex" ,], 
-      aes(x,y, group = factor(type), fill = F0)) +
+      aes(x,y, group = type, fill = F0)) +
       geom_raster() + 
       scale_y_reverse() + 
-      facet_grid(F0 ~ type, labeller = label_both) +
+      facet_grid(ch + F0 ~ type, labeller = label_both) +
       scale_fill_gradient2(low = "darkorchid4", 
                               mid = "gray99", 
                               high = "darkorange3",
@@ -175,7 +175,7 @@ for(k in 1:length(rr)){
 
   pin <- 
   ggplot(mr[mr$type == "in",], 
-    aes(x,y, group = factor(type), fill = value)) +
+    aes(x,y, group = type, fill = value)) +
     geom_raster() + 
     scale_y_reverse() + 
     #facet_grid(ch + F0 ~ z, labeller = label_both) +
@@ -184,10 +184,10 @@ for(k in 1:length(rr)){
 
   pinF0 <- 
     ggplot(mr[mr$type == "in" ,], 
-      aes(x,y, group = factor(type), fill = F0)) +
+      aes(x,y, group = type, fill = F0)) +
       geom_raster() + 
       scale_y_reverse() + 
-      facet_grid(F0 ~ type, labeller = label_both) +
+      facet_grid(ch + F0 ~ type, labeller = label_both) +
       scale_fill_gradient2(low = "darkorchid4", 
                               mid = "gray99", 
                               high = "darkorange3",
@@ -196,7 +196,7 @@ for(k in 1:length(rr)){
 
   pot <- 
     ggplot(mr[mr$type == "ot",], 
-    aes(x,y, group = factor(type), fill = value)) +
+    aes(x,y, group = type, fill = value)) +
     geom_raster() +
     scale_y_reverse() + 
     facet_grid(ch ~ z, labeller = label_both) +
@@ -204,10 +204,10 @@ for(k in 1:length(rr)){
 
   potF0 <- 
     ggplot(mr[mr$type == "ot" ,], 
-      aes(x,y, group = factor(type), fill = F0)) +
+      aes(x,y, group = type, fill = F0)) +
       geom_raster() + 
       scale_y_reverse() + 
-      facet_grid(F0 ~ type, labeller = label_both) +
+      facet_grid(ch + F0 ~ type, labeller = label_both) +
       scale_fill_gradient2(low = "darkorchid4", 
                               mid = "gray99", 
                               high = "darkorange3",
