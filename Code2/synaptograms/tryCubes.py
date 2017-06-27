@@ -30,6 +30,34 @@ def chan(TOKEN):
     columnNames = [str(key) for key in chan]
     return(columnNames)
 
+def links(token, loc, channels=None, col=None):
+    ## I know there's probably a much better way to do this. 
+    if channels == None:
+        channels = chan(token)
+
+    if col == None:
+        col = [1 for i in range(len(channels))]
+
+    x = str(loc[0])
+    y = str(loc[1])
+    z = str(loc[2])
+
+    bSt = "https://viz-dev.boss.neurodata.io/#!{'layers':{"
+    bEnd = "}_'navigation':{'pose':{'position':{'voxelSize':[100_100_70]_'voxelCoordinates':["
+    bEnd = bEnd + x + "_" + y +"_" + z + "]}}_'zoomFactor':70}}"
+    
+    chMid = "':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/" + token + "/image/"
+    chEnd = lambda col :"?window=0,10000'_'opacity':0.42_'color':" + str(col) + "}"
+    
+    chs = ["'" + ch + chMid + ch + chEnd(cl) for ch, cl in zip(channels, col)]
+        
+    sep = "_"
+    sep = sep.join(chs)
+
+    out = bSt + sep + bEnd
+    return(out)
+
+
 #def cube(L, bf, TOKEN, channels):
 def cube(d):
     L = d['l'] 
