@@ -8,7 +8,6 @@
 #
 import argparse
 import math
-import svgwrite
 from intern.remote.boss import BossRemote
 from intern.resource.boss.resource import *
 import configparser
@@ -43,7 +42,6 @@ def cube(D):
     x_rng = [D['x']-BF, D['x']+BF+1] 
     y_rng = [D['y']-BF, D['y']+BF+1] 
     z_rng = [D['z']-BF, D['z']+BF+1]
-    CHAN_NAME = D['CHAN_NAME']
     COLL_NAME = D['COLL_NAME']
     EXP_NAME = D['EXP_NAME']
     res = D['res']
@@ -58,32 +56,43 @@ def cube(D):
     #intern
     rem2 = BossRemote(CONFIG_FILE)
 
-    ch_rsc = ChannelResource(CHAN_NAME,COLL_NAME,EXP_NAME,'image',datatype='uint16')
-    ### Get cube and transpose to X, Y, Z order
-    data = np.transpose(rem2.get_cutout(ch_rsc, res, x_rng, y_rng, z_rng), axes=(2,1,0))
+    cubeCh = []
+    jchan = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a', 'DAPI_5b',
+            'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4', 'Gephyrin_1',
+            'GFP_5b', 'GluR1_5a', 'GluR2_6', 'GluR4_7', 'NR2A_2',
+            'NR2B_4', 'PSD25_2', 'PV25_1', 'Synapsin1_3',
+            'Synaptopodin_6', 'vGAT_3', 'vGluT1_3', 'vGluT2_2', 'YFP_1']
 
-    return(data)
+    for ch in jchan:
+        ch_rsc = ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint16')
+        ### Get cube and transpose to X, Y, Z order
+        data = rem2.get_cutout(ch_rsc, res, x_rng, y_rng, z_rng)
+        #data = np.transpose(data, axes=(2,1,0)
+        cubeCh.append(data)
+
+    out = np.asarray(cubeCh)
+    print([D['x'], D['y'], D['z']]) ##DEBUG
+    sys.stdout.flush() ##DEBUG
+    return(out)
 
 
 def test():
+    COLL_NAME  = 'weiler14'
+    EXP_NAME  = 'Ex2R18C1'
+    COORD_FRAME  = 'weiler14_Ex2R18C1' 
+    LOCATIONS_FILE = 'locationTest.csv'
+    BF = 5
+    CONFIG_FILE = 'config.ini'
     D = {'config': 'config.ini', 
          'x': 605,
          'y': 603,
          'z': 15,
          'bf': 3,
          'res': 0,
-         'CHAN_NAME': 'DAPI_1',
+         'CHAN_NAME': ['DAPI_1', 'DAPI_2'],
          'COLL_NAME': 'weiler14',
          'EXP_NAME' : 'Ex2R18C1',
          'COORD_FRAME': 'weiler14_Ex2R18C1'}
-
-    out = cube(D)
-    print(out)
-    return(out)
-
-
-def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS_FILE, BF = 5, 
-        num_threads = 4, CONFIG_FILE= 'config.ini'):
 
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
@@ -94,8 +103,27 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS_FILE, BF = 5,
     
     #intern
     rem1 = BossRemote(CONFIG_FILE)
+    ch_list = rem1.list_channels(COLL_NAME, EXP_NAME)
+    out = cube(D)
+    print(out)
+    print(ch_list)
+    return(out)
 
-    L = genfromtxt(LOCATIONS_FILE, delimiter=',', skip_header = 0).tolist()
+
+def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5, 
+        num_threads = 4, CONFIG_FILE= 'config.ini'):
+
+    L = LOCATIONS
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE)
+    TOKEN = config['Default']['token']
+    boss_url = ''.join( ( config['Default']['protocol'],'://',config['Default']['host'],'/v1/' ) )
+    #print(boss_url)
+    #'https://api.boss.neurodata.io/v1/'
+    
+    #intern
+    rem1 = BossRemote(CONFIG_FILE)
+
     res=0
 
     coll_rsc = CollectionResource(COLL_NAME)
@@ -104,28 +132,26 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS_FILE, BF = 5,
     
     ch_list = rem1.list_channels(COLL_NAME, EXP_NAME)
 
-    L = genfromtxt(LOCATIONS_FILE, delimiter=',', skip_header = 0).tolist()
-
     di = [] 
 
-    for ch in ch_list:
-        for a in range(len(L)):
-            di.append({'config': CONFIG_FILE, 
-                'COLL_NAME': COLL_NAME, 
-                'EXP_NAME': EXP_NAME,
-                'COORD_FRAME': COORD_FRAME,
-                'CHAN_NAME': ch,
-                'res': 0, 
-                'x': int(L[a][0]), 
-                'y': int(L[a][1]), 
-                'z': int(L[a][2]),
-                'bf': int(BF)
-                })
+    for a in range(len(L)):
+        di.append({'config': CONFIG_FILE, 
+            'COLL_NAME': COLL_NAME, 
+            'EXP_NAME': EXP_NAME,
+            'COORD_FRAME': COORD_FRAME,
+            'CHAN_NAME': ch_list,
+            'res': 0, 
+            'x': int(L[a][0]), 
+            'y': int(L[a][1]), 
+            'z': int(L[a][2]),
+            'bf': int(BF)
+            })
 
     with ThreadPool(num_threads) as tp:
         out = tp.map(cube, di)
 
-    return(out)
+    outb = np.asarray(out)
+    return(outb)
 
 
     
@@ -139,20 +165,44 @@ def mainOUT(TOKEN,OUTPUT, out, L):
 
 if __name__ == '__main__':
 
-    COLL_NAME  = 'weiler14'
-    EXP_NAME  = 'Ex2R18C1'
-    COORD_FRAME  = 'weiler14_Ex2R18C1' 
-    LOCATIONS_FILE = 'locationTest.csv'
-    BF = 5
-    CONFIG_FILE = 'config.ini'
+    parser = argparse.ArgumentParser(description = 
+        'Download synapse cubes using the BOSS')
+    parser.add_argument('-C', help='Valid collection id',
+            type = str, metavar='C', default='weiler14')
+    parser.add_argument('-E', help='Valid experiment id',
+            type = str, metavar='E', default='Ex2R18C1')
+    parser.add_argument('-F', help='valid coordinate frame', 
+            type = str, metavar='F', default='weiler14_Ex2R18C1')
+    parser.add_argument('-B', help='integer buffer around center',
+            type = str, metavar='B', default=5)
+    parser.add_argument('-L', help='csv file of locations '
+            'in xyz order', type = str, metavar='L', required=True)
+    parser.add_argument('-O', help='output filename',
+            type = str, metavar='O', required=True)
+    parser.add_argument('--con', help='user config file for BOSS'
+            'authentication', type = str, metavar='con', required=True)
+    
+    args = parser.parse_args()
 
-    #print(test())
-    cubes = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS_FILE, BF = 5,
-            num_threads = 4, CONFIG_FILE= 'config.ini')
+    COLL_NAME      = args.C
+    EXP_NAME       = args.E
+    COORD_FRAME    = args.F
+    LOCATIONS_FILE = args.L 
+    BF             = args.B
+    OUTPUT         = args.O
+    CONFIG_FILE    = args.con
 
-    L = genfromtxt(LOCATIONS_FILE, delimiter=',', skip_header = 0).tolist()
-    mainOUT('weiler14_Ex2R18C1', 'tmp', cubes, L)
-    print(cubes[0])
+    LOCATIONS = genfromtxt(LOCATIONS_FILE, delimiter=',', skip_header = 0).tolist()
+
+    cubes = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
+            num_threads = 12, CONFIG_FILE= 'config.ini')
+
+    xyzcn = np.transpose(cubes, axes=(4,3,2,1,0))
+
+    print("Cube data has been transposed to x y z channel sample")
+    print('Saving data')
+    mainOUT(COORD_FRAME, OUTPUT, xyzcn, LOCATIONS)
+    print("Done")
 
 
 

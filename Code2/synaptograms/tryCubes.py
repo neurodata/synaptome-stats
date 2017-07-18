@@ -13,18 +13,16 @@ import h5py
 import ndio
 import ndio.remote.neurodata as neurodata
 
-nd = neurodata("synaptomes.neurodata.io")
-
 def chan(TOKEN):
-    nd = neurodata("synaptomes.neurodata.io")
-    #nd = neurodata()
+    #nd = neurodata("synaptomes.neurodata.io")
+    nd = neurodata()
     ### Pull channel names
     channels = nd.get_channels(TOKEN)
     
     ## Filter channels corresponding to images only
     chan = []
     for key in channels:
-        if channels[key]["channel_type"] == "image":
+        if channels[key]["channel_type"] == "image" or channels[key]["channel_type"] == "oldchannel" :
             chan.append(key)
     
     columnNames = [str(key) for key in chan]
@@ -60,6 +58,7 @@ def links(token, loc, channels=None, col=None):
 
 #def cube(L, bf, TOKEN, channels):
 def cube(d):
+    nd = neurodata()
     L = d['l'] 
     bf = int(d['bf'])
     TOKEN =d['token'] 
@@ -119,48 +118,68 @@ def cubeK15(d):
     return(ret)
 
 
-def main(n, TOKEN, INPUT, BF):
+def cubeEx10R55(d):
 
-    loc = genfromtxt(INPUT, delimiter=',', skip_header = 1).tolist()
-    L = np.around(
-          np.asarray(loc), decimals = 0).astype(np.int32)[...,0:3]
+    channels = ['Synapsin1_2', 'vGluT1_3', 'vGluT2_2', 'PSD95_1',
+            'GluR1_4', 'GluR2_8', 'GluR4_8', 'NR2A_1', 'NR2B_3',
+            'Synaptopodin_6', 'GABAARa1_7', 'GAD2_3', 'Gephyrin_2',
+            'PV25_5', 'vGAT_4', 'vGAT_5', 'vGAT_6', 'GFP_4', 'YFP_1',
+            'Arc_5', 'Calbindin_7', 'DAPI_1', 'DAPI_2', 'DAPI_3',
+            'DAPI_4', 'DAPI_5', 'DAPI_6', 'DAPI_7', 'DAPI_8' ]
 
-    di = []
-    for a in range(len(L)):
-        di.append({'l' : L[a], 'bf': BF})
+    ## The default channel argument is a specific 
+    ## channel order to make downstream analysis easier.
 
-    with Pool(n) as p:
-        out = p.map(cubeK15, di)
+    di = {
+         "l": d['l'], 
+         "bf":d['bf'], 
+         "token":"Ex10R55",
+         "channels":channels
+         }
 
-    arOut = {
-            "cubes": np.asarray(out, dtype = np.int32), 
-            "loc"  : L
-            }
-
-    #return(np.asarray(out))
-    return(arOut)
+    ret = cube(di)
+    return(ret)
 
 
 
 def test():
-    n = 5
+    import sys
+    import os
+    import itertools
+    from functools import partial
+    from multiprocessing import Pool
+    from multiprocessing import cpu_count
+    import csv
+    import datetime
+    import numpy as np
+    from numpy import genfromtxt
+    import h5py
+    import ndio
+    import ndio.remote.neurodata as neurodata
+    nd = neurodata()
+
+    n = 4
     ## input parameters
-    TOKEN = "kristina15"
-    INPUT = "c1121.csv"
+    TOKEN = "Ex10R55"
+    INPUT = "exTMP.csv"
     OUTPUT = "zooOUTPUT"
     BF = 5
 
-    nd = neurodata("synaptomes.neurodata.io")
-    n = 5
-
     ## Get cubes and return as np.array
-    channels = ["synapsinR_7thA", "synapsinGP_5thA", "VGluT1_3rdA", 
-         "VGluT1_8thA", "VGluT2_2ndA", "psd_8thA", "GluR2_2ndA",
-         "NMDAR1_6thA", "NR2B_9thA", "NOS_9thA", "Synpod_3rdA",
-         "GAD_6thA", "VGAT_5thA", "PV_1stA", "gephyrin_1stA",
-         "GABARa1_4thA", "GABABR1_3rdA", "VGluT3_1stA", "CR1_2ndA",
-         "TH_5thA", "VAChT_4thA", "tubulin_8thA", "dapi_1stA"]
+    #channels = ["synapsinR_7thA", "synapsinGP_5thA", "VGluT1_3rdA", 
+    #     "VGluT1_8thA", "VGluT2_2ndA", "psd_8thA", "GluR2_2ndA",
+    #     "NMDAR1_6thA", "NR2B_9thA", "NOS_9thA", "Synpod_3rdA",
+    #     "GAD_6thA", "VGAT_5thA", "PV_1stA", "gephyrin_1stA",
+    #     "GABARa1_4thA", "GABABR1_3rdA", "VGluT3_1stA", "CR1_2ndA",
+    #     "TH_5thA", "VAChT_4thA", "tubulin_8thA", "dapi_1stA"]
 
+    # Weiler channels
+    channels = ['Synapsin1_2', 'vGluT1_3', 'vGluT2_2', 'PSD95_1',
+            'GluR1_4', 'GluR2_8', 'GluR4_8', 'NR2A_1', 'NR2B_3',
+            'Synaptopodin_6', 'GABAARa1_7', 'GAD2_3', 'Gephyrin_2',
+            'PV25_5', 'vGAT_4', 'vGAT_5', 'vGAT_6', 'GFP_4', 'YFP_1',
+            'Arc_5', 'Calbindin_7', 'DAPI_1', 'DAPI_2', 'DAPI_3',
+            'DAPI_4', 'DAPI_5', 'DAPI_6', 'DAPI_7', 'DAPI_8' ]
     out = main(n, TOKEN, INPUT, BF)
 
     ## Save data
@@ -182,6 +201,28 @@ def chans():
          "TH_5thA", "VAChT_4thA", "tubulin_8thA", "dapi_1stA"]
     return(channels)
 
+def main(n, TOKEN, INPUT, BF):
+
+    loc = genfromtxt(INPUT, delimiter=',', skip_header = 0).tolist()
+    L = np.around(
+          np.asarray(loc), decimals = 0).astype(np.int32)[...,0:3]
+
+    di = []
+    for a in range(len(L)):
+        di.append({'l' : L[a], 'bf': BF})
+
+    with Pool(n) as p:
+        #out = p.map(cubeK15, di)
+        out = p.map(cubeEx10R55, di)
+
+    arOut = {
+            "cubes": np.asarray(out, dtype = np.int32), 
+            "loc"  : L
+            }
+
+    #return(np.asarray(out))
+    return(arOut)
+
 
 if __name__ == '__main__':
 
@@ -190,12 +231,12 @@ if __name__ == '__main__':
     BF    = sys.argv[3] ## Buffer size around each center point
     OUTPUT= sys.argv[4] ## A base name for output
 
-    nd = neurodata("synaptomes.neurodata.io")
+    #nd = neurodata("synaptomes.neurodata.io")
     #nd = neurodata() 
 
     ## Number of processes to use
     #n = multiprocessing.cpu_count()
-    n = 5
+    n = 4
 
     ## Get cubes and return as np.array
     channels = ["synapsinR_7thA", "synapsinGP_5thA", "VGluT1_3rdA", 
