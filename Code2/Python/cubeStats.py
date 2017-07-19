@@ -167,11 +167,13 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
     return(outb)
 
 def testH5():
-    a = np.arange(100).reshape(2,5,10)
-    f = h5py.File("hdf5TEST_2_5_10.h5", 'w')
-    f.create_dataset("test", data = a)
+    a = np.arange(300).reshape(15, 2, 10)
+    f = h5py.File("hdf5TEST_15_2_10.h5", 'w')
+    dset = f.create_dataset("test", data = a)
+    print(dset.shape())
+    print(dset.dims())
     f.close()
-
+    
     
 def mainOUT(TOKEN,OUTPUT, out, L):
     h5f0OUT = h5py.File(OUTPUT+".h5", 'w')
@@ -215,7 +217,7 @@ if __name__ == '__main__':
     cubes = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = BF,
                  CHAN_NAMES=None, num_threads = 12, CONFIG_FILE= CONFIG_FILE)
 
-    print("Cube data is formatted in `x y z channel sample` order.")
+    #print("Cube data is formatted in `x y z channel sample` order.")
     print('Saving data')
     mainOUT(COORD_FRAME, OUTPUT, cubes, LOCATIONS)
     print("Done")
