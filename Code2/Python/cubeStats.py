@@ -38,12 +38,15 @@ def cube(D):
 
     CONFIG_FILE = D['config']
 
-    BF = D['bf']
-    x_rng = [D['x']-BF, D['x']+BF+1] 
-    y_rng = [D['y']-BF, D['y']+BF+1] 
-    z_rng = [D['z']-BF, D['z']+BF+1]
+    BFx = D['bf'] ## FIX THIS
+    BFy = D['bf'] ## FIX THIS
+    BFz = D['bf'] ## FIX THIS
+    x_rng = [D['x']-BFx, D['x']+BFx+1] 
+    y_rng = [D['y']-BFy, D['y']+BFy+1] 
+    z_rng = [D['z']-BFz, D['z']+BFz+1]
     COLL_NAME = D['COLL_NAME']
     EXP_NAME = D['EXP_NAME']
+    CHAN_NAMES = D['CHAN_NAMES']
     res = D['res']
 
     config = configparser.ConfigParser()
@@ -57,17 +60,19 @@ def cube(D):
     rem2 = BossRemote(CONFIG_FILE)
 
     cubeCh = []
-    jchan = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a', 'DAPI_5b',
-            'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4', 'Gephyrin_1',
-            'GFP_5b', 'GluR1_5a', 'GluR2_6', 'GluR4_7', 'NR2A_2',
-            'NR2B_4', 'PSD25_2', 'PV25_1', 'Synapsin1_3',
-            'Synaptopodin_6', 'vGAT_3', 'vGluT1_3', 'vGluT2_2', 'YFP_1']
 
-    for ch in jchan:
+    for ch in CHAN_NAMES:
         ch_rsc = ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint16')
         ### Get cube and transpose to X, Y, Z order
         data = rem2.get_cutout(ch_rsc, res, x_rng, y_rng, z_rng)
+        
         #data = np.transpose(data, axes=(2,1,0)
+        #outArray = np.reshape(data, 
+        #        (z_rng[1] - z_rng[0], 
+        #         y_rng[1] - y_rng[0], 
+        #         x_rng[1] - x_rng[0]), 
+        #        order = 'C')
+
         cubeCh.append(data)
 
     out = np.asarray(cubeCh)
@@ -83,16 +88,9 @@ def test():
     LOCATIONS_FILE = 'locationTest.csv'
     BF = 5
     CONFIG_FILE = 'config.ini'
-    D = {'config': 'config.ini', 
-         'x': 605,
-         'y': 603,
-         'z': 15,
-         'bf': 3,
-         'res': 0,
-         'CHAN_NAME': ['DAPI_1', 'DAPI_2'],
-         'COLL_NAME': 'weiler14',
-         'EXP_NAME' : 'Ex2R18C1',
-         'COORD_FRAME': 'weiler14_Ex2R18C1'}
+
+    CHAN_NAMES= ['Synapsin1_3', 'Synaptopodin_6', 'vGluT1_3'],
+    LOCATIONS = [[619, 242, 21], [1150, 1995, 21]]
 
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
@@ -103,15 +101,24 @@ def test():
     
     #intern
     rem1 = BossRemote(CONFIG_FILE)
-    ch_list = rem1.list_channels(COLL_NAME, EXP_NAME)
-    out = cube(D)
-    print(out)
-    print(ch_list)
-    return(out)
+    #ch_list = rem1.list_channels(COLL_NAME, EXP_NAME)
+    #out = cube(D)
+
+    cubes = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = BF,
+            num_threads = 4, CONFIG_FILE=CONFIG_FILE)
+
+    #out = np.transpose(cubes, axes=(4,3,2,1,0))
+
+    #print("Cube data has been transposed to x y z channel sample") ## DEBUG
+    print('Saving data')
+    mainOUT(COORD_FRAME, "jtest_output", cubes, LOCATIONS)
+    print("Done")
+    return(cubes)
 
 
-def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5, 
-        num_threads = 4, CONFIG_FILE= 'config.ini'):
+
+def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
+         CHAN_NAMES=None, num_threads = 4, CONFIG_FILE= 'config.ini'):
 
     L = LOCATIONS
     config = configparser.ConfigParser()
@@ -130,7 +137,13 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
     exp_rsc = ExperimentResource(COLL_NAME,EXP_NAME,COORD_FRAME)
 
     
-    ch_list = rem1.list_channels(COLL_NAME, EXP_NAME)
+    if CHAN_NAMES is None:
+        #CHAN_NAMES = rem1.list_channels(COLL_NAME, EXP_NAME)
+        CHAN_NAMES = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a', 'DAPI_5b',
+                      'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4', 'Gephyrin_1',
+                      'GFP_5b', 'GluR1_5a', 'GluR2_6', 'GluR4_7', 'NR2A_2',
+                      'NR2B_4', 'PSD25_2', 'PV25_1', 'Synapsin1_3',
+                      'Synaptopodin_6', 'vGAT_3', 'vGluT1_3', 'vGluT2_2', 'YFP_1']
 
     di = [] 
 
@@ -139,7 +152,7 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
             'COLL_NAME': COLL_NAME, 
             'EXP_NAME': EXP_NAME,
             'COORD_FRAME': COORD_FRAME,
-            'CHAN_NAME': ch_list,
+            'CHAN_NAMES': CHAN_NAMES,
             'res': 0, 
             'x': int(L[a][0]), 
             'y': int(L[a][1]), 
@@ -153,6 +166,11 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
     outb = np.asarray(out)
     return(outb)
 
+def testH5():
+    a = np.arange(100).reshape(2,5,10)
+    f = h5py.File("hdf5TEST_2_5_10.h5", 'w')
+    f.create_dataset("test", data = a)
+    f.close()
 
     
 def mainOUT(TOKEN,OUTPUT, out, L):
@@ -194,21 +212,12 @@ if __name__ == '__main__':
 
     LOCATIONS = genfromtxt(LOCATIONS_FILE, delimiter=',', skip_header = 0).tolist()
 
-    cubes = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
-            num_threads = 12, CONFIG_FILE= 'config.ini')
+    cubes = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = BF,
+                 CHAN_NAMES=None, num_threads = 12, CONFIG_FILE= CONFIG_FILE)
 
-    xyzcn = np.transpose(cubes, axes=(4,3,2,1,0))
-
-    print("Cube data has been transposed to x y z channel sample")
+    print("Cube data is formatted in `x y z channel sample` order.")
     print('Saving data')
-    mainOUT(COORD_FRAME, OUTPUT, xyzcn, LOCATIONS)
+    mainOUT(COORD_FRAME, OUTPUT, cubes, LOCATIONS)
     print("Done")
-
-
-
-
-
-
-
 
 
