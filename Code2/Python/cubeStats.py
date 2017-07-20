@@ -32,8 +32,6 @@ import csv
 import datetime
 
 
-
-
 def cube(D):
 
     CONFIG_FILE = D['config']
@@ -63,16 +61,8 @@ def cube(D):
 
     for ch in CHAN_NAMES:
         ch_rsc = ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint16')
-        ### Get cube and transpose to X, Y, Z order
+        ### Get cube. NB: it comes out in ZYX order.
         data = rem2.get_cutout(ch_rsc, res, x_rng, y_rng, z_rng)
-        
-        #data = np.transpose(data, axes=(2,1,0)
-        #outArray = np.reshape(data, 
-        #        (z_rng[1] - z_rng[0], 
-        #         y_rng[1] - y_rng[0], 
-        #         x_rng[1] - x_rng[0]), 
-        #        order = 'C')
-
         cubeCh.append(data)
 
     out = np.asarray(cubeCh)
@@ -135,10 +125,10 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
 
     coll_rsc = CollectionResource(COLL_NAME)
     exp_rsc = ExperimentResource(COLL_NAME,EXP_NAME,COORD_FRAME)
-
     
     if CHAN_NAMES is None:
         #CHAN_NAMES = rem1.list_channels(COLL_NAME, EXP_NAME)
+        ## Hard coded channel order for Ex2R18C1
         CHAN_NAMES = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a', 'DAPI_5b',
                       'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4', 'Gephyrin_1',
                       'GFP_5b', 'GluR1_5a', 'GluR2_6', 'GluR4_7', 'NR2A_2',

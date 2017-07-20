@@ -1,0 +1,28 @@
+#!/bin/bash -l
+
+#SBATCH
+#SBATCH --job-name=k15_1e4
+#SBATCH --time=4-04:0:0
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=48
+#SBATCH --exclusive
+#SBATCH --partition=lrgmem
+#SBATCH --mail-type=end
+#SBATCH --mail-user=jpatsol1@jhu.edu
+
+
+ml python/3.6.0
+
+TOKEN1="kristina15"
+INPUT="locationTest5.csv"
+OUTPUT1="test.h5"
+BF="5" ## Buffer size around each center point
+
+echo $TOKEN1
+echo $INPUT
+echo $OUTPUT1
+echo $BF
+
+##python tryF*y <token> <input> <output> <buffer> 
+time python3 tryCubes.py $TOKEN1 $INPUT $OUTPUT1 $BF
+
