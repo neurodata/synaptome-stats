@@ -19,20 +19,15 @@ for(i in 1:length(dir0)){
 
   for(j in 1:length(subd)){
     d0[[length(d0)+1]] <- 
-      as.data.table(cbind(read.csv(subd[[j]]), Ex = Ex, Q = vol[[j]]))
+      data.table(cbind(read.csv(subd[[j]]), Ex = Ex, Q = vol[[j]], stringsAsFactors=FALSE), stringsAsFactors=FALSE)
   }
 }
 
 tmp <- Reduce("rbind", d0)
-isfac <- function(x) if(class(x) == 'factor') {
-    as.character(x) 
-  } else {
-    x
-  }
-DFull <- tmp[, lapply(.SD, isfac)]
 
-ExLev <- levels(DFull$Ex)
-Qlev <- levels(DFull$Q)
+DFull <- tmp
+ExLev <- DFull$Ex
+Qlev <- DFull$Q
 
 fname <- "AnishLocationsFull.h5"
 clean <- h5createFile(fname)
@@ -44,26 +39,34 @@ h5write(Qlev, fname, "Levels/Q")
 h5ls(fname)
 H5close()
 
-ex2r18c1 <- DFull[Ex == "Ex10R55" & col > 4 & row > 4 & z > 4 & col < max(col)-5 & row < max(row)-5 & z < max(z) - 4,]
-ex2r18c1[, Ex := NULL]
 
-ex2r18c1[, `:=`(col = round(col), # rounding to nearest integer
+ex10r55 <- DFull[Ex == "Ex10R55",]
+ex10r55[, Ex := NULL]
+
+ex10r55[, `:=`(col = round(col), # rounding to nearest integer
                row = round(row),
                z   = round(z))]
 
 fname <- "Ex10R55_BufferedPM5.h5"
 clean <- h5createFile(fname)
 #clean <- h5createGroup(fname, "Locations")
-h5write(ex2r18c1, fname, "Locations")
+h5write(ex10r55, fname, "Locations")
 h5ls(fname)
 H5close()
 
 set.seed(317)
-s <- sample(nrow(ex2r18c1))
-write.csv(ex2r18c1[s,1:3], file = "ex2r18c1_buffered_seed317.csv", row.names = FALSE)
+s <- sample(nrow(ex10r55))
+write.csv(ex10r55[s,1:3], file = "ex10r55_buffered_seed317.csv", row.names = FALSE)
 
 
-ex2r18c1 <- DFull[Ex == "Ex2R18C1" & col > 4 & row > 4 & z > 4 & col < max(col)-5 & row < max(row)-5 & z < max(z) - 4,]
+### Area extent of experiment Ex2R18C1 given by 
+### http://openconnecto.me/ocp/ca/Ex2R18C1/info/
+### is x: [0,2106), y: [0,3236), z: [0,42)
+ex2r18c1 <- DFull[Ex == "Ex2R18C1", 
+                  x > 5 && x < (2106-(5+1)) &&
+                  y > 5 && y < (3236-(5+1)) &&
+                  z > 5 && z < (42-(5+1))]
+
 ex2r18c1[, Ex := NULL]
 
 ex2r18c1[, `:=`(col = round(col), # rounding to nearest integer
