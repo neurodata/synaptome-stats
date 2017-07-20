@@ -62,10 +62,10 @@ write.csv(ex10r55[s,1:3], file = "ex10r55_buffered_seed317.csv", row.names = FAL
 ### Area extent of experiment Ex2R18C1 given by 
 ### http://openconnecto.me/ocp/ca/Ex2R18C1/info/
 ### is x: [0,2106), y: [0,3236), z: [0,42)
-ex2r18c1 <- DFull[Ex == "Ex2R18C1", 
-                  x > 5 && x < (2106-(5+1)) &&
-                  y > 5 && y < (3236-(5+1)) &&
-                  z > 5 && z < (42-(5+1))]
+ex2r18c1 <- DFull[Ex == "Ex2R18C1" & 
+                  col > 5 & col < (2106-(5+1)) &
+                  row > 5 & row < (3236-(5+1)) &
+                  z > 5 & z < (42-(5+1)), ]
 
 ex2r18c1[, Ex := NULL]
 
