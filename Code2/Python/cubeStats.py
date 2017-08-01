@@ -36,6 +36,8 @@ import morton
 def getCube(di):
     data = di['rem'].get_cutout(di['ch_rsc'], di['res'], di['xrng'],
           di['yrng'] ,di['zrng'])
+    print(di['loc']) #DEBUG
+    sys.stdout.flush() #DEBUG
     return(data)
 
 def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
@@ -86,7 +88,10 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
    
         with ThreadPool(num_threads) as tp:
             out = tp.map(getCube, di)
+            print(ch) ##DEBUG
+            sys.stdout.flush() #DEBUG
         ChanList.append(np.asarray(out))
+
 
     outArray = np.asarray(ChanList)
     return(outArray, loc)
