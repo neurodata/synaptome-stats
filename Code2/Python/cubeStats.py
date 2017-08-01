@@ -30,97 +30,31 @@ from multiprocessing.dummy import Pool as ThreadPool
 from multiprocessing import cpu_count
 import csv
 import datetime
+import morton
 
 
-
-
-def cube(D):
-
-    CONFIG_FILE = D['config']
-
-    BFx = D['bf'] ## FIX THIS
-    BFy = D['bf'] ## FIX THIS
-    BFz = D['bf'] ## FIX THIS
-    x_rng = [D['x']-BFx, D['x']+BFx+1] 
-    y_rng = [D['y']-BFy, D['y']+BFy+1] 
-    z_rng = [D['z']-BFz, D['z']+BFz+1]
-    COLL_NAME = D['COLL_NAME']
-    EXP_NAME = D['EXP_NAME']
-    CHAN_NAMES = D['CHAN_NAMES']
-    res = D['res']
-
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
-    TOKEN = config['Default']['token']
-    boss_url = ''.join( ( config['Default']['protocol'],'://',config['Default']['host'],'/v1/' ) )
-    #print(boss_url)
-    #'https://api.boss.neurodata.io/v1/'
-    
-    #intern
-    rem2 = BossRemote(CONFIG_FILE)
-
-    cubeCh = []
-
-    for ch in CHAN_NAMES:
-        ch_rsc = ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint16')
-        ### Get cube and transpose to X, Y, Z order
-        data = rem2.get_cutout(ch_rsc, res, x_rng, y_rng, z_rng)
-        
-        #data = np.transpose(data, axes=(2,1,0)
-        #outArray = np.reshape(data, 
-        #        (z_rng[1] - z_rng[0], 
-        #         y_rng[1] - y_rng[0], 
-        #         x_rng[1] - x_rng[0]), 
-        #        order = 'C')
-
-        cubeCh.append(data)
-
-    out = np.asarray(cubeCh)
-    print([D['x'], D['y'], D['z']]) ##DEBUG
-    sys.stdout.flush() ##DEBUG
-    return(out)
-
-
-def test():
-    COLL_NAME  = 'weiler14'
-    EXP_NAME  = 'Ex2R18C1'
-    COORD_FRAME  = 'weiler14_Ex2R18C1' 
-    LOCATIONS_FILE = 'locationTest.csv'
-    BF = 5
-    CONFIG_FILE = 'config.ini'
-
-    CHAN_NAMES= ['Synapsin1_3', 'Synaptopodin_6', 'vGluT1_3'],
-    LOCATIONS = [[619, 242, 21], [1150, 1995, 21]]
-
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE)
-    TOKEN = config['Default']['token']
-    boss_url = ''.join( ( config['Default']['protocol'],'://',config['Default']['host'],'/v1/' ) )
-    #print(boss_url)
-    #'https://api.boss.neurodata.io/v1/'
-    
-    #intern
-    rem1 = BossRemote(CONFIG_FILE)
-    #ch_list = rem1.list_channels(COLL_NAME, EXP_NAME)
-    #out = cube(D)
-
-    cubes = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = BF,
-            num_threads = 4, CONFIG_FILE=CONFIG_FILE)
-
-    #out = np.transpose(cubes, axes=(4,3,2,1,0))
-
-    #print("Cube data has been transposed to x y z channel sample") ## DEBUG
-    print('Saving data')
-    mainOUT(COORD_FRAME, "jtest_output", cubes, LOCATIONS)
-    print("Done")
-    return(cubes)
-
-
+def getCube(di):
+    data = di['rem'].get_cutout(di['ch_rsc'], di['res'], di['xrng'],
+          di['yrng'] ,di['zrng'])
+    return(data)
 
 def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
          CHAN_NAMES=None, num_threads = 4, CONFIG_FILE= 'config.ini'):
 
-    L = LOCATIONS
+    L = genfromtxt(LOCATIONS,  delimiter=',', skip_header = 0, dtype='int32').tolist()
+    m = morton.Morton(dimensions=3, bits=64)
+    Lzo = sorted([m.pack(L[i][0], L[i][1], L[i][2]) for i in range(len(L))])
+
+    loc = [m.unpack(l) for l in Lzo]
+
+    if CHAN_NAMES is None:
+        CHAN_NAMES = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a',
+                'DAPI_5b', 'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4',
+                'Gephyrin_1', 'GFP_5b', 'GluR1_5a', 'GluR2_6',
+                'GluR4_7', 'NR2A_2', 'NR2B_4', 'PSD25_2', 'PV25_1',
+                'Synapsin1_3', 'Synaptopodin_6', 'vGAT_3', 'vGluT1_3',
+                'vGluT2_2', 'YFP_1']
+
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
     TOKEN = config['Default']['token']
@@ -129,43 +63,54 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
     #'https://api.boss.neurodata.io/v1/'
     
     #intern
-    rem1 = BossRemote(CONFIG_FILE)
+    rem = BossRemote(CONFIG_FILE)
 
-    res=0
+    x_rng = [[x[0]-BF, x[0]+BF+1] for x in loc] 
+    y_rng = [[y[1]-BF, y[1]+BF+1] for y in loc] 
+    z_rng = [[z[2]-BF, z[2]+BF+1] for z in loc]
 
-    coll_rsc = CollectionResource(COLL_NAME)
-    exp_rsc = ExperimentResource(COLL_NAME,EXP_NAME,COORD_FRAME)
+    ChanList = []
+    for ch in CHAN_NAMES:
+        di = [{
+              'rem': rem,
+              'ch_rsc':
+                ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint16'),
+              'ch'  : ch,
+              'res' : 0,
+              'loc' : loc[i],
+              'xrng': x_rng[i],  
+              'yrng': y_rng[i],  
+              'zrng': z_rng[i],  
+              'bf'  : BF 
+             } for i in range(len(loc))]
+   
+        with ThreadPool(num_threads) as tp:
+            out = tp.map(getCube, di)
+        ChanList.append(np.asarray(out))
 
-    
-    if CHAN_NAMES is None:
-        #CHAN_NAMES = rem1.list_channels(COLL_NAME, EXP_NAME)
-        CHAN_NAMES = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a', 'DAPI_5b',
+    outArray = np.asarray(ChanList)
+    return(outArray, loc)
+
+def driveMain():
+    COLL_NAME      = 'weiler14' 
+    EXP_NAME       = 'Ex2R18C1' 
+    COORD_FRAME    = 'weiler14_Ex2R18C1'
+    LOCATIONS_FILE = 'testloc.csv'
+    BF             = 5
+    OUTPUT         = 'qwerty'
+    CONFIG_FILE    = 'config.ini'
+
+    CHAN_NAMES = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a', 'DAPI_5b',
                       'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4', 'Gephyrin_1',
                       'GFP_5b', 'GluR1_5a', 'GluR2_6', 'GluR4_7', 'NR2A_2',
                       'NR2B_4', 'PSD25_2', 'PV25_1', 'Synapsin1_3',
                       'Synaptopodin_6', 'vGAT_3', 'vGluT1_3', 'vGluT2_2', 'YFP_1']
 
-    di = [] 
-
-    for a in range(len(L)):
-        di.append({'config': CONFIG_FILE, 
-            'COLL_NAME': COLL_NAME, 
-            'EXP_NAME': EXP_NAME,
-            'COORD_FRAME': COORD_FRAME,
-            'CHAN_NAMES': CHAN_NAMES,
-            'res': 0, 
-            'x': int(L[a][0]), 
-            'y': int(L[a][1]), 
-            'z': int(L[a][2]),
-            'bf': int(BF)
-            })
-
-    with ThreadPool(num_threads) as tp:
-        out = tp.map(cube, di)
-
-    outb = np.asarray(out)
-    return(outb)
-
+    tmp, locs = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS_FILE, BF = 5,
+         CHAN_NAMES=CHAN_NAMES, num_threads = 4, CONFIG_FILE= 'config.ini')
+    return(tmp)
+    
+    
 def testH5():
     a = np.arange(300).reshape(15, 2, 10)
     f = h5py.File("hdf5TEST_15_2_10.h5", 'w')
@@ -173,7 +118,7 @@ def testH5():
     print(dset.shape())
     print(dset.dims())
     f.close()
-    
+   
     
 def mainOUT(TOKEN,OUTPUT, out, L):
     h5f0OUT = h5py.File(OUTPUT+".h5", 'w')
@@ -198,7 +143,8 @@ if __name__ == '__main__':
     parser.add_argument('-L', help='csv file of locations '
             'in xyz order', type = str, metavar='L', required=True)
     parser.add_argument('-O', help='output filename',
-            type = str, metavar='O', required=True)
+            type = str, metavar='O', required=True,
+            default = 'output')
     parser.add_argument('--con', help='user config file for BOSS'
             'authentication', type = str, metavar='con', required=True)
     
@@ -212,14 +158,18 @@ if __name__ == '__main__':
     OUTPUT         = args.O
     CONFIG_FILE    = args.con
 
-    LOCATIONS = genfromtxt(LOCATIONS_FILE, delimiter=',', skip_header = 0).tolist()
+    CHAN_NAMES = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a', 'DAPI_5b',
+                      'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4', 'Gephyrin_1',
+                      'GFP_5b', 'GluR1_5a', 'GluR2_6', 'GluR4_7', 'NR2A_2',
+                      'NR2B_4', 'PSD25_2', 'PV25_1', 'Synapsin1_3',
+                      'Synaptopodin_6', 'vGAT_3', 'vGluT1_3', 'vGluT2_2', 'YFP_1']
 
-    cubes = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = BF,
-                 CHAN_NAMES=None, num_threads = 12, CONFIG_FILE= CONFIG_FILE)
+    cubes, locs = main(COLL_NAME, EXP_NAME, COORD_FRAME, 
+                       LOCATIONS_FILE, BF = BF, 
+                       CHAN_NAMES=CHAN_NAMES, 
+                       num_threads = 4, CONFIG_FILE= CONFIG_FILE)
 
-    #print("Cube data is formatted in `x y z channel sample` order.")
-    print('Saving data')
-    mainOUT(COORD_FRAME, OUTPUT, cubes, LOCATIONS)
-    print("Done")
-
+    
+    mainOUT(EXP_NAME, OUTPUT, cubes, locs)
+    print('Done!')
 
