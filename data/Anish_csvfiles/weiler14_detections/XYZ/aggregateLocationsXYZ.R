@@ -54,6 +54,26 @@ h5write(ex10r55, fname, "Locations")
 h5ls(fname)
 H5close()
 
+#######
+h5ls(fname)
+full <- data.table(h5read(fname, name = 'Locations/locs'))
+H5close()
+
+
+ex3r43c1 <- full[Ex == "Ex3R43C1" &
+                  col > 5 & col < (2102-(5+1)) &
+                  row > 5 & row < (3223-(5+1)) &
+                  z > 5 & z < (69-(5+1)), ]
+
+ex3r43c1[, `:=`(col = round(col), # rounding to nearest integer
+               row = round(row),
+               z   = round(z))]
+
+write.csv(ex3r43c1[,1:3], file = "ex3r43c1.csv", row.names = FALSE)
+###
+
+
+
 set.seed(317)
 s <- sample(nrow(ex10r55))
 write.csv(ex10r55[s,1:3], file = "ex10r55_buffered_seed317.csv", row.names = FALSE)

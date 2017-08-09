@@ -32,6 +32,12 @@ import csv
 import datetime
 import morton
 
+def joinCubes():
+
+    return(None)
+
+
+
 
 def getCube(di):
     data = di['rem'].get_cutout(di['ch_rsc'], di['res'], di['xrng'],
@@ -111,11 +117,83 @@ def driveMain():
                       'NR2B_4', 'PSD25_2', 'PV25_1', 'Synapsin1_3',
                       'Synaptopodin_6', 'vGAT_3', 'vGluT1_3', 'vGluT2_2', 'YFP_1']
 
-    tmp, locs = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS_FILE, BF = 5,
+    cubes, locs = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS_FILE, BF = 5,
          CHAN_NAMES=CHAN_NAMES, num_threads = 4, CONFIG_FILE= 'config.ini')
-    return(tmp)
+
+    f0 = F0(cubes)
+    f1 = F1(cubes)
+
+    return(cubes)
+   
+def F0(cube):
+    #f0 = [[np.sum(cubes[i,j,:,:,:]) for j in range(cubes.shape[1])] for i in range(cubes.shape[0])]
+    f0 = np.sum(cube)
+    return(f0)
     
-    
+def F1(cubes):
+    s = cubes.shape
+
+    f1 = [[np.sum(cubes[i,j,:,:,:]) for j in range(cubes.shape[1])] for i in range(cubes.shape[0])]
+    out = f1
+
+    return(out)
+
+
+def distMat2(bf):
+    A = np.reshape(np.array([np.sqrt((i-(bf+1))**2 + (j-(bf+1))**2)
+    for i in range(1, 2*bf+2)
+    for j in range(1, 2*bf+2)]), (2*bf+1, 2*bf+1))
+    A[np.where(A == 0)] = 1
+    return(A)
+
+def distMat3(bf):
+    A = np.reshape(
+        np.array([np.sqrt((i-(bf+1))**2 + (j-(bf+1))**2 + (k-(bf+1))**2)\
+        for i in range(1, 2*bf+2)\
+        for j in range(1, 2*bf+2)\
+        for k in range(1, 2*bf+2)]),(2*bf+1, 2*bf+1, 2*bf+1))
+    #A[np.where(A == 0)] = 1
+    return(A)
+
+
+def f0(cube, bf = 5):
+    c11 = getCubeCenter(cube, bf = 5)
+    d = distMat3(bf = 5)
+    M = np.transpose(np.where(c11 == c11.max()))[0]
+    F0 = np.sum(c11)
+    #F1 = np.sum(c11/(d**2))
+    F = [F0]
+    return(F)
+
+def getCubeCenter(cube, bf):
+    ata = [(i-1)/2 for i in cube.shape]
+    sub = cube[[slice(i - bf, i + bf + 1) for i in ata]]
+    return(sub)
+
+def Fall(cube):
+    c11 = getCubeCenter(cube, bf = 5)
+    d = distMat3(bf = 5)
+    M = np.transpose(np.where(c11 == c11.max()))[0]
+    F0 = np.sum(c11)
+    F1 = np.sum(c11/(d**2))
+    if F0 > 0:
+        F2 = np.sum((c11*d)/F0)
+        F3 = np.sum((c11*(d**2))/F0)
+        F4 = d[np.where(c11 == c11.max())][0]
+        F5 = np.sum(getCube(cube, 2, M))
+        F = [F0, F1, F2, F3, F4, F5]
+    else:
+        F = [F0]
+    return(F)
+
+def F1(cube, bf = 5):
+    c11 = getCubeCenter(cube, bf)
+    d = distMat3(bf)
+    d[np.where(d == 0)] = 1
+    M = np.transpose(np.where(c11 == c11.max()))[0]
+    F1 = np.sum(c11/(d**2))
+    return(F1)
+
 def testH5():
     a = np.arange(300).reshape(15, 2, 10)
     f = h5py.File("hdf5TEST_15_2_10.h5", 'w')
@@ -163,18 +241,16 @@ if __name__ == '__main__':
     OUTPUT         = args.O
     CONFIG_FILE    = args.con
 
-    CHAN_NAMES = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a', 'DAPI_5b',
-                      'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4', 'Gephyrin_1',
-                      'GFP_5b', 'GluR1_5a', 'GluR2_6', 'GluR4_7', 'NR2A_2',
-                      'NR2B_4', 'PSD25_2', 'PV25_1', 'Synapsin1_3',
-                      'Synaptopodin_6', 'vGAT_3', 'vGluT1_3', 'vGluT2_2', 'YFP_1']
+    rem = BossRemote(CONFIG_FILE)
+
+    CHAN_NAMES = rem.list_channels(COLL_NAME, EXP_NAME)
+
 
     cubes, locs = main(COLL_NAME, EXP_NAME, COORD_FRAME, 
                        LOCATIONS_FILE, BF = BF, 
                        CHAN_NAMES=CHAN_NAMES, 
                        num_threads = 4, CONFIG_FILE= CONFIG_FILE)
 
-    
     mainOUT(EXP_NAME, OUTPUT, cubes, locs)
     print('Done!')
 
