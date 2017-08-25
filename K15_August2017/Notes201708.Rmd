@@ -1,0 +1,100 @@
+---
+title: "Synaptome Statistics: August 2017 Notes"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 5
+    fig_width: 5
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, dev = "png")
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+rm(list=ls()); 
+rmarkdown::render("Notes201708.Rmd")
+system("open Notes201708.html")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+### Library calls here.
+require(rmarkdown)
+require(knitr)
+suppressMessages(require(meda))
+```
+
+# Kristina15 
+
+Putative synapse locations were obtained by Anish Simhal.  
+Around each synapse across each channel the sum of pixel intensities within an 11x11x11 cube are calculated to produce a feature vector. 
+These feature vectors are combined into a data matrix.  
+The data matrix is then z-scored before running it through [meda](https://github.com/neurodata-dev/meda). 
+
+We did this for samples of size 1,000 and 10,000. 
+
+The locations used were from the top half of the entire dataset as the
+rest of the locations were still being downloaded.
+
+## Sample size 1,000 (Left) and 10,000 (Right)
+
+### 1-d Heatmap
+| ![](d1heat1k.png "d1heat 1k") | ![](d1heat10k.png "d1heat 10k") |
+|:---:|:---:|
+| 1k    |   10k  |
+
+
+### Location plots
+|![](location1k.png) | ![](location10k.png)|
+|:---:|:---:|
+| 1k    |   10k  |
+
+
+
+### Outliers as given by randomForest
+| ![](outliers1k.png) | ![](outliers10k.png) |
+|:---:|:---:|
+| 1k    |   10k  |
+
+### Correlation Matrix
+| ![](medacor1k.png) | ![](medacor10k.png)   |
+|:---:|:---:|
+| 1k    |   10k  |
+
+### Cumulative Variance with Elbows
+| ![](cumvar1k.png) | ![](cumvar10k.png) |
+|:----:|:----:|
+| 1k     |  10k    |
+
+### Paired Hex-binned plot
+| ![](pairhex1k.png) | ![](pairhex10k.png) |
+|:----:|:----:|
+| 1k     |  10k    |
+
+### Hierarchical GMM Classifications
+| ![](hmc1k.png) | ![](hmc10k.png) |
+|:----:|:----:|
+| 1k     |  10k    |
+
+### Hierarchical GMM Dendrogram
+| ![](dend1k.png) | ![](dend10k.png) |
+|:----:|:----:|
+| 1k     |  10k    |
+
+### Stacked Cluster Means plot
+| ![](stackM1k.png) | ![](stackM10k.png) |
+|:----:|:----:|
+| 1k     |  10k    |
+
+
+### Cluster Means
+![](clusterMeans1k.png) ![](clusterMeans10k.png)
+
+--- 
+---
