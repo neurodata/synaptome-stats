@@ -35,14 +35,14 @@ suppressMessages(require(meda))
 Putative synapse locations were obtained by Anish Simhal.  
 Around each synapse across each channel the sum of pixel intensities within an 11x11x11 cube are calculated to produce a feature vector. 
 These feature vectors are combined into a data matrix.  
-The data matrix is then z-scored before running it through [meda](https://github.com/neurodata-dev/meda). 
+The feature columns of the data matrix are then z-scored before running the matrix through [meda](https://github.com/neurodata-dev/meda). 
 
 We did this for samples of size 1,000 and 10,000. 
 
 The locations used were from the top half of the entire dataset as the
 rest of the locations were still being downloaded.
 
-The sampled locations are avialable to view in the whole volumn can be
+The sampled locations are avialable to view in the whole volume can be
 found here (they are large, > 800 MB): 
 [sample 1e3](http://cis.jhu.edu/~jesse/TRA/August2017/K15_August2017/k15_sample1e3_locations_stack.tif), 
 [sample 1e4](http://cis.jhu.edu/~jesse/TRA/August2017/K15_August2017/k15_sample1e4_locations_stack.tif)
@@ -50,56 +50,56 @@ found here (they are large, > 800 MB):
 ## Sample size 1,000 (Left) and 10,000 (Right)
 
 ### 1-d Heatmap
-| ![](d1heat1k.png "d1heat 1k") | ![](d1heat10k.png "d1heat 10k") |
+| ![](samp1k/d1heat1k.png "d1heat 1k") | ![](samp10k/d1heat10k.png "d1heat 10k") |
 |:---:|:---:|
 | 1k    |   10k  |
 
 
 ### Location plots
-|![](location1k.png) | ![](location10k.png)|
+|![](samp1k/location1k.png) | ![](samp10k/location10k.png)|
 |:---:|:---:|
 | 1k    |   10k  |
 
 
 
 ### Outliers as given by randomForest
-| ![](outliers1k.png) | ![](outliers10k.png) |
+| ![](samp1k/outliers1k.png) | ![](samp10k/outliers10k.png) |
 |:---:|:---:|
 | 1k    |   10k  |
 
 ### Correlation Matrix
-| ![](medacor1k.png) | ![](medacor10k.png)   |
+| ![](samp1k/medacor1k.png) | ![](samp10k/medacor10k.png)   |
 |:---:|:---:|
 | 1k    |   10k  |
 
 ### Cumulative Variance with Elbows
-| ![](cumvar1k.png) | ![](cumvar10k.png) |
+| ![](samp1k/cumvar1k.png) | ![](samp10k/cumvar10k.png) |
 |:----:|:----:|
 | 1k     |  10k    |
 
 ### Paired Hex-binned plot
-| ![](pairhex1k.png) | ![](pairhex10k.png) |
+| ![](samp1k/pairhex1k.png) | ![](samp10k/pairhex10k.png) |
 |:----:|:----:|
 | 1k     |  10k    |
 
 ### Hierarchical GMM Classifications
-| ![](hmc1k.png) | ![](hmc10k.png) |
+| ![](samp1k/hmc1k.png) | ![](samp10k/hmc10k.png) |
 |:----:|:----:|
 | 1k     |  10k    |
 
 ### Hierarchical GMM Dendrogram
-| ![](dend1k.png) | ![](dend10k.png) |
+| ![](samp1k/dend1k.png) | ![](samp10k/dend10k.png) |
 |:----:|:----:|
 | 1k     |  10k    |
 
 ### Stacked Cluster Means plot
-| ![](stackM1k.png) | ![](stackM10k.png) |
+| ![](samp1k/stackM1k.png) | ![](samp10k/stackM10k.png) |
 |:----:|:----:|
 | 1k     |  10k    |
 
 
 ### Cluster Means
-![](clusterMeans1k.png) ![](clusterMeans10k.png)
+![](samp1k/clusterMeans1k.png) ![](samp10k/clusterMeans10k.png)
 
 --- 
 ---
