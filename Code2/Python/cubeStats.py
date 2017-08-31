@@ -44,6 +44,7 @@ def getCube(di):
           di['yrng'] ,di['zrng'])
     print(di['loc']) #DEBUG
     sys.stdout.flush() #DEBUG
+    ### OUTPUT will be a numpy array in Z Y X order 
     return(data)
 
 def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
@@ -96,10 +97,12 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
             out = tp.map(getCube, di)
             print(ch) ##DEBUG
             sys.stdout.flush() #DEBUG
+
         ChanList.append(np.asarray(out))
 
-
     outArray = np.asarray(ChanList)
+    ## outArray will be a numpy array in [channel, synapse, z, y, x] order
+    ## this is C-ordering
     return(outArray, loc)
 
 def driveMain():
@@ -203,10 +206,11 @@ def testH5():
     f.close()
    
     
-def mainOUT(TOKEN,OUTPUT, out, L):
+def mainOUT(TOKEN,OUTPUT, CHAN_NAMES, out, L):
     h5f0OUT = h5py.File(OUTPUT+".h5", 'w')
     h5f0OUT.create_dataset(TOKEN + "_cubes", data = out)
     h5f0OUT.create_dataset("Locations", data = np.transpose(L))
+    h5f0OUT.create_dataset("Channels", data = np.string_(CHAN_NAMES))
     h5f0OUT.close()
     return(None)
 
@@ -251,6 +255,6 @@ if __name__ == '__main__':
                        CHAN_NAMES=CHAN_NAMES, 
                        num_threads = 4, CONFIG_FILE= CONFIG_FILE)
 
-    mainOUT(EXP_NAME, OUTPUT, cubes, locs)
+    mainOUT(EXP_NAME, OUTPUT, CHAN_NAMES, cubes, locs)
     print('Done!')
 

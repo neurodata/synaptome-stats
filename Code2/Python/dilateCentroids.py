@@ -110,8 +110,8 @@ def l2ball(BF):
     return(out)
 
 def main():
-    parser = argparse.ArgumentParser('Post rectangular annotations stack to the boss')
-    parser.add_argument('locations', type=str, help='centroids in x y z csv file')
+    parser = argparse.ArgumentParser('Create annotation stack from x y z locations')
+    parser.add_argument('locations', type=str, help='centroids in x y z csv file, expects a header')
     parser.add_argument('base_path', type=str, help='Directory where image stacks are to be saved (e.g. "/data/images/"')
     parser.add_argument('base_filename', type=str, help='Base filename with z values appended "fname_z<p:4>"')
     parser.add_argument('--buf', type=int, nargs=3, help='buffer in x y z', default=[5,5,5])
@@ -184,7 +184,6 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
 
 
