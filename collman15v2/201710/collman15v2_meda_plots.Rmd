@@ -1,0 +1,64 @@
+---
+title: "Collman15v2 Data: annotated voxels only"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 5
+    fig_width: 5
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 1
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, dev = "png")
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+rmarkdown::render("k15_201706.Rmd")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+# Library calls here.
+require(rmarkdown)
+require(knitr)
+suppressMessages(require(meda))
+```
+
+# 1-d Heatmap
+![](./meda_plots/d1heat.png)
+
+# Location meda_plots
+![](./meda_plots/mlocation.png)
+
+# Outliers as given by randomForest
+![](./meda_plots/outliers.png)
+
+# Correlation Matrix
+![](./meda_plots/cor.png)
+
+# Cumulative Variance with Elbows
+![](./meda_plots/cumulativeVariance.png)
+
+# Paired Hex-binned plot
+![](./meda_plots/pairhex.png)
+
+# Hierarchical GMM Classifications
+![](./meda_plots/pairs.png)
+
+# Hierarchical GMM Dendrogram
+![](./meda_plots/dend.png)
+
+# Stacked Means
+![](./meda_plots/stacked.png)
+
+# Cluster Means
+![](./meda_plots/clusterMeans.png)
+
+
+
+--- 
+---
