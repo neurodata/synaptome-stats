@@ -38,7 +38,7 @@ def _3dby8toRGB ( indata ):
 
     rgbdata = np.zeros ( indata.shape[0:2], dtype=np.uint32)
 
-    # rgbdata = np.uint32(0xFF000000) + np.left_shift(np.uint32(indata[:,:,0]),16) + np.left_shift(np.uint32(indata[:,:,1]),8) + np.uint32(indata[:,:,2])
+    rgbdata = np.uint32(0xFF000000) + np.left_shift(np.uint32(indata[:,:,0]),16) + np.left_shift(np.uint32(indata[:,:,1]),8) + np.uint32(indata[:,:,2])
     rgbdata =  np.left_shift(np.uint32(indata[:,:,2]),16) + np.left_shift(np.uint32(indata[:,:,1]),8) + np.uint32(indata[:,:,0])
     return rgbdata
 
@@ -138,6 +138,8 @@ def main():
     x_rng = [[x[0] - BFx, x[0] + BFx + 1] for x in L] 
     y_rng = [[y[1] - BFy, y[1] + BFy + 1] for y in L] 
     z_rng = [[z[2] - BFz, z[2] + BFz + 1] for z in L]
+    if(len(L[1]) > 3):
+        labs = [lab[3] for lab in L]
 
     inftyball = np.ones((2 * BFz + 1, 2 * BFy + 1, 2 * BFx + 1), dtype = np.uint8)
 
@@ -161,21 +163,39 @@ def main():
         sys.exit(0)
 
     if args.l2ball:
-        anno = 255*l2ball(BFx) 
-        z = np.zeros((dimz,dimy,dimx), dtype = np.uint8)
+        anno = l2ball(BFx) 
+        z = np.zeros((dimz,dimy,dimx), dtype = np.uint32)
     
         for i in range(len(L)):
-            rep = anno == 255
-            z[z_rng[i][0]:z_rng[i][1],y_rng[i][0]:y_rng[i][1],x_rng[i][0]:x_rng[i][1]][rep] = 255
+            rep = anno == 1
+            if i <= 33:
+                col = labs[i] + 2**32 - 34
+            if i > 33 and i <= 66:
+                col =  labs[i] + 2**8 - 1
+            if i > 66:
+                col = labs[i] + 2**16 - 1
+
+            z[z_rng[i][0]:z_rng[i][1],y_rng[i][0]:y_rng[i][1],x_rng[i][0]:x_rng[i][1]][rep] = col
             
         fout = os.path.join(base_path, base_fname)
 
-        for j in range(z.shape[0]):
-            tmp = fout + "_z{}.tif".format(str(j).zfill(len(str(z.shape[0]))))
-            tifffile.imsave(tmp, np.asarray(z[j,:,:], dtype = np.uint8))
+        #tifffile.imsave(fout + "_stack.tif", np.asarray(z, dtype = np.uint8))
+        #print("Test image is here: {}".format(base_path))
 
-        tifffile.imsave(fout + "_stack.tif", np.asarray(z, dtype = np.uint8))
-        print("Test image is here: {}".format(base_path))
+        rgb = True
+
+        if not rgb:
+            for j in range(z.shape[0]):
+                tmp = fout + "_z{}.tif".format(str(j).zfill(len(str(z.shape[0]))))
+                tifffile.imsave(tmp, np.asarray(z[j,:,:], dtype = np.uint8))
+
+        if rgb:
+            for i in range(z.shape[0]):
+                out = np.asarray(_RGBto3dby8(z[i,::]))
+                tmp = fout + "rgb_z{}.tif".format(str(i).zfill(len(str(z.shape[0]))))
+                tifffile.imsave(tmp, out)
+                
+
         sys.exit(0)
 
     
@@ -188,3 +208,6 @@ if __name__ == '__main__':
 
 
 ## python3 dilateCentroids.py ~/tmps/uptmp/Ex12R75_buff5.csv ~/tmps/uptmp/ Synapsin1_2_synapses --buf 5 5 5 --dim 5491 4749 35 --inftyball True
+
+### Kristina15 dims x 1826, y 12986, z 41
+

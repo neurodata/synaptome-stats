@@ -14,6 +14,7 @@ system('open kernelKmeans.html')
 ```
 
 ```{r setup}
+require(compiler)
 require(RMySQL)
 require(data.table)
 require(raster)
@@ -29,11 +30,21 @@ require(plotly)
 require(knor)
 require(heatmaply)
 require(gplots)
+require(kernlab)
+require(doMC)
+require(Matrix)
+
+registerDoMC(8)
 ```
+
+The entire set of kristina15 locations detected by Anish are stored in a
+MySQL database locally.  A subsample of 10,000 are selected and
+column-wise z-scored.  Then the three clustering methods will be run
+with exploratory data analysis on the clusters following. 
 
 ## Data Preparation 
 
-```{r connect}
+```{r connect, eval = FALSE}
 ## Set up the connection to the database.
 ## REMEMBER to disconnect when finished.
 
@@ -47,7 +58,7 @@ suppressWarnings(dat0 <- data.table(dbGetQuery(con1, q1)))
 dbDisconnect(con1)
 ```
 
-```{r subsamp}
+```{r subsamp, eval=FALSE}
 chan <- c('synapsinR_7thA','synapsinGP_5thA','VGluT1_3rdA','VGluT1_8thA',
 					'VGluT2_2ndA', 'psd_8thA', 'GluR2_2ndA', 'NMDAR1_6thA',
 					'NR2B_9thA','NOS_9thA', 'Synpod_3rdA', 'GAD_6thA','VGAT_5thA', 
@@ -64,6 +75,12 @@ setkey(dat0, x,y,z)
 
 xyz <- dat0[, .(x,y,z)]
 dat <- dat0[, !(x:z)]
+
+if(FALSE){
+  km4e4 <- Kmeans(as.matrix(dat), centers = 100, init="kmeanspp")
+  system("say done")
+}
+
 
 if(!file.exists("sample_locations_1e4.csv")){
   print("Selecting sample locations")
@@ -88,37 +105,79 @@ d1k  <- d1ko[, lapply(.SD, scale, center=TRUE, scale=TRUE)]
 d10k <- d10ko[, lapply(.SD, scale, center=TRUE, scale=TRUE)]
 ```
 
+Now we have two datasets of size 1,000 and 10,000 that have been
+z-scored. 
 
-```{r kernel1k}
-system.time({
-svd1k <-svd(as.matrix(d1k)) #svd(d10k)
-AAT <- svd1k$u %*% diag(svd1k$d) %*% t(diag(svd1k$d)) %*% t(svd1k$u)
-})
+We will continue with the 10,000 point dataset. 
 
-Ei <- eigen(AAT)
+## Kmeans++ via knor with $k = 14$
 
-C <- Ei$vectors
-D <- diag(Ei$values)
-el <- getElbows(Ei$values)[2]
+```{r, knor01, eval = FALSE}
+## Kmeans++
+km <- kmeans(as.matrix(d10k), centers=14)
 
-d <- D[1:el,1:el]
+kmv <- Kmeans(as.matrix(d10k), centers = 14, init = "kmeanspp")  
 
-E <- C[,1:el] %*% D[1:el,1:el]^(1/2)
-EE <- C %*% D^(1/2)
+## Binary Hierarchical Kmeans++
+kmbv <- bhkmpp(as.matrix(d10k), blevels = 4)
+
+## Hierarchical Mclust
+hmcv <- hmc(as.matrix(d10k), maxDepth = 4, modelNames = "VVV")
+
+## Spectral Clustering
+#speccc <- cmpfun(specc)
+#f <- cmpfun(function(x,y){
+#      nor <- sum((x - y)^2)^(1/2)
+#      return(nor)
+#})
+#
+#scv <- speccc(as.matrix(d10k), kernel = f,centers = 14)
 ```
 
-```{r kmeans}
-set.seed(1432)
-kv <- kmeans(E, centers=kmpp(E, k = 14))
-kvbh <- bhkmpp(E, 3)
-#cols <- rainbow(4*max(kv$cluster))[4*kv$cluster]
-cols <- viridis(4*max(kvbh$L[,3]))[4*kvbh$L[,3]]
-cols <- rainbow(4*max(kvbh$L[,3]))[4*kvbh$L[,3]]
+```{r j-specc, eval=FALSE}
+kmfun <- cmpfun(kernelMatrix)
+K <- kmfun(f, as.matrix(d10k))
 
-plot3d(E, col = cols, pch = 19)
-title3d(main = "Results of kernel kmeans")
-rglwidget(elementId="plot3d", width = 720, height = 720)
+D <-diag( 
+  foreach(i = 1:nrow(K), .combine = c) %dopar%{
+    sum(K[i,])^(-1/2)
+  })
+
+Am <- Matrix(K)
+Dm <- Matrix(D)
+
+L <- Dm %*% Am %*% Dm
+
+Lsvd <- irlba(L, nv = 3)
+
+X <- Lsvd$u
+
+den <- apply(X, 1, function(x) sqrt(sum(x*x)))
+DEN <- cbind(den,den,den)
+
+Y <- X / DEN
+
+kmY <- Kmeans(Y, centers = 14, init = "kmeanspp")
 ```
+
+## Pairs plots in ambient space
+
+```{r pairs, fig.height = 12, fig.width = 12}
+c1 <- rainbow(14)
+pairs(d10k[, 1:6], pch = 19, cex = 0.5, col = c1[km$cluster], main = "subset to first 6 dimensions.")
+pairs(d10k[, 1:6], pch = 19, cex = 0.5, col = c1[kmv$cluster], main = "subset to first 6 dimensions.")
+#pairs(d10k[, 1:6], pch = 19, cex = 0.5, col = c1[scv@.Data], main = "subset to first 6 dimensions.")
+pairs(d10k[, 1:6], pch = 19, cex = 0.5, col = c1[hmcv$dat$labels$col], main = "subset to first 6 dimensions.")
+pairs(d10k[, 1:6], pch = 19, cex = 0.5, col = c1[kmY$cluster], main = "subset to first 6 dimensions.")
+```
+
+
+## Scree plot of data
+```{r kernel1k, eval=FALSE}
+svd10k <- svd(as.matrix(d10k))
+el <- getElbows(svd10k$d)[2]
+```
+
 
 ```{r pairs, fig.width = 12, fig.height=12}
 pairs(E, col = cols, pch = 19, cex = 0.5, main = "pairs plot of embedding to second elbow")
@@ -127,7 +186,8 @@ pairs(E, col = cols, pch = 19, cex = 0.5, main = "pairs plot of embedding to sec
 ## Results of kernel kmeans plotted in first 3 dimensions of original feature space
 
 ```{r pairs2}
-plot3d(d1k, col = cols, pch = 19, cex = 0.5)
+plot3d(d10k, col = c1[km$cluster], pch = 19, cex = 0.5)
+plot3d(d10k, col = c1[kmbv$L[,4]], pch = 19, cex = 0.5)
 rglwidget(elementId="plot3d2", width = 720, height = 720)
 ```
 
@@ -136,55 +196,44 @@ pairs(d1k[, 1:8], col = cols, pch = 19, cex = 0.5, main = "results in original f
 ```
 
 
-
-```{r knor}
-km <- Kmeans(as.matrix(dat), centers = 100, iter.max=0, init="kmeanspp")
-colnames(km$centers) <- chan
-heatmap(km$centers, col = viridis(255), main = 'heatmap with 100 points chosen with km++ init')
+## KNOR Kmeans++ initialization for representative heatmap
+```{r knor, fig.width=12, fig.height=12}
+kmppHM <- Kmeans(as.matrix(d10k), centers = 1000, iter.max=0, init="kmeanspp")
+colnames(kmppHM$centers) <- chan
+heatmap(kmppHM$centers, col = viridis(255), main = 'heatmap with 1000 points chosen with km++ init',
+        ColSideColors =ccol)
 ```
-
-## Hiarachical GMM
-
-```{r hgmm}
-h <- hmc(d1k, maxDepth = 3, maxDim = 12, modelNames = "VVV")
-plot(h, maxd = 8)
-```
-
 
 
 # Discriminability of clusters
 
 ```{r discriminability}
-ord <- order(kvbh$L[,3])
-ordb <- order(kv$cluster)
-ordgmm <- order(h$dat$labels$col)
+km.ord <- order(km$cluster)
+kmv.ord <- order(kmv$cluster)
+kmbv.ord <- order(kmbv$L[,ncol(kmbv$L)])
+hmcv.ord <- order(hmcv$dat$labels$col)
+#scv.ord <- order(scv@.Data)
 
-dord <- AAT[ord,ord]
-dordb <- AAT[ordb,ordb]
-dordgmm <- AAT[ordgmm,ordgmm]
+kmordM <- K[km.ord,km.ord]
+kmvordM <- K[kmv.ord,kmv.ord]
+hmcvordM <- K[hmcv.ord,hmcv.ord]
 
-p1 <- fmriu.plot.plot_graph(as.matrix(dord), limits = c(min(dord), max(dord)))
-p1b <- fmriu.plot.plot_graph(as.matrix(dordb), limits = c(min(dordb), max(dordb)))
-p1gmm <- fmriu.plot.plot_graph(as.matrix(dordgmm), limits = c(min(dordgmm), max(dordgmm)))
+#p1 <- fmriu.plot.plot_graph(as.matrix(kmordM), limits = c(min(kmordM), max(kmordM)))
+#p1b <- fmriu.plot.plot_graph(as.matrix(dordb), limits = c(min(dordb), max(dordb)))
+#p1gmm <- fmriu.plot.plot_graph(as.matrix(dordgmm), limits = c(min(dordgmm), max(dordgmm)))
+```
+
+### Binary hierarchical kmeans
+```{r}
+require(raster)
+plot(raster(kmordM), col = viridis(255))
+plot(raster(kmvordM), col = viridis(255))
+plot(raster(hmcvordM), col = viridis(255))
+```
 
 
-p1
-p1b
-p1gmm
-
-D <- discr.distance(dord)
-Db <- discr.distance(dordb)
-Dggm <- discr.distance(dordggm)
-
-p2 <- fmriu.plot.plot_graph(D, limits=c(min(D), max(D)))
-p2b <- fmriu.plot.plot_graph(Db, limits=c(min(Db), max(Db)))
-p2gmm <- fmriu.plot.plot_graph(Dgmm, limits=c(min(Dgmm), max(Dgmm)))
-
-p2
-p2b
-p2gmm
-
+```{r discOUT}
 discr.discr(D, kvbh$L[ord,3] , verbose = TRUE)
 discr.discr(Db, kv$cluster[ordb] , verbose = TRUE)
-discr.discr(Dgmm, h$dat$labels$col[dordgmm] , verbose = TRUE)
+discr.discr(Dgmm, h$dat$labels$col[ordgmm] , verbose = TRUE)
 ```

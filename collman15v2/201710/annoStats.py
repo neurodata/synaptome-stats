@@ -31,9 +31,7 @@ import datetime
 def getData(di):
     data = di['rem'].get_cutout(di['ch_rsc'], di['res'], di['xrng'],
           di['yrng'] ,di['zrng'])
-
     out = data[di['mask']]
-
     return(out)
 
 def getCentroid(box):
@@ -45,6 +43,8 @@ def getCentroid(box):
 
 def main(COLL_NAME, EXP_NAME, COORD_FRAME,
          CHAN_NAMES=None, num_threads = 4, CONFIG_FILE= 'config.ini'):
+
+    bf = 5
 
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
@@ -75,19 +75,61 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME,
 
     for i in range(len(bb)):
         bb[i]["id"] = u[i]
-            
-    Cen = np.asarray([getCentroid(bi) for bi in bb])
 
-    #A = [rem.get_cutout(anno_res, 0, bb[i]["x_range"], bb[i]["y_range"],
-    #                    bb[i]["z_range"], id_list = [bb[i]['id']]) != 0 for i
-    #                    in range(len(bb))]
+    A = [rem.get_cutout(anno_res, 0, bb[i]["x_range"], bb[i]["y_range"],
+                        bb[i]["z_range"], id_list = [bb[i]['id']]) != 0 for i
+                        in range(len(bb))]
 
-    #if CHAN_NAMES is None:
-    #            CHAN_NAMES = ['DAPI1st', 'DAPI2nd', 'DAPI3rd',
-    #    	      'GABA488', 'GAD647', 'gephyrin594', 'GS594', 'MBP488',
-    #                  'NR1594', 'PSD95_488', 'Synapsin647', 'VGluT1_647']
+    Bmeans = [np.int32(np.round(np.mean(np.asarray(np.where(A[i] == True)),1))) for i in range(len(A))]
+    
+    Bglobal = []
+    for i in range(len(bb)):
+        ad1 = np.asarray([bb[i]['z_range'][0], bb[i]['y_range'][0], bb[i]['x_range'][0]])
+        Bglobal.append(Bmeans[i] + ad1)
+        
+    ColMin = np.asarray([bf,bf,bf])
+    ColMax = np.asarray([ex['z'] - (bf + 1), ex['y'] - (bf +1), ex['x'] - (bf)])
 
-    #ChanList = []
+    m = [Bglobal[i] >= ColMin for i in range(len(Bglobal))]
+    M = [Bglobal[i] <= ColMax for i in range(len(Bglobal))]
+    mm = [np.all(m[i]) for i in range(len(m)) ]
+    MM = [np.all(M[i]) for i in range(len(M)) ]
+
+    Bcon = []
+    con = [np.asarray(mm[j] and MM[j]) for j in range(len(mm))]
+    for i in range(len(Bglobal)):
+        if con[i]: 
+            Bcon.append(Bglobal[i])
+
+       
+    if CHAN_NAMES is None:
+                CHAN_NAMES = ['DAPI1st', 'DAPI2nd', 'DAPI3rd',
+        	      'GABA488', 'GAD647', 'gephyrin594', 'GS594', 'MBP488',
+                      'NR1594', 'PSD95_488', 'Synapsin647', 'VGluT1_647']
+
+    ChanList = []
+    for ch in CHAN_NAMES:
+        di = [{
+              'rem': rem,
+              'ch_rsc':
+                ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint8'),
+              'ch'  : ch,
+              'res' : 0,
+              'xrng': bb[i]['x_range'],  
+              'yrng': bb[i]['y_range'],  
+              'zrng': bb[i]['z_range'],
+              'id'  : bb[i], 
+              'mask': A[i]
+             } for i in range(len(bb)) if con[i]]
+        with ThreadPool(num_threads) as tp:
+            out = tp.map(getData, di)
+            print(ch) ##DEBUG
+            sys.stdout.flush() #DEBUG
+
+        ChanList.append(np.asarray(out))
+
+    anno = np.asarray(ChanList)
+   
     #for ch in CHAN_NAMES:
     #    di = [{
     #          'rem': rem,
@@ -95,13 +137,10 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME,
     #            ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint8'),
     #          'ch'  : ch,
     #          'res' : 0,
-    #          'xrng': bb[i]['x_range'],  
-    #          'yrng': bb[i]['y_range'],  
-    #          'zrng': bb[i]['z_range'],
-    #          'id'  : bb[i], 
-    #          'mask': A[i]
-    #         } for i in range(len(bb))]
-   
+    #          'xrng': [Bcon[i][2] - 5, Bcon[i][2] + 6], 
+    #          'yrng': [Bcon[i][1] - 5, Bcon[i][1] + 6], 
+    #          'zrng': [Bcon[i][0] - 5, Bcon[i][0] + 6],
+    #         } for i in range(len(Bglobal))]
     #    with ThreadPool(num_threads) as tp:
     #        out = tp.map(getData, di)
     #        print(ch) ##DEBUG
@@ -109,11 +148,13 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME,
 
     #    ChanList.append(np.asarray(out))
 
-    #anno = np.asarray(ChanList)
+    anno = np.asarray(ChanList)
 
-    #F0 = np.asarray([[sum(a)/len(a) for a in anno[i]] for i in range(anno.shape[0])])
-    #return(F0)
-    return(Cen)
+    F0 = np.asarray([[sum(a)/len(a) for a in anno[i]] for i in range(anno.shape[0])])
+    #F0 = np.asarray([[sum(a) for a in anno[i]] for i in range(anno.shape[0])])
+    #return(Cen)
+    #return(anno)
+    return(F0)
 
 def testMain():
     COLL_NAME      = 'collman' 
@@ -121,12 +162,18 @@ def testMain():
     COORD_FRAME    = 'collman_collman15v2'
     CONFIG_FILE    = 'config.ini'
 
-    CHAN_NAMES = ['PSD95_488', 'Synapsin647', 'VGluT1_647']
+    #CHAN_NAMES = ['Synapsin647']
+    CHAN_NAMES = ['DAPI1st', 'DAPI2nd', 'DAPI3rd', 'GABA488', 'GAD647',
+            'gephyrin594', 'GS594', 'MBP488', 'NR1594', 'PSD95_488',
+            'Synapsin647', 'VGluT1_647']
 
+    print("anno")
     anno = main(COLL_NAME, EXP_NAME, COORD_FRAME,
          CHAN_NAMES=CHAN_NAMES, num_threads = 4, CONFIG_FILE= 'config.ini')
 
     F0 = np.asarray([[sum(a)/len(a) for a in anno[i]] for i in range(anno.shape[0])])
+    #print("F0")
+    #F0 = np.asarray([[sum(a) for a in anno[i]] for i in range(anno.shape[0])])
 
     return(F0)
    
@@ -136,7 +183,7 @@ def mainOUT(F0, head, outfile):
     with open(outfile, 'w') as f1:
         wt = csv.writer(f1)
         wt.writerow(head)
-        wt.writerows(np.transpose(F0))
+        wt.writerows(np.transpose(np.asarray(F0)))
 
     return(None)
 
@@ -176,7 +223,7 @@ if __name__ == '__main__':
                        CHAN_NAMES=CHAN_NAMES, 
                        num_threads = 4, CONFIG_FILE= CONFIG_FILE)
 
-    #mainOUT(F0, CHAN_NAMES, OUTPUT)
-    mainOUT(F0, ['z', 'y', 'x'], OUTPUT)
+    mainOUT(F0, CHAN_NAMES, OUTPUT)
+    #mainOUT(F0, ['z', 'y', 'x'], OUTPUT)
     print('Done!')
 

@@ -57,12 +57,15 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
     loc = [m.unpack(l) for l in Lzo]
 
     if CHAN_NAMES is None:
-        CHAN_NAMES = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a',
-                'DAPI_5b', 'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4',
-                'Gephyrin_1', 'GFP_5b', 'GluR1_5a', 'GluR2_6',
-                'GluR4_7', 'NR2A_2', 'NR2B_4', 'PSD25_2', 'PV25_1',
-                'Synapsin1_3', 'Synaptopodin_6', 'vGAT_3', 'vGluT1_3',
-                'vGluT2_2', 'YFP_1']
+        #CHAN_NAMES = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a',
+        #        'DAPI_5b', 'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4',
+        #        'Gephyrin_1', 'GFP_5b', 'GluR1_5a', 'GluR2_6',
+        #        'GluR4_7', 'NR2A_2', 'NR2B_4', 'PSD25_2', 'PV25_1',
+        #        'Synapsin1_3', 'Synaptopodin_6', 'vGAT_3', 'vGluT1_3',
+        #        'vGluT2_2', 'YFP_1']
+        CHAN_NAMES = ['DAPI1st', 'DAPI2nd', 'DAPI3rd', 'GABA488',
+                'GAD647', 'gephyrin594', 'GS594', 'MBP488', 'NR1594',
+                'PSD95_488', 'Synapsin647', 'VGluT1_647']
 
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
@@ -83,7 +86,7 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
         di = [{
               'rem': rem,
               'ch_rsc':
-                ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint16'),
+                ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint8'),
               'ch'  : ch,
               'res' : 0,
               'loc' : loc[i],
@@ -106,31 +109,34 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS, BF = 5,
     return(outArray, loc)
 
 def driveMain():
-    COLL_NAME      = 'weiler14' 
-    EXP_NAME       = 'Ex2R18C1' 
-    COORD_FRAME    = 'weiler14_Ex2R18C1'
-    LOCATIONS_FILE = 'testloc.csv'
+    COLL_NAME      = 'collman' 
+    EXP_NAME       = 'collman15v2' 
+    COORD_FRAME    = 'collman_collman15v2'
+    LOCATIONS_FILE = 'collman15v2_anno_centroids_xyz.csv'
     BF             = 5
-    OUTPUT         = 'qwerty'
+    OUTPUT         = 'collman15v2_annotation_11cubes.csv'
     CONFIG_FILE    = 'config.ini'
 
-    CHAN_NAMES = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a', 'DAPI_5b',
-                      'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4', 'Gephyrin_1',
-                      'GFP_5b', 'GluR1_5a', 'GluR2_6', 'GluR4_7', 'NR2A_2',
-                      'NR2B_4', 'PSD25_2', 'PV25_1', 'Synapsin1_3',
-                      'Synaptopodin_6', 'vGAT_3', 'vGluT1_3', 'vGluT2_2', 'YFP_1']
+    #CHAN_NAMES = ['DAPI_1', 'DAPI_2', 'DAPI_3', 'DAPI_4', 'DAPI_5a', 'DAPI_5b',
+    #                  'DAPI_6', 'DAPI_7', 'GABAARa1_7', 'GAD2_4', 'Gephyrin_1',
+    #                  'GFP_5b', 'GluR1_5a', 'GluR2_6', 'GluR4_7', 'NR2A_2',
+    #                  'NR2B_4', 'PSD25_2', 'PV25_1', 'Synapsin1_3',
+    #                  'Synaptopodin_6', 'vGAT_3', 'vGluT1_3', 'vGluT2_2', 'YFP_1']
+    CHAN_NAMES = ['DAPI1st', 'DAPI2nd', 'DAPI3rd', 'GABA488',
+                'GAD647', 'gephyrin594', 'GS594', 'MBP488', 'NR1594',
+                'PSD95_488', 'Synapsin647', 'VGluT1_647']
 
-    cubes, locs = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS_FILE, BF = 5,
+    cubes, locs = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS_FILE, BF = BF,
          CHAN_NAMES=CHAN_NAMES, num_threads = 4, CONFIG_FILE= 'config.ini')
 
     f0 = F0(cubes)
-    f1 = F1(cubes)
+    #f1 = F1(cubes)
 
-    return(cubes)
+    return(f0)
    
-def F0(cube):
-    #f0 = [[np.sum(cubes[i,j,:,:,:]) for j in range(cubes.shape[1])] for i in range(cubes.shape[0])]
-    f0 = np.sum(cube)
+def F0(cubes):
+    f0 = [[np.sum(cubes[i,j,:,:,:]) for j in range(cubes.shape[1])] for i in range(cubes.shape[0])]
+    #f0 = np.sum(cube)
     return(f0)
     
 def F1(cubes):
@@ -241,7 +247,7 @@ if __name__ == '__main__':
     EXP_NAME       = args.E
     COORD_FRAME    = args.F
     LOCATIONS_FILE = args.L 
-    BF             = args.B
+    BF             = int(args.B)
     OUTPUT         = args.O
     CONFIG_FILE    = args.con
 
