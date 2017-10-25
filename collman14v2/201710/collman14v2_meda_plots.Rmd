@@ -1,5 +1,5 @@
 ---
-title: "Collman15v2 Data: annotated voxels compared with 11x11x11 cubes"
+title: "Collman14v2 Data: annotated voxels"
 date: '`r Sys.Date()`'
 output:
   html_document:
@@ -18,7 +18,8 @@ knitr::opts_chunk$set(cache = TRUE, dev = "png")
 
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
-rmarkdown::render("collman15v2_meda_plots.Rmd")
+rmarkdown::render("collman14v2_meda_plots.Rmd")
+system("open collman14v2_meda_plots.html")
 ```
 
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
@@ -31,92 +32,72 @@ suppressMessages(require(meda))
 ## Make plots
 
 ```{r, eval = FALSE}
-#tight <- read.csv("collman15v2_annotations_tight_F0.csv")
-tight <- read.csv("tightRestricted_anno_collman.csv")
-cubes <- read.csv("collman15v2_annotations_11cubes_F0.csv")/1331
+perm <- c(1,2,3,4,5,10,6,7,8,9,11)
+tight <- read.csv("collman14v2_F0_tight_annotations.csv")[perm]
 stight <- scale(tight, center = TRUE, scale = TRUE)
-scubes <- scale(cubes, center = TRUE, scale = TRUE)
 
-ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'black', 'green', 'green', 'green')
+ccol <- c('blue', 'blue', 'blue', 'red', 'red', 
+          'red', 'green', 'green', 'green', 'red', 
+          'green')[perm]
 
 set.seed(317)
 Lt <- runAll(stight, ccol = ccol)
 Lt[[1]] <- mlocation(tight, ccol = ccol)
-
-Lc <- runAll(scubes, ccol = ccol)
-Lc[[1]] <- mlocation(cubes, ccol = ccol)
 
 w = 720
 h = 720 
 
 png("d1heat.png", width = w, height = h)
 p1 <- plot(Lt[[2]]) 
-p2 <- plot(Lc[[2]])
-grid.arrange(p1,p2)
+show(p1)
 dev.off()
 
-png("mlocation.png", width = 2*w, height = h)
+png("mlocation.png", width = w, height = 0.5*h)
 p1 <- plot(Lt[[1]]) 
-p2 <- plot(Lc[[1]])
-grid.arrange(p1,p2)
+show(p1)
 dev.off()
 
 png("cumulativeVariance.png", width = w, height = h)
 p1 <- plot(Lt[[3]]) 
-p2 <- plot(Lc[[3]])
-grid.arrange(p1,p2)
+show(p1)
 dev.off()
 
 png("outliers.png", width = w, height = h)
 p1 <- plot(Lt[[4]]) 
-p2 <- plot(Lc[[4]])
-grid.arrange(p1,p2)
+show(p1)
 dev.off()
 
-png("cor.png", width = w, height = 2*h)
-par(mfrow=c(2,1))
+png("cor.png", width = w, height = h)
 plot(Lt[[6]]) 
-plot(Lc[[6]])
 dev.off()
 
 png("pairhexTight.png", width = 2*w, height = 2*h)
 pairhex(stight)
 dev.off()
 
-png("pairhexCubes.png", width = 2*w, height = 2*h)
-pairhex(scubes)
-dev.off()
 
 png("hmcClassificationsTight.png", width = 2*w, height = 2*h)
 cr <- viridis(max(Lt[[7]]$dat$labels$col))
 pairs(Lt[[7]]$dat$data, pch = 19, cex = 0.5, col = cr[Lt[[7]]$dat$labels$col])
 dev.off()
 
-png("hmcClassificationsCubes.png", width = 2*w, height = 2*h)
-cr <- viridis(max(Lc[[7]]$dat$labels$col))
-pairs(Lc[[7]]$dat$data, col = cr, pch = 19, cex = 0.5)
-dev.off()
 
 png("dendrograms.png", width = w, height = h)
-par(mfrow = c(2,1))
 plotDend(Lt[[7]])
-plotDend(Lc[[7]])
 dev.off()
 
 png("stackMeans.png", width = w, height = 2*h)
 p1 <- stackM(Lt[[7]], ccol = ccol, depth = 3, centered = TRUE)
-p2 <- stackM(Lc[[7]], ccol = ccol, depth = 2, centered = TRUE)
-grid.arrange(p1,p2)
+show(p1)
 dev.off()
 
-png("clusterMeans.png", width = w, height = 0.75*h)
+png("clusterMeans.png", width = w, height = h)
 p1 <- clusterMeans(Lt[[7]], ccol = ccol)
-p2 <- clusterMeans(Lc[[7]], ccol = ccol)
-grid.arrange(p1,p2)
+show(p1)
 dev.off()
 ```
 
-# Tight F0 plots are on top, 11x11x11 F0 plots are on the bottom
+# Tight F0 plots
 
 ## 1-d Heatmap
 ![](./d1heat.png)
@@ -135,11 +116,9 @@ dev.off()
 
 ## Paired Hex-binned plot
 ![](./pairhexTight.png)
-![](./pairhexCubes.png)
 
 ## Hierarchical GMM Classifications
 ![](./hmcClassificationsTight.png)
-![](./hmcClassificationsCubes.png)
 
 ## Hierarchical GMM Dendrogram
 ![](./dendrograms.png)
