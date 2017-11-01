@@ -26,19 +26,21 @@ system("open collman14v2_meda_plots.html")
 # Library calls here.
 require(rmarkdown)
 require(knitr)
+require(rhdf5)
 suppressMessages(require(meda))
 ```
 
 ## Make plots
 
 ```{r, eval = FALSE}
-perm <- c(1,2,3,4,5,10,6,7,8,9,11)
-tight <- read.csv("collman14v2_F0_tight_annotations.csv")[perm]
+#perm <- c(1,2,3,4,5,10,6,7,8,9,11)
+#tight <- read.csv("collman14v2_F0_tight_annotations.csv")[perm]
+tight <- read.csv("collman14_tightAnnotations.csv")[, -c(1:3)]
 stight <- scale(tight, center = TRUE, scale = TRUE)
 
 ccol <- c('blue', 'blue', 'blue', 'red', 'red', 
-          'red', 'green', 'green', 'green', 'red', 
-          'green')[perm]
+          'red', 'red', 'darkgreen', 'darkgreen', 'darkgreen',  
+          'darkgreen')
 
 set.seed(317)
 Lt <- runAll(stight, ccol = ccol)
@@ -47,52 +49,138 @@ Lt[[1]] <- mlocation(tight, ccol = ccol)
 w = 720
 h = 720 
 
-png("d1heat.png", width = w, height = h)
+png("meda_plots_tight/d1heat.png", width = w, height = h)
 p1 <- plot(Lt[[2]]) 
 show(p1)
 dev.off()
 
-png("mlocation.png", width = w, height = 0.5*h)
+png("meda_plots_tight/mlocation.png", width = w, height = 0.5*h)
 p1 <- plot(Lt[[1]]) 
 show(p1)
 dev.off()
 
-png("cumulativeVariance.png", width = w, height = h)
+png("meda_plots_tight/cumulativeVariance.png", width = w, height = h)
 p1 <- plot(Lt[[3]]) 
 show(p1)
 dev.off()
 
-png("outliers.png", width = w, height = h)
+png("meda_plots_tight/outliers.png", width = w, height = h)
 p1 <- plot(Lt[[4]]) 
 show(p1)
 dev.off()
 
-png("cor.png", width = w, height = h)
+png("meda_plots_tight/cor.png", width = w, height = h)
 plot(Lt[[6]]) 
 dev.off()
 
-png("pairhexTight.png", width = 2*w, height = 2*h)
+png("meda_plots_tight/pairhexTight.png", width = 2*w, height = 2*h)
 pairhex(stight)
 dev.off()
 
 
-png("hmcClassificationsTight.png", width = 2*w, height = 2*h)
+png("meda_plots_tight/hmcClassificationsTight.png", width = 2*w, height = 2*h)
 cr <- viridis(max(Lt[[7]]$dat$labels$col))
 pairs(Lt[[7]]$dat$data, pch = 19, cex = 0.5, col = cr[Lt[[7]]$dat$labels$col])
 dev.off()
 
 
-png("dendrograms.png", width = w, height = h)
+png("meda_plots_tight/dendrograms.png", width = w, height = h)
 plotDend(Lt[[7]])
 dev.off()
 
-png("stackMeans.png", width = w, height = 2*h)
+png("meda_plots_tight/stackMeans.png", width = w, height = 2*h)
 p1 <- stackM(Lt[[7]], ccol = ccol, depth = 3, centered = TRUE)
 show(p1)
 dev.off()
 
-png("clusterMeans.png", width = w, height = h)
+png("meda_plots_tight/clusterMeans.png", width = w, height = h)
 p1 <- clusterMeans(Lt[[7]], ccol = ccol)
+show(p1)
+dev.off()
+```
+
+```{r closest1, eval = FALSE}
+f <- "collman14v2_annotationCubes.csv.h5"
+f2 <- "collman14.csv.h5"
+
+loc <- h5read(f, name = "Locations")
+loc2 <- h5read(f2, name = "Locations")
+c1 <- closestK(Lt[[7]], K = 1, locs = loc)
+c5 <- closestK(Lt[[7]], K = 5, locs = loc)
+
+C1 <- Reduce(rbind, c1)
+C5 <- Reduce(rbind, c5)
+rownames(C1) <- NULL
+rownames(C5) <- NULL
+C1
+#C5
+```
+
+```{r half-micron-cubes, eval = FALSE}
+f <- 'collman14v2_annotationCubes.csv.h5'
+F0 <- h5read(f, name = "F0")
+loc <- h5read(f, name = "Locations")
+chan <- h5read(f, name = "Channels")
+colnames(F0) <- chan
+sF0 <- scale(F0, center = TRUE, scale = TRUE)
+
+ccol <- c('blue', 'blue', 'blue', 'red', 'red', 
+          'red', 'red', 'darkgreen', 'darkgreen', 'darkgreen', 
+          'darkgreen')
+
+set.seed(317)
+Lc <- runAll(sF0, ccol = ccol)
+Lc[[1]] <- mlocation(F0, ccol = ccol)
+
+w = 720
+h = 720 
+
+png("meda_plots_cubes/d1heat.png", width = w, height = h)
+p1 <- plot(Lc[[2]]) 
+show(p1)
+dev.off()
+
+png("meda_plots_cubes/mlocation.png", width = w, height = 0.5*h)
+p1 <- plot(Lc[[1]]) 
+show(p1)
+dev.off()
+
+png("meda_plots_cubes/cumulativeVariance.png", width = w, height = h)
+p1 <- plot(Lc[[3]]) 
+show(p1)
+dev.off()
+
+png("meda_plots_cubes/outliers.png", width = w, height = h)
+p1 <- plot(Lc[[4]]) 
+show(p1)
+dev.off()
+
+png("meda_plots_cubes/cor.png", width = w, height = h)
+plot(Lc[[6]]) 
+dev.off()
+
+png("meda_plots_cubes/pairhex.png", width = 2*w, height = 2*h)
+pairhex(sF0)
+dev.off()
+
+
+png("meda_plots_cubes/hmcClassifications.png", width = 2*w, height = 2*h)
+cr <- viridis(max(Lc[[7]]$dat$labels$col))
+pairs(Lc[[7]]$dat$data, pch = 19, cex = 0.5, col = cr[Lc[[7]]$dat$labels$col])
+dev.off()
+
+
+png("meda_plots_cubes/dendrograms.png", width = w, height = h)
+plotDend(Lc[[7]])
+dev.off()
+
+png("meda_plots_cubes/stackMeans.png", width = w, height = 2*h)
+p1 <- stackM(Lc[[7]], ccol = ccol, depth = 3, centered = TRUE)
+show(p1)
+dev.off()
+
+png("meda_plots_cubes/clusterMeans.png", width = w, height = h)
+p1 <- clusterMeans(Lc[[7]], ccol = ccol)
 show(p1)
 dev.off()
 ```
@@ -100,34 +188,67 @@ dev.off()
 # Tight F0 plots
 
 ## 1-d Heatmap
-![](./d1heat.png)
+![](meda_plots_tight/d1heat.png)
 
 ## Location meda_plots
-![](./mlocation.png)
+![](meda_plots_tight/mlocation.png)
 
 ## Outliers as given by randomForest
-![](./outliers.png)
+![](meda_plots_tight/outliers.png)
 
 ## Correlation Matrix
-![](./cor.png)
+![](meda_plots_tight/cor.png)
 
 ## Cumulative Variance with Elbows
-![](./cumulativeVariance.png)
+![](meda_plots_tight/cumulativeVariance.png)
 
 ## Paired Hex-binned plot
-![](./pairhexTight.png)
+![](meda_plots_tight/pairhexTight.png)
 
 ## Hierarchical GMM Classifications
-![](./hmcClassificationsTight.png)
+![](meda_plots_tight/hmcClassificationsTight.png)
 
 ## Hierarchical GMM Dendrogram
-![](./dendrograms.png)
+![](meda_plots_tight/dendrograms.png)
 
 ## Stacked Means
-![](./stackMeans.png)
+![](meda_plots_tight/stackMeans.png)
 
 ## Cluster Means
-![](./clusterMeans.png)
+![](meda_plots_tight/clusterMeans.png)
+
+
+# Half micron cube F0 plots
+
+## 1-d Heatmap
+![](meda_plots_cubes/d1heat.png)
+
+## Location meda_plots
+![](meda_plots_cubes/mlocation.png)
+
+## Outliers as given by randomForest
+![](meda_plots_cubes/outliers.png)
+
+## Correlation Matrix
+![](meda_plots_cubes/cor.png)
+
+## Cumulative Variance with Elbows
+![](meda_plots_cubes/cumulativeVariance.png)
+
+## Paired Hex-binned plot
+![](meda_plots_cubes/pairhex.png)
+
+## Hierarchical GMM Classifications
+![](meda_plots_cubes/hmcClassifications.png)
+
+## Hierarchical GMM Dendrogram
+![](meda_plots_cubes/dendrograms.png)
+
+## Stacked Means
+![](meda_plots_cubes/stackMeans.png)
+
+## Cluster Means
+![](meda_plots_cubes/clusterMeans.png)
 
 
 
