@@ -1,0 +1,35 @@
+#!/bin/bash -l
+
+#SBATCH
+#SBATCH --job-name=weiler14
+#SBATCH --time=1:0:0
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=4
+#SBATCH --partition=parallel
+#SBATCH --mail-type=end
+#SBATCH --mail-user=jpatsol1@jhu.edu
+
+
+ml python/3.6.0
+
+COLID="weiler14"
+EXID="Ex12R75"
+FRAME="weiler14_Ex12R75"
+BF=5
+LOC="buffEX2R18C1/test"
+CON="config.ini"
+OUT=$LOC
+
+
+echo $COLID
+echo $EXID
+echo $FRAME
+echo $BF
+echo $LOC
+echo $CON
+
+
+##python tryF*y <token> <input> <output> <buffer> 
+#time python3 tryCubes.py $TOKEN1 $INPUT $OUTPUT1 $BF
+
+time python3 cubeStats.py -C $COLID -E $EXID -F $FRAME -B $BF -L $LOC -O $OUT --con $CON
