@@ -103,7 +103,7 @@ def driveMain():
     COLL_NAME      = 'collman' 
     EXP_NAME       = 'collman14v2' 
     COORD_FRAME    = 'collman_collman14v2'
-    LOCATIONS_FILE = 'tmpnotZero.csv'
+    LOCATIONS_FILE = 'meda_plots_tight/hmcC5synaptogramLocations.csv'
     BF             = [108,108,5]
     OUTPUT         = 'blankTest'
     CONFIG_FILE    = 'config.ini'
@@ -118,6 +118,7 @@ def driveMain():
     cubes, locs = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS_FILE, BF = BF,
          CHAN_NAMES=CHAN_NAMES, num_threads = 6, CONFIG_FILE= 'config.ini')
 
+    import pdb; pdb.set_trace()
     f0 = toolbox.F0(cubes)
     #toolbox.mainOUT(f0, CHAN_NAMES, OUTPUT)
     toolbox.toh5(EXP_NAME, OUTPUT + '.h5', CHAN_NAMES, cubes, locs, F0 = f0)
