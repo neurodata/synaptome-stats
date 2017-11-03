@@ -103,9 +103,11 @@ def driveMain():
     COLL_NAME      = 'collman' 
     EXP_NAME       = 'collman14v2' 
     COORD_FRAME    = 'collman_collman14v2'
-    LOCATIONS_FILE = 'meda_plots_tight/hmcC5synaptogramLocations.csv'
+    #LOCATIONS_FILE = 'meda_plots_tight/hmcC5synaptogramLocations.csv'
+    #LOCATIONS_FILE = 'ZeroAnnotations.csv'
+    LOCATIONS_FILE = 'meda_plots_gaussian/hmcC5synaptogramLocations.csv'
     BF             = [108,108,5]
-    OUTPUT         = 'blankTest'
+    OUTPUT         = 'meda_plots_gaussian/collman14v2_gaussianSynaptograms.csv'
     CONFIG_FILE    = 'config.ini'
 
     #CHAN_NAMES = ['DAPI1st', 'DAPI2nd', 'DAPI3rd', 'GABA488',
@@ -116,11 +118,11 @@ def driveMain():
 		  'GABA', 'GAD2', 'VGAT', 'gephyrin', 'NR1', 'PSDr', 'synapsin', 'VGluT1']
 
     cubes, locs = main(COLL_NAME, EXP_NAME, COORD_FRAME, LOCATIONS_FILE, BF = BF,
-         CHAN_NAMES=CHAN_NAMES, num_threads = 6, CONFIG_FILE= 'config.ini')
+         CHAN_NAMES=CHAN_NAMES, num_threads = 8, CONFIG_FILE= 'config.ini')
 
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     f0 = toolbox.F0(cubes)
-    #toolbox.mainOUT(f0, CHAN_NAMES, OUTPUT)
+    toolbox.mainOUT(f0, CHAN_NAMES, OUTPUT)
     toolbox.toh5(EXP_NAME, OUTPUT + '.h5', CHAN_NAMES, cubes, locs, F0 = f0)
 
     return(cubes, locs)
@@ -160,7 +162,7 @@ if __name__ == '__main__':
     #rem = BossRemote(CONFIG_FILE)
     #CHAN_NAMES = rem.list_channels(COLL_NAME, EXP_NAME)
 
-    CHAN_NAMES = ['bIIItubulin', 'DAPI_2nd', 'DAPI_3rd', 
+    CHAN_NAMES = ['EM10K', 'bIIItubulin', 'DAPI_2nd', 'DAPI_3rd', 
                   'GABA', 'GAD2', 'VGAT', 'gephyrin', 
                   'NR1', 'PSDr', 'synapsin', 'VGluT1'] 
 
