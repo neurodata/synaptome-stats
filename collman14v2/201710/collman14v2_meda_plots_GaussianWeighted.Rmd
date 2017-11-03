@@ -61,6 +61,9 @@ $A_{i+109,j+109,k+6} = \int_i^{i+1}\int_j^{j+1}\int_k^{k+1} \phi(\cdot; \mu, \Si
 for $i,j,k \in \{[-108,108] \times [-108,108] \times [-5,5]\}$
 
 
+## Gaussian Weighted Mask
+![](meda_plots_gaussian/GaussianMask.png)
+
 ## Make plots
 
 
@@ -74,7 +77,23 @@ chan <- h5read(f, name = "Channels")
 cubes <- h5read(f, name = "collman14v2_cubes")
 
 G <- readRDS("maskGaussian_mu0_sigma2123_2123_5-455.rds")
-plot(raster(G[,,6]))
+
+th <- theme(axis.text = element_blank(), axis.ticks = element_blank(),
+            axis.title.y = element_blank(), axis.title.x = element_blank(),
+            legend.position="bottom", legend.key.size = unit(1,'lines'),
+            panel.spacing = unit(0, "lines"))
+
+png("meda_plots_gaussian/GaussianMask.png", width = 720, height = 140)
+pdat <- melt(G)
+ggplot(pdat, 
+aes(Var1,Var2, group = Var3, fill = value)) +
+geom_raster() + 
+scale_y_reverse() + 
+facet_grid(. ~ Var3) +
+#scale_fill_gradient(low = "black", high = "green") + th
+scale_fill_gradient(low = "black", high = "white") + th
+dev.off()
+
 
 F0 <- matrix(NA, nrow = 1036, ncol = 11)
 
