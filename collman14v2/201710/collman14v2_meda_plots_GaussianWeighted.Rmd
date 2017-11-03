@@ -1,0 +1,245 @@
+---
+title: "Collman14v2 Data: Gaussian Weighted 0.5 micron cubes about annotation centroids"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 5
+    fig_width: 5
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 1
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, dev = "png")
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+rmarkdown::render("collman14v2_meda_plots_GaussianWeighted.Rmd")
+system("open collman14v2_meda_plots_GaussianWeighted.html")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+# Library calls here.
+require(rmarkdown)
+require(knitr)
+require(rhdf5)
+require(raster)
+require(foreach)
+require(doMC)
+registerDoMC(6)
+suppressMessages(require(meda))
+```
+
+## Selecting the bandwidth using FWHM
+
+Let   
+$f_X = \frac{1}{\sigma \sqrt{2\pi}} \cdot 
+  \exp{\left[-\frac{x^2}{2\sigma^2}\right]}$, then the maximum is
+  attained at $f_X(0) = \frac{1}{\sigma \sqrt{2\pi}}$.  
+  Using a 217x217x11 cube we have for the $X$ and $Y$ dimensions let $a
+  = 217 / 4$ and for $Z$ let $a = 11 / 4$ and solve for $\sigma_{X,Y}$
+  and $\sigma_Z$:
+  
+\[
+\frac{1}{\sigma \sqrt{2\pi}} \exp{\left[-\frac{a^2}{2\sigma^2}\right]} = 
+\frac{1}{2\sigma \sqrt{2\pi}} \\
+\Rightarrow a = \sigma \sqrt{2\ln{2}}, 
+\]
+then $\sigma_{X,Y}^2 \approx 2123.32$ and $\sigma_{Z}^2 \approx 5.455$.
+
+And we have $f_{XYZ} = \phi(\cdot; \vec{0}, \Sigma)$ with 
+$\Sigma = \rm{diag}\left(2123.32, 2123.32, 5.455\right)$
+
+So the $217 \times 217 \times 11$ array mask, $A$, used to weight each cube
+will be defined as follows:
+
+$A_{i+109,j+109,k+6} = \int_i^{i+1}\int_j^{j+1}\int_k^{k+1} \phi(\cdot; \mu, \Sigma)dxdydz$ 
+for $i,j,k \in \{[-108,108] \times [-108,108] \times [-5,5]\}$
+
+
+## Make plots
+
+
+```{r, eval = FALSE}
+f <-  "collman14v2_fullCubes_20171101T1630.csv.h5"
+h5ls(f)
+loc <- h5read(f, name = "Locations")
+colnames(loc) <- c("x", "y", "z")
+chan <- h5read(f, name = "Channels") 
+
+cubes <- h5read(f, name = "collman14v2_cubes")
+
+G <- readRDS("maskGaussian_mu0_sigma2123_2123_5-455.rds")
+plot(raster(G[,,6]))
+
+F0 <- matrix(NA, nrow = 1036, ncol = 11)
+
+for(j in 1:dim(cubes)[5]){
+  for(i in 1:dim(cubes)[4]){
+  F0[i, j] <- sum(G * cubes[,,,i,j])
+  }
+}
+
+colnames(F0) <- chan
+
+write.csv(F0, file = "collman14v2_GaussianCubes_20171101T1630.csv",
+          row.names = FALSE)
+
+ccol <- c('blue', 'blue', 'blue', 'red', 'red', 
+          'red', 'red', 'darkgreen', 'darkgreen', 'darkgreen',  
+          'darkgreen')
+
+sF0 <- scale(F0, center = TRUE, scale = TRUE)
+set.seed(317)
+Lg <- runAll(sF0, ccol = ccol)
+Lg[[1]] <- mlocation(F0, ccol = ccol)
+
+
+w = 720
+h = 720 
+
+png("meda_plots_gaussian/d1heat.png", width = w, height = h)
+p2 <- plot(Lg[[2]]) 
+show(p2)
+dev.off()
+
+png("meda_plots_gaussian/mlocation.png", width = w, height = 0.5*h)
+p1 <- plot(Lg[[1]]) 
+show(p1)
+dev.off()
+
+png("meda_plots_gaussian/cumulativeVariance.png", width = w, height = h)
+p3 <- plot(Lg[[3]]) 
+show(p3)
+dev.off()
+
+png("meda_plots_gaussian/outliers.png", width = w, height = h)
+p4 <- plot(Lg[[4]]) 
+show(p4)
+dev.off()
+
+png("meda_plots_gaussian/cor.png", width = w, height = h)
+p5 <- plot(Lg[[6]]) 
+show(p5)
+dev.off()
+
+png("meda_plots_gaussian/pairhexGaussian.png", width = 2*w, height = 2*h)
+pairhex(sF0)
+dev.off()
+
+png("meda_plots_gaussian/hmcClassificationsGaussian.png", width = 2*w, height = 2*h)
+cr <- viridis(max(Lg[[7]]$dat$labels$col))
+pairs(Lg[[7]]$dat$data, pch = 19, cex = 0.5, col = cr[Lg[[7]]$dat$labels$col])
+dev.off()
+
+
+png("meda_plots_gaussian/dendrograms.png", width = w, height = h)
+p8 <- plotDend(Lg[[7]])
+show(p8)
+dev.off()
+
+png("meda_plots_gaussian/stackMeans.png", width = w, height = 2*h)
+p9 <- stackM(Lg[[7]], ccol = ccol, depth = 3, centered = TRUE)
+show(p9)
+dev.off()
+
+png("meda_plots_gaussian/clusterMeans.png", width = w, height = h)
+p10 <- clusterMeans(Lg[[7]], ccol = ccol)
+show(p10)
+dev.off()
+```
+
+```{r hmcLabels, eval = FALSE, include = FALSE}
+K <- 5
+write.csv(Lg[[7]]$dat$labels$col, file = "meda_plots_gaussian/hmcLabels.csv", row.names = FALSE)
+c5 <- meda::closestK(Lg[[7]], K = K, locs = loc)
+saveRDS(c5, file = "meda_plots_gaussian/hmcC5.rds")
+oc5 <- Reduce(rbind, c5)
+
+row.names(oc5) <- rep(names(c5), each = K)
+write.csv(oc5, file ="meda_plots_gaussian/hmcC5.csv") 
+write.csv(oc5, file ="meda_plots_gaussian/hmcC5synaptogramLocations.csv", row.names=FALSE) 
+
+link <- list()
+for(i in 1:nrow(oc5)){
+web <-
+  "http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/"
+base <- "collman14v2_top5_GaussianSynaptogram"
+link[[i]] <- 
+sprintf("%s%s_x%d_y%d_z%d", web, base, oc5[i,1],oc5[i,2],oc5[i,3])
+}
+
+
+## Write md table
+lin <- list()
+for(i in 1:5){
+  lin[[i]] <- 
+sprintf(
+  "[%d,%d,%d](%s) | [%d,%d,%d](%s) | [%d,%d,%d](%s) | [%d,%d,%d](%s) | [%d,%d,%d](%s) | [%d,%d,%d](%s) | [%d,%d,%d](%s) |",
+  oc5[i,1], oc5[i,2], oc5[i,3], link[[i]], 
+  oc5[i+5,1], oc5[i+5,2], oc5[i+5,3], link[[i+5]], 
+  oc5[i+10,1], oc5[i+10,2], oc5[i+10,3], link[[i+10]], 
+  oc5[i+15,1], oc5[i+15,2], oc5[i+15,3], link[[i+15]], 
+  oc5[i+20,1], oc5[i+20,2], oc5[i+20,3], link[[i+20]], 
+  oc5[i+25,1], oc5[i+25,2], oc5[i+25,3], link[[i+25]], 
+  oc5[i+30,1], oc5[i+30,2], oc5[i+30,3], link[[i+30]])
+}
+
+f <- file("tmp.md", "w")
+for(j in 1:length(lin)){
+  writeLines(lin[[j]], f)
+}
+
+close(f)
+```
+
+
+
+
+
+# 1-d Heatmap
+![](meda_plots_gaussian/d1heat.png)
+
+# Location meda_plots
+![](meda_plots_gaussian/mlocation.png)
+
+# Outliers as given by randomForest
+![](meda_plots_gaussian/outliers.png)
+
+# Correlation Matrix
+![](meda_plots_gaussian/cor.png)
+
+# Cumulative Variance with Elbows
+![](meda_plots_gaussian/cumulativeVariance.png)
+
+# Paired Hex-binned plot
+![](meda_plots_gaussian/pairhexGaussian.png)
+
+# Hierarchical GMM Classifications
+![](meda_plots_gaussian/hmcClassificationsGaussian.png)
+
+# Hierarchical GMM Dendrogram
+![](meda_plots_gaussian/dendrograms.png)
+
+# Stacked Means
+![](meda_plots_gaussian/stackMeans.png)
+
+# Cluster Means
+![](meda_plots_gaussian/clusterMeans.png)
+
+
+# Synaptograms of 5NN to mean in each cluster
+|C11 |  C121 | C122 |  C211 |  C212 |  C221 | C222 |
+|----- |  ----- | ----- |  ----- |  ----- |  --------- | --------- |
+[950,2282,14](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x950_y2282_z14) | [4014,2201,29](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x4014_y2201_z29) | [3869,1696,26](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x3869_y1696_z26) | [8108,5460,21](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x8108_y5460_z21) | [5210,5462,22](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x5210_y5462_z22) | [7547,4711,18](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7547_y4711_z18) | [6040,2471,11](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x6040_y2471_z11) |
+[4801,3900,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x4801_y3900_z15) | [3767,1934,23](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x3767_y1934_z23) | [999,1563,10](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x999_y1563_z10) | [8521,3795,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x8521_y3795_z15) | [8488,5872,32](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x8488_y5872_z32) | [1845,1157,30](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x1845_y1157_z30) | [3696,1178,28](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x3696_y1178_z28) |
+[5527,3271,29](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x5527_y3271_z29) | [7972,3674,21](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7972_y3674_z21) | [4085,1161,14](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x4085_y1161_z14) | [7490,5191,19](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7490_y5191_z19) | [7456,5859,22](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7456_y5859_z22) | [5861,1514,22](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x5861_y1514_z22) | [7416,2361,8](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7416_y2361_z8) |
+[4735,2428,10](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x4735_y2428_z10) | [6170,4424,26](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x6170_y4424_z26) | [4430,1158,12](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x4430_y1158_z12) | [8479,1439,11](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x8479_y1439_z11) | [295,2832,18](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x295_y2832_z18) | [2719,1027,8](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x2719_y1027_z8) | [7423,4880,13](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7423_y4880_z13) |
+[1638,1875,6](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x1638_y1875_z6) | [6397,5301,28](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x6397_y5301_z28) | [7427,2693,24](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7427_y2693_z24) | [6487,5719,26](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x6487_y5719_z26) | [130,2247,24](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x130_y2247_z24) | [1174,2779,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x1174_y2779_z15) | [3611,1504,23](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x3611_y1504_z23) |
+
+--- 
+---

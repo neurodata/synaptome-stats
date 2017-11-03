@@ -23,7 +23,12 @@ require(compiler)
 registerDoMC(8)
 
 mu <- c(0,0,0)
-sigma <-  diag(3) * c(2000,2000,15)
+sigma <-  diag(3) * c(2000,2000,8)
+sigma <-  diag(3) * c(2103,2103, 6.49)
+
+sigma <-  diag(3) * c(2103,2103,4.508) 
+sigma <-  diag(3) * c(2123.32, 2123.32, 5.455)
+
 sigma
 
 
@@ -37,7 +42,6 @@ head(grL)
 head(grU)
 
 M <- array(NA, dim = c(length(xseq),length(yseq), length(zseq)))
-
 
 pmv <- cmpfun(pmvnorm)
 
@@ -54,28 +58,31 @@ itU <- iter(gU)
 system.time({
   la <- foreach(L = itL, .combine = c) %dopar% {
     pmvnorm(mean = mu, sigma=sigma, lower=as.numeric(L), upper=as.numeric(L + 1))
-    pmvnorm(mean = mu, sigma=sigma, lower=as.numeric(L), upper=as.numeric(L + 1))
+    #pmvnorm(mean = mu, sigma=sigma, lower=as.numeric(L), upper=as.numeric(L + 1))
   }
 }
 )
 
 
-itL <- iter(gL[1:1000])
-foreach(L = itL) %do% {
-  L 
-}
-
-system.time({
-  la <- foreach(L = itL, .combine = c) %dopar% {
-    pmv(mean = mu, sigma=sigma, lower=as.numeric(L), upper=as.numeric(L + 1))
-  }
-}
-)
+#itL <- iter(gL[1:1000])
+#foreach(L = itL) %do% {
+#  L 
+#}
+#
+#system.time({
+#  la <- foreach(L = itL, .combine = c) %dopar% {
+#    pmv(mean = mu, sigma=sigma, lower=as.numeric(L), upper=as.numeric(L + 1))
+#  }
+#}
+#)
 
 
 
 A <- array(la/max(la), dim = c(length(xseq),length(yseq), length(zseq)))
-#saveRDS(A, file = "maskGaussian_mu0_sigma2000_2000_15.rds")
+#saveRDS(A, file = "maskGaussian_mu0_sigma2103_2103_4-508.rds")
+#saveRDS(A, file = "maskGaussian_mu0_sigma2103_2103_6-49.rds")
+saveRDS(A, file = "maskGaussian_mu0_sigma2123_2123_5-455.rds")
+
 
 th <- theme(axis.text = element_blank(), axis.ticks = element_blank(),
             axis.title.y = element_blank(), axis.title.x = element_blank(),
