@@ -45,6 +45,7 @@ colnames(loc) <- c("x", "y", "z")
 #tmp <- read.csv("collman14v2_tightAnnotationCubes20171101T1630.csv")
 tmp <- read.csv("collman14v2_tightAnnotationCubes20171101T2000.csv")
 ze <- apply(tmp, 1, function(x) all(x == 0))
+#write.csv(loc[ze,c(3,2,1)], file = "collman14v2_ZeroLocations.csv", row.names = FALSE)
 tight <- tmp[!ze,]
 loc   <- loc[!ze,]
 
@@ -64,17 +65,18 @@ set.seed(317)
 Lt <- runAll(stight, ccol = ccol)
 Lt[[1]] <- mlocation(tight, ccol = ccol)
 
+
 w = 720
 h = 720 
 
 png("meda_plots_tight/d1heat.png", width = w, height = h)
-p1 <- plot(Lt[[2]]) 
-show(p1)
+p2 <- plot(Lt[[2]]) 
+show(p2)
 dev.off()
 
 png("meda_plots_tight/mlocation.png", width = w, height = 0.5*h)
-p2 <- plot(Lt[[1]]) 
-show(p2)
+p1 <- plot(Lt[[1]]) 
+show(p1)
 dev.off()
 
 png("meda_plots_tight/cumulativeVariance.png", width = w, height = h)
@@ -156,8 +158,8 @@ w = 720
 h = 720 
 
 png("meda_plots_cubes/d1heat.png", width = w, height = h)
-p1 <- plot(Lc[[2]]) 
-show(p1)
+p2 <- plot(Lc[[2]]) 
+show(p2)
 dev.off()
 
 png("meda_plots_cubes/mlocation.png", width = w, height = 0.5*h)
@@ -166,13 +168,13 @@ show(p1)
 dev.off()
 
 png("meda_plots_cubes/cumulativeVariance.png", width = w, height = h)
-p1 <- plot(Lc[[3]]) 
-show(p1)
+p3 <- plot(Lc[[3]]) 
+show(p3)
 dev.off()
 
 png("meda_plots_cubes/outliers.png", width = w, height = h)
-p1 <- plot(Lc[[4]]) 
-show(p1)
+p4 <- plot(Lc[[4]]) 
+show(p4)
 dev.off()
 
 png("meda_plots_cubes/cor.png", width = w, height = h)
@@ -195,13 +197,13 @@ plotDend(Lc[[7]])
 dev.off()
 
 png("meda_plots_cubes/stackMeans.png", width = w, height = 2*h)
-p1 <- stackM(Lc[[7]], ccol = ccol, depth = 3, centered = TRUE)
-show(p1)
+p7 <- stackM(Lc[[7]], ccol = ccol, depth = 3, centered = TRUE)
+show(p7)
 dev.off()
 
 png("meda_plots_cubes/clusterMeans.png", width = w, height = h)
-p1 <- clusterMeans(Lc[[7]], ccol = ccol)
-show(p1)
+p8 <- clusterMeans(Lc[[7]], ccol = ccol)
+show(p8)
 dev.off()
 ```
 
@@ -241,11 +243,11 @@ dev.off()
 
 |C111 |  C112 | C12 |  C21 |  C221 |  C222 |
 |----- |  ----- | ----- |  ----- |  ----- |  --------- | 
-[7208,2706,27](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7208_y2706_z27) | [2803,741,14](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x2803_y741_z14)|  [7131,2933,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7131_y2933_z15) |  [5428,2446,25](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5428_y2446_z25)  | [5235,1444,12](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5235_1444_12) | [5757,2083,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5757_y2083_z15)
-[1522,2474,28](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x1522_y2474_z28) | [7159,3461,19](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7159_y3461_z19)|[5518,4822,23](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5518_y4822_z23) |  [640,2582,12 ](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x640_y2582_z12)   | [8031,2246,10](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x8031_2246_10) | [7605,5967,25](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7605_y5967_z25)
-[6322,4674,17](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x6322_y4674_z17) | [8287,2137,16](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x8287_y2137_z16)|[4168,4373,9](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x4168_y4373_z9)   |  [7037,2791,17](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7037_y2791_z17)  | [2351,1182,8](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x2351_1182_8)  | [6375,2432,21](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x6375_y2432_z21)
-[199,2704,25 ](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x199_y2704_z25)  | [5670,3783,16](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5670_y3783_z16)|[4656,2740,9](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x4656_y2740_z9)   |  [7294,3935,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7294_y3935_z15)  | [3392,3051,20](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x3392_3051_20) | [5389,2689,6](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5389_y2689_z6 )
-[8985,6257,32](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x8985_y6257_z32) | [4458,2346,20](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x4458_y2346_z20)|[6644,4362,6](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x6644_y4362_z6)   |  [5449,2048,24](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5449_2048_z24)   | [4844,1731,5](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x4844_1731_5)  | [2863,978,26](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x2863_y978_z26 )
+[7208,2706,27](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7208_y2706_z27) | [2803,741,14](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x2803_y741_z14)|  [7131,2933,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7131_y2933_z15) |  [5428,2446,25](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5428_y2446_z25)  | [5235,1444,12](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5235_y1444_z12) | [5757,2083,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5757_y2083_z15)
+[1522,2474,28](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x1522_y2474_z28) | [7159,3461,19](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7159_y3461_z19)|[5518,4822,23](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5518_y4822_z23) |  [640,2582,12 ](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x640_y2582_z12)   | [8031,2246,10](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x8031_y2246_z10) | [7605,5967,25](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7605_y5967_z25)
+[6322,4674,17](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x6322_y4674_z17) | [8287,2137,16](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x8287_y2137_z16)|[4168,4373,9](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x4168_y4373_z9)   |  [7037,2791,17](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7037_y2791_z17)  | [2351,1182,8](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x2351_y1182_z8)  | [6375,2432,21](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x6375_y2432_z21)
+[199,2704,25 ](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x199_y2704_z25)  | [5670,3783,16](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5670_y3783_z16)|[4656,2740,9](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x4656_y2740_z9)   |  [7294,3935,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x7294_y3935_z15)  | [3392,3051,20](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x3392_y3051_z20) | [5389,2689,6](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5389_y2689_z6 )
+[8985,6257,32](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x8985_y6257_z32) | [4458,2346,20](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x4458_y2346_z20)|[6644,4362,6](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x6644_y4362_z6)   |  [5449,2048,24](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x5449_y2048_z24)   | [4844,1731,5](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x4844_y1731_z5)  | [2863,978,26](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/tightAnnotation/synaptograms/collman14v2_top5_synaptogram_x2863_y978_z26 )
 
 
 

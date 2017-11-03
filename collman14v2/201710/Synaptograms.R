@@ -14,12 +14,21 @@ require(foreach)
 require(rhdf5)
 require(reshape2)
 require(gplots)
+require(raster)
+require(gridExtra)
+require(data.table)
 
 input <- "collman14v2_tightAnnotationCubes20171101T2000_C5synaptograms.h5"
+Locinput <- "collman14v2_tightAnnotationCubes20171101T2000_C5synaptograms.h5"
+input <- "collman14v2_tightAnnotationCubes20171101T2000.csv.h5"
+
+input <- "meda_plots_gaussian/collman14v2_gaussianSynaptograms.csv.h5"
+
 h5ls(input)
 name <- "collman14v2_cubes"
-dat <- h5read(input, name = name)
 loc <- h5read(input, name = 'Locations')
+dat <- h5read(input, name = name)
+
 chan <- h5read(input, name = 'Channels')
 H5close()
 
@@ -38,6 +47,15 @@ otpal <- colorpanel(255, "black", "blue")
 
 
 dimnames(dat) <- list(NULL, NULL, NULL, 1:dim(dat)[4], chan)
+G <- readRDS("maskGaussian_mu0_sigma2123_2123_5-455.rds")
+plot(raster(G[,,6]))
+
+for(j in 1:dim(dat)[5]){
+  for(i in 1:dim(dat)[4]){
+  dat[,,,i,j] <- G * dat[,,,i,j]
+  }
+}
+
 
 rr <- foreach(l = 1:dim(dat)[4]) %do% {
   r <- dat[,,,l,]
@@ -105,7 +123,8 @@ for(k in 1:length(rr)){
     geom_raster() + 
     scale_y_reverse() + 
     facet_grid(ch ~ z, labeller = label_both) +
-    scale_fill_gradient(low = "black", high = "white", limits = c(mmem, MMem)) + th + 
+    #scale_fill_gradient(low = "black", high = "white", limits = c(mmem, MMem)) + th + 
+    scale_fill_gradient(low = "black", high = "white") + th + 
     theme(legend.position = "none")
 
 
@@ -115,7 +134,8 @@ for(k in 1:length(rr)){
     geom_raster() + 
     scale_y_reverse() + 
     facet_grid(ch ~ z, labeller = label_both) +
-    scale_fill_gradient(low = "black", high = "green", limits = c(mmex, MMex)) + th
+    #scale_fill_gradient(low = "black", high = "green", limits = c(mmex, MMex)) + th
+    scale_fill_gradient(low = "black", high = "green") + th
   
   pin <- 
   ggplot(mr[mr$type == "in",], 
@@ -123,7 +143,8 @@ for(k in 1:length(rr)){
     geom_raster() + 
     scale_y_reverse() + 
     facet_grid(ch ~ z, labeller = label_both) +
-    scale_fill_gradient(low = "black", high = "red", limits = c(mmin,MMin)) + th
+    #scale_fill_gradient(low = "black", high = "red", limits = c(mmin,MMin)) + th
+    scale_fill_gradient(low = "black", high = "red") + th
   
   pot <- 
     ggplot(mr[mr$type == "ot",], 
@@ -131,7 +152,8 @@ for(k in 1:length(rr)){
     geom_raster() +
     scale_y_reverse() + 
     facet_grid(ch ~ z, labeller = label_both) +
-    scale_fill_gradient(low = "black", high = "blue", limits = c(mmot,MMot)) + th
+    #scale_fill_gradient(low = "black", high = "blue", limits = c(mmot,MMot)) + th
+    scale_fill_gradient(low = "black", high = "blue") + th
   #
   
   #lay <- rbind(
@@ -153,7 +175,7 @@ for(k in 1:length(rr)){
 
   if(TRUE){
     cname <- 
-    paste0("meda_plots_tight/collman14v2_top5_synaptogram", sprintf("_x%d_y%d_z%d.png", loc[k,1], loc[k,2], loc[k,3]))
+    paste0("meda_plots_gaussian/collman14v2_top5_GaussianSynaptogram", sprintf("_x%d_y%d_z%d.png", loc[k,1], loc[k,2], loc[k,3]))
     
     b = 1080
     w = b
@@ -163,21 +185,6 @@ for(k in 1:length(rr)){
     plot(P[[k]])
     dev.off()
   }
-}
-
-
-
-for(i in 1:nrow(loc)){
-  cname <- 
-  paste0("meda_plots_tight/collman14v2_top5_synaptogram", sprintf("_%d_%d_%d.png", loc[i,1], loc[i,2], loc[i,3]))
-  
-  b = 1080
-  w = b
-  h = 1.25*b
-
-  png(cname, width = w, height=h)
-  plot(P[[i]])
-  dev.off()
 }
 
 
