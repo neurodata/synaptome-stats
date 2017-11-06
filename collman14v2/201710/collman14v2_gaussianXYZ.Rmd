@@ -32,6 +32,7 @@ require(rhdf5)
 require(raster)
 require(rhdf5)
 require(rgl)
+require(gridExtra)
 require(RColorBrewer)
 suppressMessages(require(meda))
 ```
@@ -52,14 +53,15 @@ medaRun <- readRDS("collman14v2_medaRun_seed317_gaussianWeightedFullAnnotations.
 h <- medaRun[[7]]
 lab <- paste0("C", levels(medaRun[[7]]$dat$labels$L1))
 hmcXYZ <- data.frame(cbind(loc, cluster = h$dat$labels$col))
+hmcXYZ$label <- as.factor(lab[hmcXYZ$cluster])
 #ccol <- viridis(max(sort(unique(hmcXYZ$cluster))))
 ccol <- brewer.pal(max(sort(unique(hmcXYZ$cluster))),"Accent")
 ```
 
 
 
-```{r hist, fig.height = 8, fig.width = 12}
-p1 <- ggplot(hmcXYZ, aes(x = x, y = y,z=z, group = cluster, color = as.factor(lab[cluster]))) + 
+```{r scatter, fig.height = 8, fig.width = 12}
+p1 <- ggplot(hmcXYZ, aes(x = x, y = y,z=z, group = cluster, color = label)) + 
   facet_wrap( ~ z, ncol = 6) + 
   scale_y_reverse() + 
   scale_color_manual(values=ccol) +
@@ -67,6 +69,25 @@ p1 <- ggplot(hmcXYZ, aes(x = x, y = y,z=z, group = cluster, color = as.factor(la
 show(p1)
 ```
 
+# Histograms of X,Y, and Z coordinates
+```{r xyz-hist, fig.height = 5, fig.width = 9, warning = FALSE, message=FALSE }
+px <- ggplot(hmcXYZ, aes(x=x, group = cluster, fill = label)) + 
+  facet_wrap(~label, nrow=1) + 
+  scale_fill_manual(values=ccol) +
+  geom_histogram(aes(y = ..density..), position = 'identity')
+
+py <- ggplot(hmcXYZ, aes(x=y, group = cluster, fill = label)) + 
+  facet_wrap(~label, nrow=1) + 
+  scale_fill_manual(values=ccol) +
+  geom_histogram(aes(y = ..density..), position = 'identity')
+
+pz <- ggplot(hmcXYZ, aes(x=z, group = cluster, fill = label)) + 
+  facet_wrap(~label, nrow=1) + 
+  scale_fill_manual(values=ccol) +
+  geom_histogram(aes(y = ..density..), position = 'identity')
+
+grid.arrange(px,py,pz)
+```
 
 
 # Synapse clusters plotted spacially in native aspect ratio 
