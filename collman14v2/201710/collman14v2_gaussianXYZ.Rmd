@@ -1,0 +1,128 @@
+---
+title: "Collman14v2 Data: XYZ plots of Gaussian Weighted meda run"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 5
+    fig_width: 5
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 1
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = FALSE, dev = "png", echo = FALSE)
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+rmarkdown::render("collman14v2_gaussianXYZ.Rmd")
+system("open collman14v2_gaussianXYZ.html")
+```
+
+
+
+```{r require,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+# Library calls here.
+require(rmarkdown)
+require(knitr)
+require(rhdf5)
+require(raster)
+require(rhdf5)
+require(rgl)
+require(RColorBrewer)
+suppressMessages(require(meda))
+```
+
+##  XYZ Spacial cluster
+
+From the analysis done
+[here](http://docs.neurodata.io/synaptome-stats/collman14v2/201710/collman14v2_meda_plots_GaussianWeighted.html) 
+the clusters of synapses are plotted spacially and colored according to
+cluster label.
+
+
+```{r setup}
+f <-  "collman14v2_fullCubes_20171101T1630.csv.h5"
+loc <- h5read(f, name = "Locations")
+colnames(loc) <- letters[24:26]
+medaRun <- readRDS("collman14v2_medaRun_seed317_gaussianWeightedFullAnnotations.rds")
+h <- medaRun[[7]]
+lab <- paste0("C", levels(medaRun[[7]]$dat$labels$L1))
+hmcXYZ <- data.frame(cbind(loc, cluster = h$dat$labels$col))
+#ccol <- viridis(max(sort(unique(hmcXYZ$cluster))))
+ccol <- brewer.pal(max(sort(unique(hmcXYZ$cluster))),"Accent")
+```
+
+
+
+```{r hist, fig.height = 8, fig.width = 12}
+p1 <- ggplot(hmcXYZ, aes(x = x, y = y,z=z, group = cluster, color = as.factor(lab[cluster]))) + 
+  facet_wrap( ~ z, ncol = 6) + 
+  scale_y_reverse() + 
+  scale_color_manual(values=ccol) +
+  geom_point()
+show(p1)
+```
+
+
+
+# Synapse clusters plotted spacially in native aspect ratio 
+
+The native aspect ratio is $(3.72, 3.72, 70.0)$ nm.
+```{r 3d}
+plot3d(hmcXYZ[, 1:3], col = ccol[hmcXYZ[,4]], size = 10, aspect =c(3.72,3.72,70), alpha = 0.75)
+subid1 <- currentSubscene3d()
+rglwidget(elementId="xyzClusters1", width=720, height=720)
+```
+
+```{r labcol, fig.height = 3, fig.width = 8}
+plot(cbind(1:7,1), col = ccol, cex = 3, pch = 19, axes =FALSE, xlab="", ylab="")
+title("Cluster name and color")
+text(cbind(1:7,1), label = lab, pos = 1, offset = 2)
+```
+
+
+# Synapse clusters plotted spacially in altered aspect ratio
+```{r 3d-b}
+plot3d(hmcXYZ[, 1:3], col = ccol[hmcXYZ[,4]], size = 10, alpha = 0.75)
+subid2 <- currentSubscene3d()
+rglwidget(elementId="xyzClusters2", width=720, height=720)
+```
+
+
+# Large points are locations of the synaptograms
+
+```{r synaptogramC}
+c5 <- read.csv("meda_plots_gaussian/hmcC5.csv")
+plot3d(hmcXYZ[, 1:3], col = ccol[hmcXYZ[,4]], size = 10, alpha = 0.25)
+plot3d(c5[, 2:4], col = ccol[rep(1:7,each =5)], size = 20, add = TRUE)
+subid3 <- currentSubscene3d()
+rglwidget(elementId="xyzClusters3", width=720, height=720)
+```
+
+
+
+# Synaptograms of 5NN to mean (F0) in each cluster
+|C11 |  C121 | C122 |  C211 |  C212 |  C221 | C222 |
+|----- |  ----- | ----- |  ----- |  ----- |  --------- | --------- |
+[950,2282,14](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x950_y2282_z14) | [4014,2201,29](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x4014_y2201_z29) | [3869,1696,26](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x3869_y1696_z26) | [8108,5460,21](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x8108_y5460_z21) | [5210,5462,22](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x5210_y5462_z22) | [7547,4711,18](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7547_y4711_z18) | [6040,2471,11](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x6040_y2471_z11) |
+[4801,3900,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x4801_y3900_z15) | [3767,1934,23](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x3767_y1934_z23) | [999,1563,10](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x999_y1563_z10) | [8521,3795,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x8521_y3795_z15) | [8488,5872,32](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x8488_y5872_z32) | [1845,1157,30](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x1845_y1157_z30) | [3696,1178,28](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x3696_y1178_z28) |
+[5527,3271,29](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x5527_y3271_z29) | [7972,3674,21](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7972_y3674_z21) | [4085,1161,14](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x4085_y1161_z14) | [7490,5191,19](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7490_y5191_z19) | [7456,5859,22](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7456_y5859_z22) | [5861,1514,22](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x5861_y1514_z22) | [7416,2361,8](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7416_y2361_z8) |
+[4735,2428,10](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x4735_y2428_z10) | [6170,4424,26](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x6170_y4424_z26) | [4430,1158,12](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x4430_y1158_z12) | [8479,1439,11](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x8479_y1439_z11) | [295,2832,18](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x295_y2832_z18) | [2719,1027,8](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x2719_y1027_z8) | [7423,4880,13](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7423_y4880_z13) |
+[1638,1875,6](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x1638_y1875_z6) | [6397,5301,28](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x6397_y5301_z28) | [7427,2693,24](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x7427_y2693_z24) | [6487,5719,26](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x6487_y5719_z26) | [130,2247,24](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x130_y2247_z24) | [1174,2779,15](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x1174_y2779_z15) | [3611,1504,23](http://cis.jhu.edu/~jesse/TRA/Collman/collman14v2/gaussianWeighted/collman14v2_top5_GaussianSynaptogram_x3611_y1504_z23) |
+
+
+
+
+```{r labcol2, fig.height = 3, fig.width = 8}
+plot(cbind(1:7,1), col = ccol, cex = 3, pch = 19, axes =FALSE, xlab="", ylab="")
+title("Cluster name and color")
+text(cbind(1:7,1), label = lab, pos = 1, offset = 2)
+```
+
+
+
+

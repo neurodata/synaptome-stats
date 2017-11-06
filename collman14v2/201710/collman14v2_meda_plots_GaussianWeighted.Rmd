@@ -73,50 +73,62 @@ h5ls(f)
 loc <- h5read(f, name = "Locations")
 colnames(loc) <- c("x", "y", "z")
 chan <- h5read(f, name = "Channels") 
+H5close()
 
-cubes <- h5read(f, name = "collman14v2_cubes")
-
-G <- readRDS("maskGaussian_mu0_sigma2123_2123_5-455.rds")
-
-th <- theme(axis.text = element_blank(), axis.ticks = element_blank(),
-            axis.title.y = element_blank(), axis.title.x = element_blank(),
-            legend.position="bottom", legend.key.size = unit(1,'lines'),
-            panel.spacing = unit(0, "lines"))
-
-png("meda_plots_gaussian/GaussianMask.png", width = 720, height = 140)
-pdat <- melt(G)
-ggplot(pdat, 
-aes(Var1,Var2, group = Var3, fill = value)) +
-geom_raster() + 
-scale_y_reverse() + 
-facet_grid(. ~ Var3) +
-#scale_fill_gradient(low = "black", high = "green") + th
-scale_fill_gradient(low = "black", high = "white") + th
-dev.off()
-
-
-F0 <- matrix(NA, nrow = 1036, ncol = 11)
-
-for(j in 1:dim(cubes)[5]){
-  for(i in 1:dim(cubes)[4]){
-  F0[i, j] <- sum(G * cubes[,,,i,j])
+if(FALSE){
+  cubes <- h5read(f, name = "collman14v2_cubes")
+  
+  G <- readRDS("maskGaussian_mu0_sigma2123_2123_5-455.rds")
+  
+  th <- theme(axis.text = element_blank(), axis.ticks = element_blank(),
+              axis.title.y = element_blank(), axis.title.x = element_blank(),
+              legend.position="bottom", legend.key.size = unit(1,'lines'),
+              panel.spacing = unit(0, "lines"))
+  
+  png("meda_plots_gaussian/GaussianMask.png", width = 720, height = 140)
+  pdat <- melt(G)
+  ggplot(pdat, 
+  aes(Var1,Var2, group = Var3, fill = value)) +
+  geom_raster() + 
+  scale_y_reverse() + 
+  facet_grid(. ~ Var3) +
+  #scale_fill_gradient(low = "black", high = "green") + th
+  scale_fill_gradient(low = "black", high = "white") + th
+  dev.off()
+  
+  
+  F0 <- matrix(NA, nrow = 1036, ncol = 11)
+  
+  for(j in 1:dim(cubes)[5]){
+    for(i in 1:dim(cubes)[4]){
+    F0[i, j] <- sum(G * cubes[,,,i,j])
+    }
   }
+  
+  colnames(F0) <- chan
+  
+  write.csv(F0, file = "collman14v2_GaussianCubes_20171101T1630.csv",
+            row.names = FALSE)
+} else {
+  F0 <- read.csv("collman14v2_GaussianCubes_20171101T1630.csv")
 }
-
-colnames(F0) <- chan
-
-write.csv(F0, file = "collman14v2_GaussianCubes_20171101T1630.csv",
-          row.names = FALSE)
 
 ccol <- c('blue', 'blue', 'blue', 'red', 'red', 
           'red', 'red', 'darkgreen', 'darkgreen', 'darkgreen',  
           'darkgreen')
 
-sF0 <- scale(F0, center = TRUE, scale = TRUE)
-set.seed(317)
-Lg <- runAll(sF0, ccol = ccol)
-Lg[[1]] <- mlocation(F0, ccol = ccol)
 
+sF0 <- scale(F0, center = TRUE, scale = TRUE)
+
+
+if(FALSE){
+  set.seed(317)
+  Lg <- runAll(sF0, ccol = ccol)
+  Lg[[1]] <- mlocation(F0, ccol = ccol)
+  saveRDS(Lg, file = "collman14v2_medaRun_seed317_gaussianWeightedFullAnnotations.rds")
+} else {
+  Lg <- readRDS("collman14v2_medaRun_seed317_gaussianWeightedFullAnnotations.rds")
+}
 
 w = 720
 h = 720 

@@ -61,9 +61,14 @@ ccol <- c('blue', 'blue', 'blue', 'red', 'red',
           'red', 'red', 'darkgreen', 'darkgreen', 'darkgreen',  
           'darkgreen')
 
-set.seed(317)
-Lt <- runAll(stight, ccol = ccol)
-Lt[[1]] <- mlocation(tight, ccol = ccol)
+if(FALSE){
+  set.seed(317)
+  Lt <- runAll(stight, ccol = ccol)
+  Lt[[1]] <- mlocation(tight, ccol = ccol)
+  saveRDS(Lt, file = "collman14v2_medaRun_seed317_tightAnnotations.rds")
+} else {
+  Lt <- readRDS("collman14v2_medaRun_seed317_tightAnnotations.rds")
+}
 
 
 w = 720
@@ -150,9 +155,16 @@ ccol <- c('blue', 'blue', 'blue', 'red', 'red',
           'red', 'red', 'darkgreen', 'darkgreen', 'darkgreen', 
           'darkgreen')
 
-set.seed(317)
-Lc <- runAll(sF0, ccol = ccol)
-Lc[[1]] <- mlocation(F0, ccol = ccol)
+
+if(FALSE){
+  set.seed(317)
+  Lc <- runAll(sF0, ccol = ccol)
+  Lc[[1]] <- mlocation(F0, ccol = ccol)
+  saveRDS(Lc, file = "collman14v2_medaRun_seed317_fullCubesAnnotations.rds")
+} else {
+  Lc <- readRDS("collman14v2_medaRun_seed317_fullCubesAnnotations.rds")
+}
+
 
 w = 720
 h = 720 

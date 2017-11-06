@@ -24,6 +24,8 @@ input <- "collman14v2_tightAnnotationCubes20171101T2000.csv.h5"
 
 input <- "meda_plots_gaussian/collman14v2_gaussianSynaptograms.csv.h5"
 
+input <- "collman14v2_fullCubes_20171101T1630.csv.h5"
+
 h5ls(input)
 name <- "collman14v2_cubes"
 loc <- h5read(input, name = 'Locations')
@@ -32,7 +34,9 @@ dat <- h5read(input, name = name)
 chan <- h5read(input, name = 'Channels')
 H5close()
 
-dim(dat)
+set.seed(1030)
+s1 <- sample(dim(dat)[4], 10)
+dat <- dat[,,,s1,]
 
 type <- c('em', "ot", "ot", "ot", 
           'in', 'in', 'in','in',
@@ -47,12 +51,14 @@ otpal <- colorpanel(255, "black", "blue")
 
 
 dimnames(dat) <- list(NULL, NULL, NULL, 1:dim(dat)[4], chan)
-G <- readRDS("maskGaussian_mu0_sigma2123_2123_5-455.rds")
-plot(raster(G[,,6]))
-
-for(j in 1:dim(dat)[5]){
-  for(i in 1:dim(dat)[4]){
-  dat[,,,i,j] <- G * dat[,,,i,j]
+if(FALSE){
+  G <- readRDS("maskGaussian_mu0_sigma2123_2123_5-455.rds")
+  plot(raster(G[,,6]))
+  
+  for(j in 1:dim(dat)[5]){
+    for(i in 1:dim(dat)[4]){
+    dat[,,,i,j] <- G * dat[,,,i,j]
+    }
   }
 }
 
@@ -173,7 +179,7 @@ for(k in 1:length(rr)){
   P[[k]] <- grid.arrange(pot, pin, pex, pem, layout_matrix = lay)
   #print(grid.arrange(pem, pex, pin, pot, layout_matrix = lay))
 
-  if(TRUE){
+  if(FALSE){
     cname <- 
     paste0("meda_plots_gaussian/collman14v2_top5_GaussianSynaptogram", sprintf("_x%d_y%d_z%d.png", loc[k,1], loc[k,2], loc[k,3]))
     
