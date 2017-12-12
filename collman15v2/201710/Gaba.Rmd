@@ -11,6 +11,7 @@ require(rmarkdown)
 require(meda)
 require(rhdf5)
 require(rgl)
+require(randomForest)
 require(plotly)
 require(foreach)
 require(doMC)
@@ -159,3 +160,28 @@ ggplotly(p1)
 ```{r table}
 table(classification = tmp-1, df1$gaba)
 ```
+
+
+### RF
+
+```{r rf}
+set.seed(317)
+rfdat <- data.table(gaba = as.factor(cl$gaba), sf0)
+rf1 <- randomForest(gaba ~ ., data = rfdat)
+
+#set.seed(317)
+set.seed(2^13)
+train <- sample(nrow(rfdat), 100)
+test <- setdiff(1:nrow(rfdat), train)
+table(rfdat[test,]$gaba)
+
+rf2 <- randomForest(gaba ~ ., data = rfdat[train,], importance = TRUE)
+print(rf2)
+
+rf2.pred <- predict(rf2, newdata = rfdat[test,-c('gaba')])
+
+table(rf2.pred, rfdat[test,]$gaba)
+varImpPlot(rf2)
+```
+
+
