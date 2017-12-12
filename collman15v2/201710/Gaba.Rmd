@@ -39,7 +39,8 @@ table(cl$postgaba)
 ```
 
 ```{r meda, results = 'hide'}
-ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'black', 'green', 'green', 'green')
+#ccol <- read.csv("params.csv")[1,-c(1,14)]
+ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'green', 'green')
 set.seed(1030)
 L <- runAll(sf0, ccol = ccol)
 L[[1]] <- mlocation(f0, ccol = ccol)
@@ -135,9 +136,11 @@ links <- foreach(i = 1:dim(loc)[1]) %do% {
 df1 <- data.frame(loc)
 df1$gaba <- as.factor(cl$gaba)
 df1$classification <- as.factor(tmp -1)
-df1$text <- links
+df1$correct_classification <- (df1$classification == df1$gaba)
+#df1$text <- links
 
-p1 <- ggplot(df1, aes(x = x, y=y,z=z, col = gaba, shape = classification)) + 
+p1 <- ggplot(df1, aes(x = x, y=y,z=z, col = gaba, shape =
+                      correct_classification)) + 
   facet_wrap(~ z, ncol = 6) +
   geom_point()
 
