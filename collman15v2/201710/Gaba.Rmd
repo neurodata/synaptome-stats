@@ -33,10 +33,13 @@ table(cl$gaba)
 table(cl$postgaba)
 ```
 
-```{r meda}
+```{r meda, results = 'hide'}
 ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'black', 'green', 'green', 'green')
 set.seed(1030)
 L <- runAll(sf0, ccol = ccol)
+```
+
+```{r L}
 L[[1]] <- mlocation(f0, ccol = ccol)
 
 plot(L[[1]])
