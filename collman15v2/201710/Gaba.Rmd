@@ -121,17 +121,12 @@ hist(perms, xlim = c(min(perms), p0 + 0.25*p0),
 abline(v = p0, col = 'red')
 ```
 
-### ndvix links
-
-```{r links}
-loc
-
+```{r links, echo = FALSE}
 base <- "https://viz.boss.neurodata.io/#!{'layers':{'annotation':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/annotation?'}_'EM25K':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/EM25K?'_'opacity':0.5_'blend':'additive'}_'GABA488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GABA488?'_'opacity':0.5_'blend':'additive'_'color':1}_'GAD647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GAD647?'_'opacity':0.5_'color':1_'visible':false}_'gephyrin594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/gephyrin594?'_'opacity':0.5_'color':2_'visible':false}_'GS594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GS594?'_'opacity':0.5_'color':3_'visible':false}_'MBP488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/MBP488?'_'opacity':0.5_'color':4_'visible':false}_'NR1594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/NR1594?'_'opacity':0.5_'color':5_'visible':false}_'PSD95_488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/PSD95_488?'_'opacity':0.5_'color':6_'visible':false}_'Synapsin647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/Synapsin647?'_'opacity':0.5_'visible':false}_'VGluT1_647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/VGluT1_647?'_'opacity':0.5_'color':1_'visible':false}}_'navigation':{'pose':{'position':{'voxelSize':[2.240000009536743_2.240000009536743_70]_'voxelCoordinates':[%s_%s_%s]}}_'zoomFactor':2.25}}"
 
 links <- foreach(i = 1:dim(loc)[1]) %do% {
 	sprintf(base,loc$x[i], loc$y[i], loc$z[i])
 }
-
 ```
 
 
@@ -151,11 +146,16 @@ p1
 
 ### same as above with interactivity
 ```{r plotly, fig.height = 8, fig.width = 10}
-#ggplotly(p1)
-p2 <- plot_ly(df1, x = ~x, y = ~y, color = ~gaba,
-			  hoverinfo = 'text',
-				text = ~links)
-p2
+ggplotly(p1)
+#p2 <- plot_ly(df1, x = ~x, y = ~y, color = ~gaba,
+#			  hoverinfo = 'text',
+#				text = ~links)
+#p2
+#
+#htmlwidgets::saveWidget(as_widget(p2), "links.html")
 ```
 
-
+### Confusion matrix (classfication on rows)
+```{r table}
+table(classification = tmp-1, df1$gaba)
+```
