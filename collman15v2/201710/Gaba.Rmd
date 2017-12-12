@@ -1,5 +1,5 @@
 ---
-title: "Blank RMarkdown file."
+title: "Collman15v2 Gaba comparisons"
 author: "Jesse Leigh Patsolic"
 output: 
   html_document:
@@ -10,6 +10,8 @@ output:
 require(rmarkdown)
 require(meda)
 require(rhdf5)
+require(rgl)
+require(plotly)
 require(foreach)
 require(doMC)
 registerDoMC(4)
@@ -25,6 +27,8 @@ Loading the class labels sent by Forrest
 cl <- read.csv("cleft_class.csv")[-18,]
 f0 <- read.csv("collman15v2_tightAnnotationsF0.csv")
 sf0 <- scale(f0, center = TRUE, scale = TRUE)
+
+loc <- read.csv("locationstest20171211.csv")
 ```
 
 
@@ -37,22 +41,49 @@ table(cl$postgaba)
 ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'black', 'green', 'green', 'green')
 set.seed(1030)
 L <- runAll(sf0, ccol = ccol)
+L[[1]] <- mlocation(f0, ccol = ccol)
 ```
 
-```{r L}
-L[[1]] <- mlocation(f0, ccol = ccol)
 
+```{r mlocation, fig.height = 4, fig.width = 8}
 plot(L[[1]])
+```
+
+```{r d1heat, fig.height = 8, fig.width = 8}
 plot(L[[2]])
+```
+
+```{r cumvar, fig.height = 5, fig.width = 5}
 plot(L[[3]])
+```
+
+```{r outliers, fig.height = 8, fig.width = 8}
 plot(L[[4]])
-plot(L[[5]])
+```
+
+```{r pairnex, fig.height = 8, fig.width = 8}
+pairhex(sf0)
+```
+
+```{r cor, fig.height = 8, fig.width = 8}
 plot(L[[6]])
+```
+
+```{r dend, fig.height = 4, fig.width = 4}
 plotDend(L[[7]])
+```
+
+```{r pairs, fig.height = 12, fig.width = 12}
 c1 <- L[[7]]$dat$labels$col
 pairs(sf0, col = viridis(max(c1))[c1], 
       pch = 19, cex = 0.2)
-stackM(L[[7]], ccol = ccol, centered = TRUE)
+```
+
+```{r stackM, fig.height = 4, fig.width = 4}
+stackM(L[[7]], ccol = ccol, centered = TRUE, depth = 2)
+```
+
+```{r clusterMeans, fig.height = 4, fig.width = 4}
 clusterMeans(L[[7]], ccol = ccol)
 ```
 
@@ -65,17 +96,20 @@ p0 <- mclust::adjustedRandIndex(l2, cl$gaba)
 ```
 
 ```{r perm}
-perms <- foreach(i = 1:1e3, .combine = c) %dopar% {
+perms <- foreach(i = 1:1e4, .combine = c) %dopar% {
   set.seed(i*2)
   mclust::adjustedRandIndex(sample(l2), cl$gaba)
 }
 ```
 
-```{r plots}
+```{r plots, fig.height = 12, fig.width = 12}
 tmp <- h2$dat$labels$col
 pairs(h2$dat$data, 
       col = viridis(max(tmp))[tmp],
       pch = 19, cex = 0.25)
+```
+
+```{r pdend, fig.height = 4, fig.width = 4}
 plotDend(h2)
 stackM(h2, depth = 2, centered = TRUE, ccol = ccol)
 ```
@@ -87,11 +121,41 @@ hist(perms, xlim = c(min(perms), p0 + 0.25*p0),
 abline(v = p0, col = 'red')
 ```
 
+### ndvix links
+
+```{r links}
+loc
+
+base <- "https://viz.boss.neurodata.io/#!{'layers':{'annotation':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/annotation?'}_'EM25K':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/EM25K?'_'opacity':0.5_'blend':'additive'}_'GABA488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GABA488?'_'opacity':0.5_'blend':'additive'_'color':1}_'GAD647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GAD647?'_'opacity':0.5_'color':1_'visible':false}_'gephyrin594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/gephyrin594?'_'opacity':0.5_'color':2_'visible':false}_'GS594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GS594?'_'opacity':0.5_'color':3_'visible':false}_'MBP488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/MBP488?'_'opacity':0.5_'color':4_'visible':false}_'NR1594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/NR1594?'_'opacity':0.5_'color':5_'visible':false}_'PSD95_488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/PSD95_488?'_'opacity':0.5_'color':6_'visible':false}_'Synapsin647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/Synapsin647?'_'opacity':0.5_'visible':false}_'VGluT1_647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/VGluT1_647?'_'opacity':0.5_'color':1_'visible':false}}_'navigation':{'pose':{'position':{'voxelSize':[2.240000009536743_2.240000009536743_70]_'voxelCoordinates':[%s_%s_%s]}}_'zoomFactor':2.25}}"
+
+links <- foreach(i = 1:dim(loc)[1]) %do% {
+	sprintf(base,loc$x[i], loc$y[i], loc$z[i])
+}
+
+```
 
 
+```{r look2, fig.height = 8, fig.width = 12}
+df1 <- data.frame(loc)
+df1$gaba <- as.factor(cl$gaba)
+df1$classification <- as.factor(tmp -1)
+df1$text <- links
+
+p1 <- ggplot(df1, aes(x = x, y=y,z=z, col = gaba, shape = classification)) + 
+  facet_wrap(~ z, ncol = 6) +
+  geom_point()
+
+p1
+```
 
 
-
-
+### same as above with interactivity
+```{r plotly, fig.height = 8, fig.width = 10}
+#ggplotly(p1)
+p2 <- plot_ly(df1, x = ~x, y = ~y, color = ~gaba,
+			  hoverinfo = 'text',
+				text = ~links)
+p2
+```
 
 
