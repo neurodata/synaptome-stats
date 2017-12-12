@@ -1,0 +1,94 @@
+---
+title: "Blank RMarkdown file."
+author: "Jesse Leigh Patsolic"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+require(meda)
+require(rhdf5)
+require(foreach)
+require(doMC)
+registerDoMC(4)
+rmarkdown::render("Gaba.Rmd")
+system('open Gaba.html')
+```
+
+## Data Preparation 
+
+Loading the class labels sent by Forrest
+
+```{r cc1}
+cl <- read.csv("cleft_class.csv")[-18,]
+f0 <- read.csv("collman15v2_tightAnnotationsF0.csv")
+sf0 <- scale(f0, center = TRUE, scale = TRUE)
+```
+
+
+```{r lookatit}
+table(cl$gaba)
+table(cl$postgaba)
+```
+
+```{r meda}
+ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'black', 'green', 'green', 'green')
+set.seed(1030)
+L <- runAll(sf0, ccol = ccol)
+L[[1]] <- mlocation(f0, ccol = ccol)
+
+plot(L[[1]])
+plot(L[[2]])
+plot(L[[3]])
+plot(L[[4]])
+plot(L[[5]])
+plot(L[[6]])
+plotDend(L[[7]])
+c1 <- L[[7]]$dat$labels$col
+pairs(sf0, col = viridis(max(c1))[c1], 
+      pch = 19, cex = 0.2)
+stackM(L[[7]], ccol = ccol, centered = TRUE)
+clusterMeans(L[[7]], ccol = ccol)
+```
+
+
+```{r compare, results = 'hide'}
+set.seed(1030)
+h2 <- hmc(sf0, maxDepth = 2)
+l2 <- h2$dat$labels$col - 1
+p0 <- mclust::adjustedRandIndex(l2, cl$gaba)
+```
+
+```{r perm}
+perms <- foreach(i = 1:1e3, .combine = c) %dopar% {
+  set.seed(i*2)
+  mclust::adjustedRandIndex(sample(l2), cl$gaba)
+}
+```
+
+```{r plots}
+tmp <- h2$dat$labels$col
+pairs(h2$dat$data, 
+      col = viridis(max(tmp))[tmp],
+      pch = 19, cex = 0.25)
+plotDend(h2)
+stackM(h2, depth = 2, centered = TRUE, ccol = ccol)
+```
+
+
+```{r hist}
+hist(perms, xlim = c(min(perms), p0 + 0.25*p0),
+     main = "permutation test of ARI values")
+abline(v = p0, col = 'red')
+```
+
+
+
+
+
+
+
+
+
