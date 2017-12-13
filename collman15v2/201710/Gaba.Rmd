@@ -4,6 +4,11 @@ author: "Jesse Leigh Patsolic"
 output: 
   html_document:
     keep_md: true
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 2
 ---
 
 ```{r render, eval=FALSE, echo=FALSE}
@@ -13,14 +18,16 @@ require(rhdf5)
 require(rgl)
 require(randomForest)
 require(plotly)
+require(kableExtra)
+require(knitr)
 require(foreach)
 require(doMC)
 registerDoMC(4)
 rmarkdown::render("Gaba.Rmd")
-system('open Gaba.html')
+system('open Gaba.html -a "Google Chrome.app"')
 ```
 
-## Data Preparation 
+# MEDA run 
 
 Loading the class labels sent by Forrest
 
@@ -46,49 +53,62 @@ L <- runAll(sf0, ccol = ccol)
 L[[1]] <- mlocation(f0, ccol = ccol)
 ```
 
-
-```{r mlocation, fig.height = 4, fig.width = 8}
+## mlocation
+```{r mlocation, fig.height = 4, fig.width = 8, echo=FALSE}
 plot(L[[1]])
 ```
 
-```{r d1heat, fig.height = 8, fig.width = 8}
+## d1heat
+```{r d1heat, fig.height = 8, fig.width = 8, echo=FALSE}
 plot(L[[2]])
 ```
 
-```{r cumvar, fig.height = 5, fig.width = 5}
+## cumvar
+```{r cumvar, fig.height = 5, fig.width = 5, echo=FALSE}
 plot(L[[3]])
 ```
 
-```{r outliers, fig.height = 8, fig.width = 8}
+## outliers
+```{r outliers, fig.height = 8, fig.width = 8, echo=FALSE}
 plot(L[[4]])
 ```
 
-```{r pairnex, fig.height = 8, fig.width = 8}
+## pairhex
+```{r pairnex, fig.height = 8, fig.width = 8, echo=FALSE}
 pairhex(sf0)
 ```
 
-```{r cor, fig.height = 8, fig.width = 8}
+## correlation
+```{r cor, fig.height = 8, fig.width = 8, echo=FALSE}
 plot(L[[6]])
 ```
 
-```{r dend, fig.height = 4, fig.width = 4}
+## dendrogram
+```{r dend, fig.height = 4, fig.width = 4, echo=FALSE}
 plotDend(L[[7]])
 ```
 
-```{r pairs, fig.height = 12, fig.width = 12}
+## pairs plots
+```{r pairs, fig.height = 12, fig.width = 12, echo=FALSE}
 c1 <- L[[7]]$dat$labels$col
 pairs(sf0, col = viridis(max(c1))[c1], 
       pch = 19, cex = 0.2)
 ```
 
-```{r stackM, fig.height = 4, fig.width = 4}
+## stacked means
+```{r stackM, fig.height = 4, fig.width = 4, echo=FALSE}
 stackM(L[[7]], ccol = ccol, centered = TRUE, depth = 2)
 ```
 
-```{r clusterMeans, fig.height = 4, fig.width = 4}
+## cluster means
+```{r clusterMeans, fig.height = 4, fig.width = 4, echo=FALSE}
 clusterMeans(L[[7]], ccol = ccol)
 ```
 
+# Set $K = 2$
+
+Here we restrict our hierarchical GMM function to one split only and
+then compare with the true gaba/non-gaba class labels.
 
 ```{r compare, results = 'hide'}
 set.seed(1030)
@@ -104,11 +124,15 @@ perms <- foreach(i = 1:1e4, .combine = c) %dopar% {
 }
 ```
 
-```{r plots, fig.height = 12, fig.width = 12}
+```{r plots, fig.height = 12, fig.width = 12, fig.show = 'hold'}
 tmp <- h2$dat$labels$col
 pairs(h2$dat$data, 
       col = viridis(max(tmp))[tmp],
-      pch = 19, cex = 0.25)
+      pch = 19, cex = 0.5, main = "colored by prediction")
+
+pairs(h2$dat$data, 
+      col = c('darkblue', 'violet')[cl$gaba +1],
+      pch = 19, cex = 0.5, main = "colored by truth")
 ```
 
 ```{r pdend, fig.height = 4, fig.width = 4}
@@ -123,20 +147,15 @@ hist(perms, xlim = c(min(perms), p0 + 0.25*p0),
 abline(v = p0, col = 'red')
 ```
 
-```{r links, echo = FALSE}
-base <- "https://viz.boss.neurodata.io/#!{'layers':{'annotation':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/annotation?'}_'EM25K':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/EM25K?'_'opacity':0.5_'blend':'additive'}_'GABA488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GABA488?'_'opacity':0.5_'blend':'additive'_'color':1}_'GAD647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GAD647?'_'opacity':0.5_'color':1_'visible':false}_'gephyrin594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/gephyrin594?'_'opacity':0.5_'color':2_'visible':false}_'GS594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GS594?'_'opacity':0.5_'color':3_'visible':false}_'MBP488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/MBP488?'_'opacity':0.5_'color':4_'visible':false}_'NR1594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/NR1594?'_'opacity':0.5_'color':5_'visible':false}_'PSD95_488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/PSD95_488?'_'opacity':0.5_'color':6_'visible':false}_'Synapsin647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/Synapsin647?'_'opacity':0.5_'visible':false}_'VGluT1_647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/VGluT1_647?'_'opacity':0.5_'color':1_'visible':false}}_'navigation':{'pose':{'position':{'voxelSize':[2.240000009536743_2.240000009536743_70]_'voxelCoordinates':[%s_%s_%s]}}_'zoomFactor':2.25}}"
-
-links <- foreach(i = 1:dim(loc)[1]) %do% {
-	sprintf(base,loc$x[i], loc$y[i], loc$z[i])
-}
-```
-
-
 ```{r look2, fig.height = 8, fig.width = 12}
 df1 <- data.frame(loc)
 df1$gaba <- as.factor(cl$gaba)
 df1$classification <- as.factor(tmp -1)
 df1$correct_classification <- (df1$classification == df1$gaba)
+df1$TN <- (df1$classification == 0 & df1$gaba == 0)
+df1$FN <- (df1$classification == 0 & df1$gaba == 1)
+df1$FP <- (df1$classification == 1 & df1$gaba == 0)
+df1$TP <- (df1$classification == 1 & df1$gaba == 1)
 #df1$text <- links
 
 p1 <- ggplot(df1, aes(x = x, y=y,z=z, col = gaba, shape =
@@ -160,12 +179,79 @@ ggplotly(p1)
 ```
 
 ### Confusion matrix (classfication on rows)
+
 ```{r table}
-table(classification = tmp-1, df1$gaba)
+(ta <- table(classification = tmp-1, df1$gaba))
+```
+
+The above table shows that out of `r sum(cl$gaba)` true gaba synapses 
+`r ta[1,2]` were mis-classified as non-gaba synapses. 
+
+
+```{r links, echo = FALSE}
+base <- "https://viz.boss.neurodata.io/#!{'layers':{'annotation':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/annotation?'}_'EM25K':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/EM25K?'_'opacity':0.5_'blend':'additive'}_'GABA488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GABA488?'_'opacity':0.5_'blend':'additive'_'color':1}_'GAD647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GAD647?'_'opacity':0.5_'color':1_'visible':false}_'gephyrin594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/gephyrin594?'_'opacity':0.5_'color':2_'visible':false}_'GS594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/GS594?'_'opacity':0.5_'color':3_'visible':false}_'MBP488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/MBP488?'_'opacity':0.5_'color':4_'visible':false}_'NR1594':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/NR1594?'_'opacity':0.5_'color':5_'visible':false}_'PSD95_488':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/PSD95_488?'_'opacity':0.5_'color':6_'visible':false}_'Synapsin647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/Synapsin647?'_'opacity':0.5_'visible':false}_'VGluT1_647':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/collman15v2/VGluT1_647?'_'opacity':0.5_'color':1_'visible':false}}_'navigation':{'pose':{'position':{'voxelSize':[2.240000009536743_2.240000009536743_70]_'voxelCoordinates':[%s_%s_%s]}}_'zoomFactor':2.25}}"
+
+links <- foreach(i = 1:dim(loc)[1]) %do% {
+	sprintf(base,loc$x[i], loc$y[i], loc$z[i])
+}
+
+mdlinks <- foreach(i = 1:length(links)) %do% {
+	sprintf("[%d, %d, %d](%s)", loc$x[i], loc$y[i], loc$z[i],links[[i]])
+}
+
+#fooFN <- file("FN_Gaba.txt")
+#writeLines(Reduce(c,
+#                  links[df1$FN]
+#                  ), fooFN)
+#close(fooFN)
+#
+#fooFP <- file("FP_Gaba.txt")
+#writeLines(Reduce(c,
+#                  links[df1$FP]
+#                  ), fooFP)
+#close(fooFP)
+#
+#write.csv(loc[df1$FN,c(3,2,1)], file = "GabaFN_locXYZ.csv", row.names = FALSE)
+#write.csv(loc[df1$FP,c(3,2,1)], file = "GabaFP_locXYZ.csv", row.names = FALSE)
+#write.csv(loc[df1$TN,c(3,2,1)], file = "GabaTN_locXYZ.csv", row.names = FALSE)
+#write.csv(loc[df1$TP,c(3,2,1)], file = "GabaTP_locXYZ.csv", row.names = FALSE)
 ```
 
 
-### RF
+# NDVIZ Links
+
+Note that the centroids are caluclated from the annotations which means
+that the centorid might not be in an area with annotated pixels. 
+
+```{r linkTables, echo = FALSE}
+lFN <- data.frame(FalseNegatives = as.character(mdlinks[df1$FN]))
+lFP <- data.frame(FalsePositives = as.character(mdlinks[df1$FP]))
+lTN <- data.frame(TrueNegatives  = as.character(mdlinks[df1$TN]))
+lTP <- data.frame(TruePositives  = as.character(mdlinks[df1$TP]))
+```
+
+## False Negatives
+```{r tFN, echo = FALSE}
+kable(lFN, format = 'markdown', escape = FALSE)
+```
+
+## False Positives
+```{r tFP, echo = FALSE}
+kable(lFP, format = 'markdown', escape = FALSE)
+```
+
+## True Negatives
+```{r tTN, echo = FALSE}
+kable(lTN, format = 'markdown', escape = FALSE)
+```
+
+## True Positives
+```{r tTP, echo = FALSE}
+kable(lTP, format = 'markdown', escape = FALSE)
+```
+
+
+# RF
 
 ```{r rf}
 set.seed(317)
