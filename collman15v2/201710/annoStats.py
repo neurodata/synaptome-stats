@@ -26,25 +26,13 @@ from multiprocessing.dummy import Pool as ThreadPool
 from multiprocessing import cpu_count
 import csv
 import datetime
-
-
-def getData(di):
-    data = di['rem'].get_cutout(di['ch_rsc'], di['res'], di['xrng'],
-          di['yrng'] ,di['zrng'])
-    out = data[di['mask']]
-    return(out)
-
-def getCentroid(box):
-    m = np.asarray(box == True) 
-    avg = np.int(np.round(np.mean(m,1)))
-    return(avg)
-
+import toolbox
 
 
 def main(COLL_NAME, EXP_NAME, COORD_FRAME,
          CHAN_NAMES=None, num_threads = 4, CONFIG_FILE= 'config.ini'):
 
-    bf = 5
+    bf = [5,245,245] # in z,y,x order
 
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)
@@ -58,7 +46,7 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME,
 
     cf = CoordinateFrameResource(str(COLL_NAME + '_' + EXP_NAME))
     cfr = rem.get_project(cf)
-    anno_res = ChannelResource('annotation', 'collman', 'collman15v2', 'annotation', datatype='uint64')
+    anno_res = ChannelResource('annotation', COLL_NAME, EXP_NAME, 'annotation', datatype='uint64')
     
     ex = {'x': cfr.x_stop, 'y': cfr.y_stop, 'z': cfr.z_stop}
     
@@ -71,24 +59,30 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME,
 
     u = np.unique(np.asarray(rid))
 
+    ## bounding box for annotation_i
     bb = [rem.get_bounding_box(anno_res, 0,ui, 'tight') for ui in u]
 
     for i in range(len(bb)):
         bb[i]["id"] = u[i]
 
-    A = [rem.get_cutout(anno_res, 0, bb[i]["x_range"], bb[i]["y_range"],
-                        bb[i]["z_range"], id_list = [bb[i]['id']]) != 0 for i
-                        in range(len(bb))]
+    A = [(rem.get_cutout(
+          anno_res, 0, bb[i]["x_range"], 
+          bb[i]["y_range"], bb[i]["z_range"], 
+          id_list = [bb[i]['id']]) != 0).astype(int) 
+        for i in range(len(bb))] 
 
-    Bmeans = [np.int32(np.round(np.mean(np.asarray(np.where(A[i] == True)),1))) for i in range(len(A))]
+    #Bmeans = [np.int32(np.round(np.mean(np.asarray(np.where(A[i] == True)),1))) for i in range(len(A))]
+    Bmeans = [np.int32(np.round(np.mean(np.asarray(np.where(A[i] == 1)),1))) for i in range(len(A))]
     
     Bglobal = []
     for i in range(len(bb)):
         ad1 = np.asarray([bb[i]['z_range'][0], bb[i]['y_range'][0], bb[i]['x_range'][0]])
         Bglobal.append(Bmeans[i] + ad1)
         
-    ColMin = np.asarray([bf,bf,bf])
-    ColMax = np.asarray([ex['z'] - (bf + 1), ex['y'] - (bf +1), ex['x'] - (bf)])
+    ColMin = np.asarray(bf)
+    ColMax = np.asarray([ex['z'] - (bf[0] + 1),  # The z index is inclusive
+                         ex['y'] - (bf[1] + 1), 
+                         ex['x'] - (bf[2] + 1)])
 
     m = [Bglobal[i] >= ColMin for i in range(len(Bglobal))]
     M = [Bglobal[i] <= ColMax for i in range(len(Bglobal))]
@@ -106,30 +100,13 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME,
                 CHAN_NAMES = ['DAPI1st', 'DAPI2nd', 'DAPI3rd',
         	      'GABA488', 'GAD647', 'gephyrin594', 'GS594', 'MBP488',
                       'NR1594', 'PSD95_488', 'Synapsin647', 'VGluT1_647']
+                #CHAN_NAMES = ['bIIItubulin', 'DAPI_2nd', 'DAPI_3rd',
+                #        'GABA', 'GAD2', 'gephyrin', 'NR1', 'PSDr',
+                #        'synapsin', 'VGAT', 'VGluT1'] 
 
     ChanList = []
-    for ch in CHAN_NAMES:
-        di = [{
-              'rem': rem,
-              'ch_rsc':
-                ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint8'),
-              'ch'  : ch,
-              'res' : 0,
-              'xrng': bb[i]['x_range'],  
-              'yrng': bb[i]['y_range'],  
-              'zrng': bb[i]['z_range'],
-              'id'  : bb[i], 
-              'mask': A[i]
-             } for i in range(len(bb)) if con[i]]
-        with ThreadPool(num_threads) as tp:
-            out = tp.map(getData, di)
-            print(ch) ##DEBUG
-            sys.stdout.flush() #DEBUG
 
-        ChanList.append(np.asarray(out))
-
-    anno = np.asarray(ChanList)
-   
+    ## for getting masked 
     #for ch in CHAN_NAMES:
     #    di = [{
     #          'rem': rem,
@@ -137,55 +114,85 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME,
     #            ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint8'),
     #          'ch'  : ch,
     #          'res' : 0,
-    #          'xrng': [Bcon[i][2] - 5, Bcon[i][2] + 6], 
-    #          'yrng': [Bcon[i][1] - 5, Bcon[i][1] + 6], 
-    #          'zrng': [Bcon[i][0] - 5, Bcon[i][0] + 6],
-    #         } for i in range(len(Bglobal))]
+    #          'xrng': bb[i]['x_range'],  
+    #          'yrng': bb[i]['y_range'],  
+    #          'zrng': bb[i]['z_range'],
+    #          'id'  : bb[i], 
+    #          'mask': A[i]
+    #         } for i in range(len(bb)) if con[i]]
     #    with ThreadPool(num_threads) as tp:
-    #        out = tp.map(getData, di)
+    #        out = tp.map(toolbox.getMaskData, di)
+    #        sys.stdout.flush() #DEBUG
     #        print(ch) ##DEBUG
     #        sys.stdout.flush() #DEBUG
-
     #    ChanList.append(np.asarray(out))
+    #cubes = np.asarray(ChanList)
 
-    anno = np.asarray(ChanList)
+    ## For getting bounding box around centroid of annotation
+    #for ch in CHAN_NAMES:
+    #    di = [{
+    #          'rem': rem,
+    #          'ch_rsc':
+    #            ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint8'),
+    #          'ch'  : ch,
+    #          'res' : 0,
+    #          'xrng': [Bcon[i][2] - bf[2], Bcon[i][2] + bf[2] + 1], 
+    #          'yrng': [Bcon[i][1] - bf[1], Bcon[i][1] + bf[1] + 1], 
+    #          'zrng': [Bcon[i][0] - bf[0], Bcon[i][0] + bf[0] + 1], 
+    #         } for i in range(len(Bcon))]
+    #    with ThreadPool(num_threads) as tp:
+    #        out = tp.map(toolbox.getCube, di)
+    #        print(ch) ##DEBUG
+    #        sys.stdout.flush() #DEBUG
+    #    ChanList.append(np.asarray(out))
+    #cubes = np.asarray(ChanList)
 
-    F0 = np.asarray([[sum(a)/len(a) for a in anno[i]] for i in range(anno.shape[0])])
-    #F0 = np.asarray([[sum(a) for a in anno[i]] for i in range(anno.shape[0])])
-    #return(Cen)
-    #return(anno)
-    return(F0)
+    ## for getting all regardles of near boundary
+    for ch in CHAN_NAMES:
+        di = [{
+              'rem': rem,
+              'ch_rsc':
+                ChannelResource(ch,COLL_NAME,EXP_NAME,'image',datatype='uint8'),
+              'ch'  : ch,
+              'res' : 0,
+              'xrng': [max([Bglobal[i][2] - bf[2], 0]), min([Bglobal[i][2] + bf[2] + 1, ex['x']])], 
+              'yrng': [max([Bglobal[i][1] - bf[1], 0]), min([Bglobal[i][1] + bf[1] + 1, ex['y']])], 
+              'zrng': [max([Bglobal[i][0] - bf[0], 0]), min([Bglobal[i][0] + bf[0] + 1, ex['z']])] 
+             } for i in range(len(Bglobal))]
+        with ThreadPool(num_threads) as tp:
+            out = tp.map(toolbox.getCube, di)
+            print(ch) ##DEBUG
+            sys.stdout.flush() #DEBUG
+        ChanList.append(np.asarray(out))
+    cubes = ChanList
+    loc = np.asarray(Bglobal)
+
+    return(cubes, loc)
+## END main
 
 def testMain():
     COLL_NAME      = 'collman' 
     EXP_NAME       = 'collman15v2' 
     COORD_FRAME    = 'collman_collman15v2'
     CONFIG_FILE    = 'config.ini'
+    OUTPUT         = 'fmaxTest20171214.csv'
 
-    #CHAN_NAMES = ['Synapsin647']
-    CHAN_NAMES = ['DAPI1st', 'DAPI2nd', 'DAPI3rd', 'GABA488', 'GAD647',
-            'gephyrin594', 'GS594', 'MBP488', 'NR1594', 'PSD95_488',
-            'Synapsin647', 'VGluT1_647']
+    CHAN_NAMES = ['Synapsin647', 'VGluT1_647']
+    #CHAN_NAMES = ['DAPI1st', 'DAPI2nd', 'DAPI3rd', 'GABA488', 'GAD647',
+    #        'gephyrin594', 'GS594', 'MBP488', 'NR1594', 'PSD95_488',
+    #        'Synapsin647', 'VGluT1_647']
+    #CHAN_NAMES = ['synapsin', 'PSDr'] 
 
-    print("anno")
-    anno = main(COLL_NAME, EXP_NAME, COORD_FRAME,
-         CHAN_NAMES=CHAN_NAMES, num_threads = 4, CONFIG_FILE= 'config.ini')
+    cubes, loc  = main(COLL_NAME, EXP_NAME, COORD_FRAME,
+         CHAN_NAMES=CHAN_NAMES, num_threads = 6, CONFIG_FILE= 'config.ini')
 
-    F0 = np.asarray([[sum(a)/len(a) for a in anno[i]] for i in range(anno.shape[0])])
-    #print("F0")
-    #F0 = np.asarray([[sum(a) for a in anno[i]] for i in range(anno.shape[0])])
-
-    return(F0)
-   
-
-def mainOUT(F0, head, outfile):
-
-    with open(outfile, 'w') as f1:
-        wt = csv.writer(f1)
-        wt.writerow(head)
-        wt.writerows(np.transpose(np.asarray(F0)))
-
-    return(None)
+    Fmaxb = toolbox.Fmaxb(cubes)
+    #F0 = toolbox.F0(cubes)
+    #Fmax = toolbox.Fmax(cubes)
+    #toolbox.mainOUT(Fmax, CHAN_NAMES, OUTPUT)
+    #toolbox.toh5(EXP_NAME, OUTPUT + '.h5', CHAN_NAMES, cubes, loc, Fmax)
+    return(cubes, loc, Fmaxb)
+## End testMain   
 
 
 if __name__ == '__main__':
@@ -198,6 +205,7 @@ if __name__ == '__main__':
             type = str, metavar='E', default='collman15v2')
     parser.add_argument('-F', help='valid coordinate frame', 
             type = str, metavar='F', default='collman_collman15v2')
+    #toolbox.toh5(EXP_NAME, OUTPUT + '.h5', CHAN_NAMES, cubes, loc, F0)
     parser.add_argument('-O', help='output filename',
             type = str, metavar='O', required=True,
             default = 'output')
@@ -212,18 +220,28 @@ if __name__ == '__main__':
     OUTPUT         = args.O
     CONFIG_FILE    = args.con
 
-    rem = BossRemote(CONFIG_FILE)
-
+    #rem = BossRemote(CONFIG_FILE)
     #CHAN_NAMES = rem.list_channels(COLL_NAME, EXP_NAME) 
+
+    ##collman15v2 channels
     CHAN_NAMES = ['DAPI1st', 'DAPI2nd', 'DAPI3rd', 'GABA488', 'GAD647',
                   'gephyrin594', 'GS594', 'MBP488', 'NR1594', 'PSD95_488',
                   'Synapsin647', 'VGluT1_647']
 
-    F0 = main(COLL_NAME, EXP_NAME, COORD_FRAME, 
-                       CHAN_NAMES=CHAN_NAMES, 
-                       num_threads = 4, CONFIG_FILE= CONFIG_FILE)
+    ##collman14v2 channels
+    #CHAN_NAMES = ['bIIItubulin', 'DAPI_2nd', 'DAPI_3rd', 
+    #              'GABA', 'GAD2', 'VGAT', 'gephyrin', 
+    #              'NR1', 'VGluT1',  'synapsin', 'PSDr'] 
 
-    mainOUT(F0, CHAN_NAMES, OUTPUT)
-    #mainOUT(F0, ['z', 'y', 'x'], OUTPUT)
+    cubes, loc = main(COLL_NAME, EXP_NAME, COORD_FRAME, 
+                       CHAN_NAMES=CHAN_NAMES, 
+                       num_threads = 6, CONFIG_FILE= CONFIG_FILE)
+
+    F0 = toolbox.F0(cubes) 
+    Fmax = toolbox.Fmax(cubes)
+    toolbox.mainOUT(Fmax, CHAN_NAMES, OUTPUT)
+    idx = np.argsort([3,2,1])
+    toolbox.mainOUT(np.transpose(loc[:,idx]), ['x','y','z'], "locations_"+OUTPUT)
+    #toolbox.toh5(EXP_NAME, OUTPUT + '.h5', CHAN_NAMES, cubes, loc, F0)
     print('Done!')
 
