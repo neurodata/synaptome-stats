@@ -57,7 +57,7 @@ def main(COLL_NAME, EXP_NAME, COORD_FRAME,
     for b in blocks:
       rid = rid + rem.get_ids_in_region(anno_res, 0, b[0], b[1], b[2], [0,1])
 
-    u = np.unique(np.asarray(rid))
+    u = np.unique(np.asarray(rid)) ## returns in sorted order ascending
 
     ## bounding box for annotation_i
     bb = [rem.get_bounding_box(anno_res, 0,ui, 'tight') for ui in u]
@@ -237,8 +237,8 @@ if __name__ == '__main__':
                        CHAN_NAMES=CHAN_NAMES, 
                        num_threads = 6, CONFIG_FILE= CONFIG_FILE)
 
-    F0 = toolbox.F0(cubes) 
-    Fmax = toolbox.Fmax(cubes)
+    #F0 = toolbox.F0(cubes) 
+    Fmax = toolbox.Fmaxb(cubes)
     toolbox.mainOUT(Fmax, CHAN_NAMES, OUTPUT)
     idx = np.argsort([3,2,1])
     toolbox.mainOUT(np.transpose(loc[:,idx]), ['x','y','z'], "locations_"+OUTPUT)
