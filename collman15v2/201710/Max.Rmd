@@ -232,10 +232,10 @@ mdlinks <- foreach(i = 1:length(links)) %do% {
 #                  ), fooFP)
 #close(fooFP)
 #
-#write.csv(loc[df1$FN,c(3,2,1)], file = "GabaFN_locXYZ.csv", row.names = FALSE)
-#write.csv(loc[df1$FP,c(3,2,1)], file = "GabaFP_locXYZ.csv", row.names = FALSE)
-#write.csv(loc[df1$TN,c(3,2,1)], file = "GabaTN_locXYZ.csv", row.names = FALSE)
-#write.csv(loc[df1$TP,c(3,2,1)], file = "GabaTP_locXYZ.csv", row.names = FALSE)
+#write.csv(loc[df1$FN,c(3,2,1)], file = "GabaMaxFN_locXYZ.csv", row.names = FALSE)
+#write.csv(loc[df1$FP,c(3,2,1)], file = "GabaMaxFP_locXYZ.csv", row.names = FALSE)
+#write.csv(loc[df1$TN,c(3,2,1)], file = "GabaMaxTN_locXYZ.csv", row.names = FALSE)
+#write.csv(loc[df1$TP,c(3,2,1)], file = "GabaMaxTP_locXYZ.csv", row.names = FALSE)
 ```
 
 
