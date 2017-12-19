@@ -32,7 +32,7 @@ import toolbox
 def main(COLL_NAME, EXP_NAME, COORD_FRAME,
          CHAN_NAMES=None, num_threads = 4, CONFIG_FILE= 'config.ini'):
 
-    bf = [5,245,245] # in z,y,x order
+    bf = [5,180,180] # in z,y,x order
 
     config = configparser.ConfigParser()
     config.read(CONFIG_FILE)

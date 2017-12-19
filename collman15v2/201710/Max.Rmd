@@ -1,5 +1,5 @@
 ---
-title: "Collman15v2 Gaba comparisons using Maximum in cube of size <=0.5 micron"
+title: "Collman15v2 Gaba comparisons using Maximum in cube of size ~0.5 micron"
 author: "Jesse Leigh Patsolic"
 output: 
   html_document:
@@ -29,14 +29,18 @@ system('open Max.html -a "Google Chrome.app"')
 
 # MEDA run 
 
-Loading the class labels sent by Forrest
+Loading the class labels sent by Forrest.  
+
+
+The `max` was calculated in a `361x X 361y X 11z` cube about the annotation
+centroid. 
 
 ```{r cc1}
 cl <- read.csv("cleft_class.csv")[-18,]
-fmax <- read.csv("collman15v2_Fmax_20171214.csv")
+fmax <- read.csv("collman15v2_Fmax_20171219.csv")
 sfmax <- scale(fmax, center = TRUE, scale = TRUE)
 
-loc <- read.csv("locations_collman15v2_Fmax_20171214.csv")
+loc <- read.csv("locations_collman15v2_Fmax_20171219.csv")
 ```
 
 
@@ -59,9 +63,14 @@ L[[5]] <- pairhex(sfmax, ccol = ccol)
 L[[6]] <- medacor(fmax, ccol = ccol)
 set.seed(1234)
 L[[7]] <- hmc(sfmax, ccol = ccol,
-              maxDepth = 2)
-plot(L[[7]])
+              maxDepth = 2, modelNames = "VVV")
+#plot(L[[7]])
+#plotDend(L[[7]])
+#stackM(L[[7]], ccol = ccol, centered = TRUE)
 ```
+
+Note that we are using `VVE` as the model. 
+
 
 ## mlocation
 ```{r mlocation, fig.height = 4, fig.width = 8, echo=FALSE}
@@ -84,7 +93,7 @@ plot(L[[4]])
 ```
 
 ## pairhex
-```{r pairnex, fig.height = 8, fig.width = 8, echo=FALSE}
+```{r pairnex, fig.height = 8, fig.width = 8, echo=FALSE, warning = FALSE}
 suppressWarnings(pairhex(sfmax))
 ```
 
@@ -122,7 +131,8 @@ then compare with the true gaba/non-gaba class labels.
 
 ```{r compare, results = 'hide'}
 set.seed(1030)
-h2 <- hmc(sfmax, maxDepth = 2, modelNames = 'VVE')
+#set.seed(1234)
+h2 <- hmc(sfmax, ccol = ccol, maxDepth = 2, modelNames = 'VVE')
 l2 <- h2$dat$labels$col - 1
 p0 <- mclust::adjustedRandIndex(l2, cl$gaba)
 ```
@@ -153,7 +163,8 @@ stackM(h2, depth = 2, centered = TRUE, ccol = ccol)
 
 ```{r hist}
 hist(perms, xlim = c(min(perms), p0 + 0.25*p0),
-     main = "permutation test of ARI values")
+     main = "permutation test of ARI values", probability = TRUE)
+#hist(perms, probability = TRUE)
 abline(v = p0, col = 'red')
 ```
 
@@ -240,12 +251,12 @@ lTN <- data.frame(TrueNegatives  = as.character(mdlinks[df1$TN]))
 lTP <- data.frame(TruePositives  = as.character(mdlinks[df1$TP]))
 ```
 
-## False Negatives [(synaptograms here)](http://cis.jhu.edu/~jesse/TRA/Collman/collman15v2/GabaFN/)
+## False Negatives 
 ```{r tFN, echo = FALSE}
 kable(lFN, format = 'markdown', escape = FALSE)
 ```
 
-## False Positives [(some synaptograms here)](http://cis.jhu.edu/~jesse/TRA/Collman/collman15v2/GabaFP/)
+## False Positives 
 ```{r tFP, echo = FALSE}
 kable(lFP, format = 'markdown', escape = FALSE)
 ```
