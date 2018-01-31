@@ -1,0 +1,136 @@
+---
+title: "RORB Data: pseudo-centroids from annotation polygons using average over 11x11x11 cubes"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 5
+    fig_width: 5
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 1
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, dev = "png")
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+require(knitr)
+rmarkdown::render("rorb_meda_plots.Rmd")
+system("open rorb_meda_plots.html")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+# Library calls here.
+require(rmarkdown)
+require(knitr)
+suppressMessages(require(meda))
+```
+
+## Make plots
+
+```{r, eval = TRUE, echo = FALSE, include = FALSE}
+dat <- read.csv("rorb_avg_at.csv")
+
+ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
+ind <- order(ccol)
+ccol <- sort(ccol)
+
+dat <- dat[,ind]
+sdat <- scale(dat, center = TRUE, scale = TRUE)
+
+set.seed(317)
+Lt <- runAll(sdat, ccol = ccol)
+Lt[[1]] <- mlocation(dat, ccol = ccol)
+
+w = 720
+h = 720 
+
+png("d1heat.png", width = w, height = h)
+p1 <- plot(Lt[[2]]) 
+p1
+dev.off()
+
+png("mlocation.png", width = 2*w, height = h)
+p1 <- plot(Lt[[1]]) 
+p1
+dev.off()
+
+png("cumulativeVariance.png", width = w, height = h)
+p1 <- plot(Lt[[3]]) 
+p1
+dev.off()
+
+png("outliers.png", width = w, height = h)
+p1 <- plot(Lt[[4]]) 
+p1
+dev.off()
+
+png("cor.png", width = w, height = h)
+plot(Lt[[6]]) 
+dev.off()
+
+png("pairhex.png", width = 2*w, height = 2*h)
+pairhex(sdat)
+dev.off()
+
+png("hmcClassifications.png", width = 2*w, height = 2*h)
+cr <- viridis(max(Lt[[7]]$dat$labels$col))
+pairs(Lt[[7]]$dat$data, pch = 19, cex = 0.5, col = cr[Lt[[7]]$dat$labels$col])
+dev.off()
+
+
+png("dendrograms.png", width = w, height = h)
+plotDend(Lt[[7]])
+dev.off()
+
+png("stackMeans.png", width = w, height = 2*h)
+p1 <- stackM(Lt[[7]], ccol = ccol, depth = 3, centered = TRUE)
+p1
+dev.off()
+
+png("clusterMeans.png", width = w, height = 0.75*h)
+p1 <- clusterMeans(Lt[[7]], ccol = ccol)
+p1
+dev.off()
+```
+
+# Results
+
+## 1-d Heatmap
+![](./d1heat.png)
+
+## Location meda_plots
+![](./mlocation.png)
+
+## Outliers as given by randomForest
+![](./outliers.png)
+
+## Correlation Matrix
+![](./cor.png)
+
+## Cumulative Variance with Elbows
+![](./cumulativeVariance.png)
+
+## Paired Hex-binned plot
+![](./pairhex.png)
+
+## Hierarchical GMM Classifications
+![](./hmcClassifications.png)
+
+## Hierarchical GMM Dendrogram
+![](./dendrograms.png)
+
+## Stacked Means
+![](./stackMeans.png)
+
+## Cluster Means
+![](./clusterMeans.png)
+
+
+
+--- 
+---

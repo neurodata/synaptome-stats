@@ -140,6 +140,9 @@ def main():
     z_rng = [[z[2] - BFz, z[2] + BFz + 1] for z in L]
     if(len(L[1]) > 3):
         labs = [lab[3] for lab in L]
+    else:
+        labs = [i for i in range(1,len(x_rng)+1)]
+
 
     inftyball = np.ones((2 * BFz + 1, 2 * BFy + 1, 2 * BFx + 1), dtype = np.uint8)
 
@@ -179,8 +182,8 @@ def main():
             
         fout = os.path.join(base_path, base_fname)
 
-        #tifffile.imsave(fout + "_stack.tif", np.asarray(z, dtype = np.uint8))
-        #print("Test image is here: {}".format(base_path))
+        tifffile.imsave(fout + "_stack.tif", np.asarray(z, dtype = np.uint8))
+        print("Test image is here: {}".format(base_path))
 
         rgb = True
 
