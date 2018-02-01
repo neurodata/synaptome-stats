@@ -183,6 +183,8 @@ ACC <- (TP + TN)/(TP + FP + FN + TN)
 mis <- (FP + FN)/(TP + FP + FN + TN)
 ```
 
+# Permutation test for ARI
+
 ```{r perm}
 p0 <- mclust::adjustedRandIndex(pred, gaba)
 perms <- foreach(i = 1:1.5e4, .combine = c) %dopar% {
@@ -193,7 +195,7 @@ t1
 ```
 
 
-```{r hist}
+```{r hist, fig.height = 4, fig.width = 8}
 hist(perms, xlim = c(min(perms), p0 + 0.25*p0),
      main = "permutation test of ARI values", probability = TRUE)
 #hist(perms, probability = TRUE)
@@ -212,7 +214,10 @@ abline(v = p0, col = 'red')
 | Precision   | `r prec `|
 | Recall      | `r recall `|
 | F1-score    | `r F1 `|
-| ARI         | `r p0 `|
+| TP          | `r TP `|
+| FP          | `r FP `|
+| TN          | `r TN `|
+| FN          | `r FN `|
 
 
 
