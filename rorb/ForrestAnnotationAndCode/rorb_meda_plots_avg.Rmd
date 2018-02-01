@@ -228,7 +228,7 @@ abline(v = p0, col = 'red')
 | Precision   | `r prec `|
 | Recall      | `r recall `|
 | ARI         | `r p0 `|
-| $p$-value for ARI | `r pv0 `|
+| $p$-value for ARI | `r sprintf("%f", pv0) `|
 | F1-score    | `r F1 `|
 | TP          | `r TP `|
 | FP          | `r FP `|
