@@ -1,0 +1,364 @@
+---
+title: "RORB Data: pseudo-centroids from annotation polygons using maximum over 11x11x11 cubes  ≈ 0.61 microns^3"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 5
+    fig_width: 5
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 2
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, dev = "png")
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+require(knitr)
+rmarkdown::render("rorb_meda_plots_max.Rmd")
+system("open rorb_meda_plots_max.html -a /Applications/Chrome.app")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+# Library calls here.
+require(rmarkdown)
+require(knitr)
+require(doMC)
+require(foreach)
+require(scales)
+registerDoMC(4)
+suppressMessages(require(meda))
+```
+
+```{r, eval = TRUE, echo = FALSE, include = FALSE}
+dat <- read.csv("rorb_max_at.csv")
+loc <- read.csv("rorb_max_at_orderLocations.csv")
+ids <- read.csv("rorb_max_at_orderLocations.csv")
+gabaID <- read.csv("rorb_gaba.csv")
+truth <- gaba <- gabaID$gaba
+
+ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
+ind <- order(ccol)
+ccol <- sort(ccol)
+
+dat <- dat[,ind]
+sdat <- scale(dat, center = TRUE, scale = TRUE)
+```
+
+
+```{r runAll, eval = TRUE, echo = FALSE, include = FALSE}
+set.seed(3172)
+Lt <- runAll(sdat, ccol = ccol)
+Lt[[1]] <- mlocation(dat, ccol = ccol)
+
+w = 720
+h = 720 
+
+png("d1heat_max.png", width = w, height = h)
+p1 <- plot(Lt[[2]]) 
+p1
+dev.off()
+
+png("mlocation_max.png", width = 720, height = 480)
+p1 <- plot(Lt[[1]]) 
+p1
+dev.off()
+
+png("cumulativeVariance_max.png", width = w, height = h)
+p1 <- plot(Lt[[3]]) 
+p1
+dev.off()
+
+png("outliers_max.png", width = w, height = h)
+p1 <- plot(Lt[[4]]) 
+p1
+dev.off()
+
+png("cor_max.png", width = w, height = h)
+plot(Lt[[6]]) 
+dev.off()
+
+png("pairhex_max.png", width = 2*w, height = 2*h)
+pairhex(sdat)
+dev.off()
+
+png("hmcClassifications_max.png", width = 2*w, height = 2*h)
+cr <- viridis(max(Lt[[7]]$dat$labels$col))
+pairs(Lt[[7]]$dat$data, pch = 19, cex = 0.5, col = cr[Lt[[7]]$dat$labels$col])
+dev.off()
+
+
+png("dendrograms_max.png", width = w, height = h)
+plotDend(Lt[[7]])
+dev.off()
+
+png("stackMeans_max.png", width = w, height = 2*h)
+p1 <- stackM(Lt[[7]], ccol = ccol, depth = 3, centered = TRUE)
+p1
+dev.off()
+
+png("clusterMeans_max.png", width = w, height = 0.75*h)
+p1 <- clusterMeans(Lt[[7]], ccol = ccol)
+p1
+dev.off()
+```
+
+# Results
+
+## 1-d Heatmap
+![](./d1heat_max.png)
+
+## Location meda_plots
+![](./mlocation_max.png)
+
+## Outliers as given by randomForest
+![](./outliers_max.png)
+
+## Correlation Matrix
+![](./cor_max.png)
+
+## Cumulative Variance with Elbows
+![](./cumulativeVariance_max.png)
+
+## Paired Hex-binned plot
+![](./pairhex_max.png)
+
+## Hierarchical GMM Classifications
+![](./hmcClassifications_max.png)
+
+## Hierarchical GMM Dendrogram
+![](./dendrograms_max.png)
+
+## Stacked Means
+![](./stackMeans_max.png)
+
+## Cluster Means
+![](./clusterMeans_max.png)
+
+
+# Restricting hGMM to $K = 2$
+
+Here we are restricting hierarchical GMM to only go through on level. 
+We are comparing the cluster results to the `gaba` labels.
+
+
+```{r hmc_k2, results = 'hide'}
+set.seed(314)
+h2 <- hmc(sdat, maxDepth = 2, ccol = ccol, maxDim = 12)
+h2lab <- viridis(max(h2$dat$labels$col))
+```
+
+## K = 2 stacked means plot
+```{r k2-stack}
+stackM(h2, ccol = ccol, centered = TRUE, depth = 1)
+```
+
+## Pairs plot colored by true gaba classification 
+
+```{r plotK2, fig.width = 10, fig.height = 10}
+cols <- c("black", "magenta")[gabaID$gaba+1]
+acols <- alpha(cols, 0.35)
+pairs(h2$dat$data, pch = 19, cex = 0.4, col = acols)
+```
+
+## Pairs plot colored by hGMM cluster classification 
+
+```{r plotK2pred, fig.height = 10, fig.width = 10}
+acols2 <- alpha(h2lab[h2$dat$labels$col], 0.5)
+pairs(h2$dat$data, pch = 19, cex = 0.4, col = acols2)
+```
+
+
+```{r table2, include = FALSE}
+pred <-  h2$dat$labels$col - 1
+t1 <- table(pred = as.logical(h2$dat$labels$col - 1), truth = as.logical(truth))
+
+TP <- t1[4]
+TN <- t1[1]
+FP <- t1[3]
+FN <- t1[2]
+
+Pos <- TP + FN
+Neg <- TN + FP
+ 
+sens <- (TP/Pos)
+spec <- TN/Neg
+prec <- TP / (TP + FP)
+recall <- TP / (TP + FN)
+
+F1 <- 2 * prec*recall / (prec + recall)
+
+ACC <- (TP + TN)/(TP + FP + FN + TN)
+mis <- (FP + FN)/(TP + FP + FN + TN)
+t1
+```
+
+# Permutation test for ARI
+
+```{r perm}
+p0 <- mclust::adjustedRandIndex(pred, gaba)
+perms <- foreach(i = 1:1.5e4, .combine = c) %dopar% {
+  set.seed(i*2)
+  mclust::adjustedRandIndex(sample(pred), gaba)
+}
+pv0 <- sum(c(perms,p0) >= p0)/length(perms)
+```
+
+
+```{r hist, fig.height = 4, fig.width = 8}
+hist(perms, xlim = c(min(perms), p0 + 0.25*p0),
+     main = "permutation test of ARI values", probability = TRUE)
+#hist(perms, probability = TRUE)
+abline(v = p0, col = 'red')
+```
+
+
+# Summary Table
+
+| measurment | value |
+|------------|-------|
+| Misclassification Rate | `r mis `|
+| Accuracy    | `r ACC `|
+| Sensitivity | `r sens `|
+| Specificity | `r spec `|
+| Precision   | `r prec `|
+| Recall      | `r recall `|
+| ARI         | `r p0 `|
+| $p$-value for ARI | `r pv0 `|
+| F1-score    | `r F1 `|
+| TP          | `r TP `|
+| FP          | `r FP `|
+| TN          | `r TN `|
+| FN          | `r FN `|
+
+
+
+# NDVIZ links
+
+```{r indices, echo = FALSE, include = FALSE}
+ltruth <- as.logical(truth)
+lpred <- as.logical(h2$dat$labels$col - 1)
+
+TPind <- (ltruth & lpred)
+TNind <- (!ltruth & !lpred)
+FPind <- (ltruth & !lpred)
+FNind <- (!ltruth & lpred)
+```
+
+
+```{r ndviz, include = FALSE, eval = FALSE}
+base <- 
+"https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':%s}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[%s.5_%s.5_%s]}}_'zoomFactor':1.5}}"
+
+pointsURL <- "https://viz.boss.neurodata.io/#!{'layers':{'bounding_boxes':{'type':'pointAnnotation'_'points':%s}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[%s_%s_%s]}}_'zoomFactor':1}}"
+
+
+#https://viz.boss.neurodata.io/#!{'layers':{'em':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em?'_'blend':'additive'}_'synapses':{'type':'pointAnnotation'_'points':[[7349_5965_38]_[7617_6000_40]_[7414_7047_1]_[7504_7305_3]_[7649_6684_25]_[7684_7709_10]_[7933_7308_16]_[7967_7055_10]_[8198_6963_17]_[7297_5867_38]_[7092_5803_40]_[7075_5882_34]_[5989_6145_34]_[6100_6088_32]_[6369_6161_34]_[6504_6208_22]_[6584_5722_20]_[6550_6004_15]_[6706_6028_19]_[6306_6188_20]_[6271_6206_17]_[6198_5832_18]_[6413_5981_21]_[7111_5863_23]_[7355_5664_32]_[7201_5507_35]_[7104_5213_38]_[6626_5247_40]_[6229_5210_2]_[6432_5225_18]_[6010_5608_48]_[6657_5222_34]_[6723_5340_5]_[7551_5703_4]_[6951_6056_13]_[7385_6256_10]_[7208_5700_14]_[7270_5466_17]_[7475_5563_19]_[7504_5346_16]_[7441_4943_30]_[7531_5004_31]_[7712_5395_16]_[7672_5607_3]_[6894_5262_36]_[6999_4991_26]_[7457_5115_29]_[7286_4994_20]_[7056_4970_2]_[7120_4946_13]_[7124_5164_21]_[7218_5404_32]_[7025_5699_28]_[6825_5884_12]_[6830_5571_4]_[6893_5898_2]_[6639_5841_9]_[6628_5756_6]_[6553_6273_8]_[6469_6082_10]_[6197_6232_7]_[6156_6064_4]_[6376_5812_1]_[6075_5792_22]_[6167_6007_12]_[6507_5821_10]_[6578_5588_14]_[6558_5152_32]_[6190_5472_13]_[6156_5117_41]_[5982_5312_12]_[6234_5358_37]_[6015_5464_40]_[6300_5738_26]_[6472_5705_31]_[6411_5580_17]_[6280_5431_34]_[6563_4948_32]_[7049_5108_41]_[7040_5069_48]_[6572_5159_48]_[6526_5097_42]_[6839_5190_46]_[6887_5571_39]_[6644_5526_34]_[6115_5434_1]_[6504_5481_0]_[7255_5200_26]_[6859_5402_24]_[6947_5349_18]_[6850_5451_4]_[6700_5367_11]_[6907_4935_0]_[6724_5045_32]_[6561_5050_27]_[6423_4989_22]_[6284_4965_6]_[6297_5028_15]_[6234_4978_35]_[6202_5060_34]_[7192.80126953125_5164.95849609375_32.5]_[6882.89111328125_5666.71728515625_32.5]_[6376.212890625_5524.060546875_32.5]_[6061.38427734375_4527.92138671875_32.5]]}}_'navigation':{'pose':{'position':{'voxelSize':[3_3_50]_'voxelCoordinates':[7185.42236328125_5719.59912109375_32.5]}}_'zoomFactor':7.378809333470846}}
+
+
+a <- function(x){
+   w <- "[%d_%d_%d]" 
+   b <- rep(w, x - 1)
+   out <- paste0("[", paste0(b, collapse = "", sep = "_"), w, "]")
+   return(out)
+}
+
+locPrint <- function(x){
+  w <- "[%d_%d_%d]" 
+  l <- c(list(w),x)
+  do.call(sprintf,l)
+}
+
+boundingPoints <- foreach(i = 1:nrow(loc)) %do% {
+  tmp <- c(
+		lapply(-5:5, function(x) loc[i,] + c(-5,-5,x)),
+		lapply(-5:5, function(x) loc[i,] + c(-5,0,x)),
+		lapply(-5:5, function(x) loc[i,] + c(-5,6,x)),
+    lapply(-5:5, function(x) loc[i,] + c(0,-5,x)),
+		lapply(-5:5, function(x) loc[i,] + c(0,6,x)),
+    lapply(-5:5, function(x) loc[i,] + c(6,-5,x)),
+		lapply(-5:5, function(x) loc[i,] + c(6,0,x)),
+		lapply(-5:5, function(x) loc[i,] + c(6,6,x))
+    )
+
+  xyz <- lapply(tmp, locPrint)
+  paste0("[", paste0(xyz[1:(length(xyz)-1)], sep = "_", collapse= ""),
+    xyz[length(xyz)],"]")
+}
+
+
+links <- 
+foreach(i = 1:dim(loc)[1]) %do% {
+  sprintf(base, boundingPoints[[i]],  loc[i,1], loc[i,2],	loc[i,3])
+  #sprintf(pointsURL, boundingPoints[[i]],  loc[i,1], loc[i,2],	loc[i,3])
+}
+
+TPlinks <- links[TPind]
+FPlinks <- links[FPind]
+TNlinks <- links[TNind]
+FNlinks <- links[FNind]
+
+clip <- pipe("pbcopy", "w")
+writeLines(links[[1]], clip)
+close(clip)
+```
+
+```{r ndviz-table, eval = FALSE, include = FALSE}
+f <- file('TPmax_links.txt', 'w')
+writeLines("## True Positive Links\n",f)
+writeLines("| True Positives |",f)
+writeLines("|---------------|",f)
+w <- "| [%d %d %d](%s) |"
+
+for(i in 1:nrow(loc[TPind,])){
+  l <- c(list(w), loc[TPind,][i,], TPlinks[[i]])  
+  tmp <- do.call(sprintf, l)
+  writeLines(tmp,f)
+}
+
+writeLines("\n\n\n",f)
+close(f)
+
+f <- file('FPmax_links.txt', 'w')
+writeLines("## False Positive Links\n",f)
+writeLines("| False Positives |",f)
+writeLines("|---------------|",f)
+
+for(i in 1:nrow(loc[FPind,])){
+  l <- c(list(w), loc[FPind,][i,], FPlinks[[i]])  
+  tmp <- do.call(sprintf, l)
+  writeLines(tmp,f)
+}
+
+writeLines("\n\n\n",f)
+close(f)
+
+f <- file('FNmax_links.txt', 'w')
+writeLines("## False Negative Links\n",f)
+writeLines("| False Negatives |",f)
+writeLines("|---------------|",f)
+
+for(i in 1:nrow(loc[FNind,])){
+  l <- c(list(w), loc[FNind,][i,], FNlinks[[i]])  
+  tmp <- do.call(sprintf, l)
+  writeLines(tmp,f)
+}
+
+writeLines("\n\n\n",f)
+close(f)
+
+system('cat TPmax_links.txt >> rorb_meda_plots.Rmd')
+system('cat FPmax_links.txt >> rorb_meda_plots.Rmd')
+system('cat FNmax_links.txt >> rorb_meda_plots.Rmd')
+system('echo "---" >> rorb_meda_plots.Rmd')
+
+file.remove('TPmax_links.txt')
+file.remove('FPmax_links.txt')
+file.remove('FNmax_links.txt')
+```
+
+

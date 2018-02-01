@@ -19,8 +19,8 @@ knitr::opts_chunk$set(cache = TRUE, dev = "png")
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 require(knitr)
-rmarkdown::render("rorb_meda_plots.Rmd")
-system("open rorb_meda_plots.html -a /Applications/Chrome.app")
+rmarkdown::render("rorb_meda_plots_avg.Rmd")
+system("open rorb_meda_plots_avg.html -a /Applications/Chrome.app")
 ```
 
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
@@ -205,6 +205,7 @@ perms <- foreach(i = 1:1.5e4, .combine = c) %dopar% {
   set.seed(i*2)
   mclust::adjustedRandIndex(sample(pred), gaba)
 }
+pv0 <- sum(c(perms,p0) >= p0)/length(perms)
 ```
 
 
@@ -227,6 +228,7 @@ abline(v = p0, col = 'red')
 | Precision   | `r prec `|
 | Recall      | `r recall `|
 | ARI         | `r p0 `|
+| $p$-value for ARI | `r pv0 `|
 | F1-score    | `r F1 `|
 | TP          | `r TP `|
 | FP          | `r FP `|
