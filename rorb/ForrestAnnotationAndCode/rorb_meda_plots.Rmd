@@ -1,5 +1,5 @@
 ---
-title: "RORB Data: pseudo-centroids from annotation polygons using average over 11x11x11 cubes"
+title: "RORB Data: pseudo-centroids from annotation polygons using average over 11x11x11 cubes  ≈ 0.61 microns^3"
 date: '`r Sys.Date()`'
 output:
   html_document:
@@ -27,6 +27,9 @@ system("open rorb_meda_plots.html -a /Applications/Chrome.app")
 # Library calls here.
 require(rmarkdown)
 require(knitr)
+require(doMC)
+require(foreach)
+registerDoMC(4)
 suppressMessages(require(meda))
 ```
 
@@ -158,6 +161,7 @@ pairs(h2$dat$data, pch = 19, cex = 0.2, col = c("blue", "red")[gabaID$gaba+1])
 ```
 
 ```{r table2}
+pred <-  h2$dat$labels$col - 1
 t1 <- table(truth = truth, pred = h2$dat$labels$col - 1)
 
 (TP <- t1[1])
@@ -172,6 +176,7 @@ Neg <- TN + FP
 (spec <- TN/Neg)
 
 (ACC <- (TP + TN)/(TP + FP + FN + TN))
+(mis <- (FP + FN)/(TP + FP + FN + TN))
 ```
 
 # NDVIZ links
@@ -301,7 +306,22 @@ file.remove('FNlinks.txt')
 ```
 
 
+```{r perm}
+p0 <- mclust::adjustedRandIndex(pred, gaba)
+perms <- foreach(i = 1:1.5e4, .combine = c) %dopar% {
+  set.seed(i*2)
+  mclust::adjustedRandIndex(sample(pred), gaba)
+}
+t1
+```
 
+
+```{r hist}
+hist(perms, xlim = c(min(perms), p0 + 0.25*p0),
+     main = "permutation test of ARI values", probability = TRUE)
+#hist(perms, probability = TRUE)
+abline(v = p0, col = 'red')
+```
 
 
 
