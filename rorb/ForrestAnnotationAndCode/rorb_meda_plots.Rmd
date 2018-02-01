@@ -58,50 +58,50 @@ Lt[[1]] <- mlocation(dat, ccol = ccol)
 w = 720
 h = 720 
 
-png("d1heat.png", width = w, height = h)
+png("d1heat_avg.png", width = w, height = h)
 p1 <- plot(Lt[[2]]) 
 p1
 dev.off()
 
-png("mlocation.png", width = 720, height = 480)
+png("mlocation_avg.png", width = 720, height = 480)
 p1 <- plot(Lt[[1]]) 
 p1
 dev.off()
 
-png("cumulativeVariance.png", width = w, height = h)
+png("cumulativeVariance_avg.png", width = w, height = h)
 p1 <- plot(Lt[[3]]) 
 p1
 dev.off()
 
-png("outliers.png", width = w, height = h)
+png("outliers_avg.png", width = w, height = h)
 p1 <- plot(Lt[[4]]) 
 p1
 dev.off()
 
-png("cor.png", width = w, height = h)
+png("cor_avg.png", width = w, height = h)
 plot(Lt[[6]]) 
 dev.off()
 
-png("pairhex.png", width = 2*w, height = 2*h)
+png("pairhex_avg.png", width = 2*w, height = 2*h)
 pairhex(sdat)
 dev.off()
 
-png("hmcClassifications.png", width = 2*w, height = 2*h)
+png("hmcClassifications_avg.png", width = 2*w, height = 2*h)
 cr <- viridis(max(Lt[[7]]$dat$labels$col))
 pairs(Lt[[7]]$dat$data, pch = 19, cex = 0.5, col = cr[Lt[[7]]$dat$labels$col])
 dev.off()
 
 
-png("dendrograms.png", width = w, height = h)
+png("dendrograms_avg.png", width = w, height = h)
 plotDend(Lt[[7]])
 dev.off()
 
-png("stackMeans.png", width = w, height = 2*h)
+png("stackMeans_avg.png", width = w, height = 2*h)
 p1 <- stackM(Lt[[7]], ccol = ccol, depth = 3, centered = TRUE)
 p1
 dev.off()
 
-png("clusterMeans.png", width = w, height = 0.75*h)
+png("clusterMeans_avg.png", width = w, height = 0.75*h)
 p1 <- clusterMeans(Lt[[7]], ccol = ccol)
 p1
 dev.off()
@@ -110,34 +110,34 @@ dev.off()
 # Results
 
 ## 1-d Heatmap
-![](./d1heat.png)
+![](./d1heat_avg.png)
 
 ## Location meda_plots
-![](./mlocation.png)
+![](./mlocation_avg.png)
 
 ## Outliers as given by randomForest
-![](./outliers.png)
+![](./outliers_avg.png)
 
 ## Correlation Matrix
-![](./cor.png)
+![](./cor_avg.png)
 
 ## Cumulative Variance with Elbows
-![](./cumulativeVariance.png)
+![](./cumulativeVariance_avg.png)
 
 ## Paired Hex-binned plot
-![](./pairhex.png)
+![](./pairhex_avg.png)
 
 ## Hierarchical GMM Classifications
-![](./hmcClassifications.png)
+![](./hmcClassifications_avg.png)
 
 ## Hierarchical GMM Dendrogram
-![](./dendrograms.png)
+![](./dendrograms_avg.png)
 
 ## Stacked Means
-![](./stackMeans.png)
+![](./stackMeans_avg.png)
 
 ## Cluster Means
-![](./clusterMeans.png)
+![](./clusterMeans_avg.png)
 
 
 # Restricting hGMM to $K = 2$
@@ -175,12 +175,12 @@ pairs(h2$dat$data, pch = 19, cex = 0.4, col = acols2)
 
 ```{r table2, include = FALSE}
 pred <-  h2$dat$labels$col - 1
-t1 <- table(truth = truth, pred = h2$dat$labels$col - 1)
+t1 <- table(pred = as.logical(h2$dat$labels$col - 1), truth = as.logical(truth))
 
-TP <- t1[1]
-TN <- t1[4]
-FP <- t1[2]
-FN <- t1[3]
+TP <- t1[4]
+TN <- t1[1]
+FP <- t1[3]
+FN <- t1[2]
 
 Pos <- TP + FN
 Neg <- TN + FP
@@ -194,6 +194,7 @@ F1 <- 2 * prec*recall / (prec + recall)
 
 ACC <- (TP + TN)/(TP + FP + FN + TN)
 mis <- (FP + FN)/(TP + FP + FN + TN)
+t1
 ```
 
 # Permutation test for ARI
@@ -204,7 +205,6 @@ perms <- foreach(i = 1:1.5e4, .combine = c) %dopar% {
   set.seed(i*2)
   mclust::adjustedRandIndex(sample(pred), gaba)
 }
-t1
 ```
 
 
@@ -226,6 +226,7 @@ abline(v = p0, col = 'red')
 | Specificity | `r spec `|
 | Precision   | `r prec `|
 | Recall      | `r recall `|
+| ARI         | `r p0 `|
 | F1-score    | `r F1 `|
 | TP          | `r TP `|
 | FP          | `r FP `|
@@ -305,7 +306,7 @@ FNlinks <- links[FNind]
 ```
 
 ```{r ndviz-table, eval = FALSE, include = FALSE}
-f <- file('TPlinks.txt', 'w')
+f <- file('TPavg_links.txt', 'w')
 writeLines("## True Positive Links\n",f)
 writeLines("| True Positives |",f)
 writeLines("|---------------|",f)
@@ -320,7 +321,7 @@ for(i in 1:nrow(loc[TPind,])){
 writeLines("\n\n\n",f)
 close(f)
 
-f <- file('FPlinks.txt', 'w')
+f <- file('FPavg_links.txt', 'w')
 writeLines("## False Positive Links\n",f)
 writeLines("| False Positives |",f)
 writeLines("|---------------|",f)
@@ -334,7 +335,7 @@ for(i in 1:nrow(loc[FPind,])){
 writeLines("\n\n\n",f)
 close(f)
 
-f <- file('FNlinks.txt', 'w')
+f <- file('FNavg_links.txt', 'w')
 writeLines("## False Negative Links\n",f)
 writeLines("| False Negatives |",f)
 writeLines("|---------------|",f)
@@ -348,14 +349,14 @@ for(i in 1:nrow(loc[FNind,])){
 writeLines("\n\n\n",f)
 close(f)
 
-system('cat TPlinks.txt >> rorb_meda_plots.Rmd')
-system('cat FPlinks.txt >> rorb_meda_plots.Rmd')
-system('cat FNlinks.txt >> rorb_meda_plots.Rmd')
+system('cat TPavg_links.txt >> rorb_meda_plots.Rmd')
+system('cat FPavg_links.txt >> rorb_meda_plots.Rmd')
+system('cat FNavg_links.txt >> rorb_meda_plots.Rmd')
 system('echo "---" >> rorb_meda_plots.Rmd')
 
-file.remove('TPlinks.txt')
-file.remove('FPlinks.txt')
-file.remove('FNlinks.txt')
+file.remove('TPavg_links.txt')
+file.remove('FPavg_links.txt')
+file.remove('FNavg_links.txt')
 ```
 
 
