@@ -29,6 +29,7 @@ require(rmarkdown)
 require(knitr)
 require(doMC)
 require(foreach)
+require(scales)
 registerDoMC(4)
 suppressMessages(require(meda))
 ```
@@ -142,7 +143,7 @@ dev.off()
 # Restricting hGMM to $K = 2$
 
 Here we are restricting hierarchical GMM to only go through on level. 
-We are comparing the cluster results to the `glut` labels.
+We are comparing the cluster results to the `gaba` labels.
 
 
 ```{r hmc_k2, results = 'hide'}
@@ -151,14 +152,26 @@ h2 <- hmc(sdat, maxDepth = 2, ccol = ccol, maxDim = 12)
 h2lab <- viridis(max(h2$dat$labels$col))
 ```
 
+## K = 2 stacked means plot
 ```{r k2-stack}
 stackM(h2, ccol = ccol, centered = TRUE, depth = 1)
 ```
 
+## Pairs plot colored by true gaba classification 
 
-```{r plotK2, fig.width = 8, fig.height = 8}
-pairs(h2$dat$data, pch = 19, cex = 0.2, col = c("blue", "red")[gabaID$gaba+1])
+```{r plotK2, fig.width = 10, fig.height = 10}
+cols <- c("black", "magenta")[gabaID$gaba+1]
+acols <- alpha(cols, 0.35)
+pairs(h2$dat$data, pch = 19, cex = 0.4, col = acols)
 ```
+
+## Pairs plot colored by hGMM cluster classification 
+
+```{r plotK2pred, fig.height = 10, fig.width = 10}
+acols2 <- alpha(h2lab[h2$dat$labels$col], 0.5)
+pairs(h2$dat$data, pch = 19, cex = 0.4, col = acols2)
+```
+
 
 ```{r table2, include = FALSE}
 pred <-  h2$dat$labels$col - 1
