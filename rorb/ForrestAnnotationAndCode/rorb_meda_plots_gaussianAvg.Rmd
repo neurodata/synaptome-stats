@@ -354,7 +354,7 @@ close(f)
 system('cat TPgaussianAgv_links.txt >> rorb_meda_plots_gaussianAvg.Rmd')
 system('cat FPgaussianAgv_links.txt >> rorb_meda_plots_gaussianAvg.Rmd')
 system('cat FNgaussianAgv_links.txt >> rorb_meda_plots_gaussianAvg.Rmd')
-system('echo "---" >> rorb_meda_plots.Rmd')
+system('echo "---" >> rorb_meda_plots_gaussianAvg.Rmd')
 
 file.remove('TPgaussianAgv_links.txt')
 file.remove('FPgaussianAgv_links.txt')

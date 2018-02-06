@@ -13,7 +13,7 @@ output:
     toc_depth: 2
 ---
 ```{r knitOPTS, include=FALSE}
-knitr::opts_chunk$set(cache = TRUE, dev = "png")
+knitr::opts_chunk$set(cache = FALSE, dev = "png")
 ```
 
 ```{r render, eval=FALSE, echo=FALSE}
@@ -354,7 +354,7 @@ close(f)
 system('cat TPmax_links.txt >> rorb_meda_plots_max.Rmd')
 system('cat FPmax_links.txt >> rorb_meda_plots_max.Rmd')
 system('cat FNmax_links.txt >> rorb_meda_plots_max.Rmd')
-system('echo "---" >> rorb_meda_plots.Rmd')
+system('echo "---" >> rorb_meda_plots_max.Rmd')
 
 file.remove('TPmax_links.txt')
 file.remove('FPmax_links.txt')

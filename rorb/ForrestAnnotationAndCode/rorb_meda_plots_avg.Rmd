@@ -13,7 +13,7 @@ output:
     toc_depth: 2
 ---
 ```{r knitOPTS, include=FALSE}
-knitr::opts_chunk$set(cache = TRUE, dev = "png")
+knitr::opts_chunk$set(cache = FALSE, dev = "png")
 ```
 
 ```{r render, eval=FALSE, echo=FALSE}
@@ -351,10 +351,10 @@ for(i in 1:nrow(loc[FNind,])){
 writeLines("\n\n\n",f)
 close(f)
 
-system('cat TPavg_links.txt >> rorb_meda_plots.Rmd')
-system('cat FPavg_links.txt >> rorb_meda_plots.Rmd')
-system('cat FNavg_links.txt >> rorb_meda_plots.Rmd')
-system('echo "---" >> rorb_meda_plots.Rmd')
+system('cat TPavg_links.txt >> rorb_meda_plots_avg.Rmd')
+system('cat FPavg_links.txt >> rorb_meda_plots_avg.Rmd')
+system('cat FNavg_links.txt >> rorb_meda_plots_avg.Rmd')
+system('echo "---" >> rorb_meda_plots_avg.Rmd')
 
 file.remove('TPavg_links.txt')
 file.remove('FPavg_links.txt')
