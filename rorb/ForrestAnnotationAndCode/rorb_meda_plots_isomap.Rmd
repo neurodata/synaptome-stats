@@ -19,8 +19,8 @@ knitr::opts_chunk$set(cache = FALSE, dev = "png")
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 require(knitr)
-rmarkdown::render("rorb_meda_plots_kernel.Rmd")
-system("open rorb_meda_plots_kernel.html -a /Applications/Chrome.app")
+rmarkdown::render("rorb_meda_plots_isomap.Rmd")
+system("open rorb_meda_plots_isomap.html -a /Applications/Chrome.app")
 ```
 
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
@@ -198,8 +198,8 @@ t1 <- table(pred = as.logical(h2$dat$labels$col - 1), truth = as.logical(truth))
 
 TP <- t1[4]
 TN <- t1[1]
-FP <- t1[3]
-FN <- t1[2]
+FP <- t1[2]
+FN <- t1[3]
 
 Pos <- TP + FN
 Neg <- TN + FP
@@ -329,7 +329,7 @@ close(clip)
 ```
 
 ```{r ndviz-table, eval = FALSE, include = FALSE}
-f <- file('TPkernel_links.txt', 'w')
+f <- file('TPisomap_links.txt', 'w')
 writeLines("## True Positive Links\n",f)
 writeLines("| True Positives |",f)
 writeLines("|---------------|",f)
@@ -344,7 +344,7 @@ for(i in 1:nrow(loc[TPind,])){
 writeLines("\n\n\n",f)
 close(f)
 
-f <- file('FPkernel_links.txt', 'w')
+f <- file('FPisomap_links.txt', 'w')
 writeLines("## False Positive Links\n",f)
 writeLines("| False Positives |",f)
 writeLines("|---------------|",f)
@@ -358,7 +358,7 @@ for(i in 1:nrow(loc[FPind,])){
 writeLines("\n\n\n",f)
 close(f)
 
-f <- file('FNkernel_links.txt', 'w')
+f <- file('FNisomap_links.txt', 'w')
 writeLines("## False Negative Links\n",f)
 writeLines("| False Negatives |",f)
 writeLines("|---------------|",f)
@@ -372,14 +372,14 @@ for(i in 1:nrow(loc[FNind,])){
 writeLines("\n\n\n",f)
 close(f)
 
-system('cat TPkernel_links.txt >> rorb_meda_plots_kernel.Rmd')
-system('cat FPkernel_links.txt >> rorb_meda_plots_kernel.Rmd')
-system('cat FNkernel_links.txt >> rorb_meda_plots_kernel.Rmd')
-system('echo "---" >> rorb_meda_plots_kernel.Rmd')
+system('cat TPisomap_links.txt >> rorb_meda_plots_isomap.Rmd')
+system('cat FPisomap_links.txt >> rorb_meda_plots_isomap.Rmd')
+system('cat FNisomap_links.txt >> rorb_meda_plots_isomap.Rmd')
+system('echo "---" >> rorb_meda_plots_isomap.Rmd')
 
-file.remove('TPkernel_links.txt')
-file.remove('FPkernel_links.txt')
-file.remove('FNkernel_links.txt')
+file.remove('TPisomap_links.txt')
+file.remove('FPisomap_links.txt')
+file.remove('FNisomap_links.txt')
 ```
 
 
@@ -726,3 +726,4 @@ file.remove('FNkernel_links.txt')
 
 
 
+---

@@ -179,8 +179,8 @@ t1 <- table(pred = as.logical(h2$dat$labels$col - 1), truth = as.logical(truth))
 
 TP <- t1[4]
 TN <- t1[1]
-FP <- t1[3]
-FN <- t1[2]
+FP <- t1[2]
+FN <- t1[3]
 
 Pos <- TP + FN
 Neg <- TN + FP
@@ -218,6 +218,9 @@ abline(v = p0, col = 'red')
 
 
 # Summary Table
+```{r}
+t1
+```
 
 | measurment | value |
 |------------|-------|
@@ -360,6 +363,11 @@ file.remove('TPmax_links.txt')
 file.remove('FPmax_links.txt')
 file.remove('FNmax_links.txt')
 ```
+
+
+
+
+
 
 
 ## True Positive Links
@@ -511,3 +519,4 @@ file.remove('FNmax_links.txt')
 
 
 
+---

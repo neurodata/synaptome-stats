@@ -10,7 +10,7 @@
 
 
 
-<meta name="date" content="2018-02-05" />
+<meta name="date" content="2018-02-07" />
 
 <title>RORB Data: pseudo-centroids from annotation polygons using Gaussian weighted average over 11x11x11 cubes ≈ 0.61 microns^3 followed by manifold learning.</title>
 
@@ -145,7 +145,7 @@ $(document).ready(function () {
 
 
 <h1 class="title toc-ignore">RORB Data: pseudo-centroids from annotation polygons using Gaussian weighted average over 11x11x11 cubes ≈ 0.61 microns^3 followed by manifold learning.</h1>
-<h4 class="date"><em>2018-02-05</em></h4>
+<h4 class="date"><em>2018-02-07</em></h4>
 
 </div>
 
@@ -183,11 +183,11 @@ $(document).ready(function () {
 <h1><span class="header-section-number">1</span> ISOMAP</h1>
 <p>Here we use the <code>dimRed</code> package’s isomap functionality to embed the data into 3 dimensions.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">emb &lt;-<span class="st"> </span><span class="kw">embed</span>(dat, <span class="st">&quot;Isomap&quot;</span>, <span class="dt">knn =</span> <span class="dv">50</span>, <span class="dt">ndim =</span> <span class="dv">3</span>)</code></pre></div>
-<pre><code>## 2018-02-05 22:12:43: Isomap START</code></pre>
-<pre><code>## 2018-02-05 22:12:43: constructing knn graph</code></pre>
-<pre><code>## 2018-02-05 22:12:43: calculating geodesic distances</code></pre>
-<pre><code>## 2018-02-05 22:12:43: cmdscale</code></pre>
-<pre><code>## 2018-02-05 22:12:44: post processing</code></pre>
+<pre><code>## 2018-02-07 14:54:14: Isomap START</code></pre>
+<pre><code>## 2018-02-07 14:54:14: constructing knn graph</code></pre>
+<pre><code>## 2018-02-07 14:54:14: calculating geodesic distances</code></pre>
+<pre><code>## 2018-02-07 14:54:15: cmdscale</code></pre>
+<pre><code>## 2018-02-07 14:54:16: post processing</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">col &lt;-<span class="st"> </span><span class="kw">alpha</span>(<span class="kw">c</span>(<span class="st">'red'</span>, <span class="st">'blue'</span>)[gaba +<span class="st"> </span><span class="dv">1</span>], <span class="fl">0.5</span>)
 embdat &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(emb@data)
 semb &lt;-<span class="st"> </span><span class="kw">scale</span>(embdat, <span class="dt">center=</span><span class="ot">TRUE</span>, <span class="dt">scale =</span> <span class="ot">TRUE</span>)
@@ -327,19 +327,19 @@ pv0 &lt;-<span class="st"> </span><span class="kw">sum</span>(<span class="kw">c
 </tr>
 <tr class="odd">
 <td align="left">Sensitivity</td>
-<td align="left">0.1779359</td>
-</tr>
-<tr class="even">
-<td align="left">Specificity</td>
-<td align="left">0.9316406</td>
-</tr>
-<tr class="odd">
-<td align="left">Precision</td>
 <td align="left">0.5882353</td>
 </tr>
 <tr class="even">
-<td align="left">Recall</td>
+<td align="left">Specificity</td>
+<td align="left">0.6737288</td>
+</tr>
+<tr class="odd">
+<td align="left">Precision</td>
 <td align="left">0.1779359</td>
+</tr>
+<tr class="even">
+<td align="left">Recall</td>
+<td align="left">0.5882353</td>
 </tr>
 <tr class="odd">
 <td align="left">ARI</td>
@@ -359,7 +359,7 @@ pv0 &lt;-<span class="st"> </span><span class="kw">sum</span>(<span class="kw">c
 </tr>
 <tr class="odd">
 <td align="left">FP</td>
-<td align="left">35</td>
+<td align="left">231</td>
 </tr>
 <tr class="even">
 <td align="left">TN</td>
@@ -367,7 +367,7 @@ pv0 &lt;-<span class="st"> </span><span class="kw">sum</span>(<span class="kw">c
 </tr>
 <tr class="odd">
 <td align="left">FN</td>
-<td align="left">231</td>
+<td align="left">35</td>
 </tr>
 </tbody>
 </table>
@@ -1357,6 +1357,7 @@ pv0 &lt;-<span class="st"> </span><span class="kw">sum</span>(<span class="kw">c
 </tr>
 </tbody>
 </table>
+<hr />
 </div>
 </div>
 
