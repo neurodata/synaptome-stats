@@ -1,0 +1,61 @@
+---
+title: ""
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 5
+    fig_width: 5
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 2
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, dev = "png")
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+#rmarkdown::render("collman14v2_meda_plots.Rmd")
+#system("open collman14v2_meda_plots.html")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+# Library calls here.
+require(rmarkdown)
+require(knitr)
+require(rhdf5)
+require(foreach)
+require(googlesheets)
+suppressMessages(require(meda))
+```
+
+## Make plots
+
+
+```{r, eval = FALSE}
+
+gs_ls()
+
+tmp <- gs_title("Copy of MNSite3Synaptograms.csv")
+dat <- as.data.frame(gs_read_csv(ss = tmp, ws = 1))
+dat <- as.data.table(gs_read_csv(ss = tmp, ws = 1))
+
+inIDS <- as.numeric(read.csv("rorb_avg_at_orderLocations.csv")[[1]])
+
+
+L <- foreach(i = inIDS, .combine = 'rbind') %do% {
+  dat[id == i,]
+}
+
+glut <- L$glut
+glutIDS <- data.table(id = inIDS, glut = as.numeric(glut))
+write.csv(glutIDS, file = "rorb_glut.csv", row.names = FALSE)
+
+
+gaba <- L$gaba
+gabaIDS <- data.table(id = inIDS, gaba = as.numeric(gaba))
+write.csv(gabaIDS, file = "rorb_gaba.csv", row.names = FALSE)
+```
