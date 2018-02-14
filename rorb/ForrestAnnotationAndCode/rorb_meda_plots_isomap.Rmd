@@ -170,9 +170,17 @@ h2lab <- viridis(max(h2$dat$labels$col))
 h2col <- h2$dat$labels$col
 ```
 
+
+
+
 ## K = 2 stacked means plot
 ```{r k2-stack}
 stackM(h2, ccol = ccol, centered = TRUE, depth = 1)
+```
+
+```{r stackManual}
+L1 <- h2$dat$labels$L1
+stackMraw(as.data.frame(sdat), L1, ccol = ccol, depth = 2, centered = TRUE)
 ```
 
 ## Pairs plot colored by true gaba classification 

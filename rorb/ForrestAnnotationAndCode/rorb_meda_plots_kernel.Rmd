@@ -78,8 +78,37 @@ pairs(kp1)
 el3 <- getElbows(kp1@eig)[2]
 pairs(kp1@pcv[, 1:5], col = gaba + 1, pch = 19, cex = 0.5)
 plot3d(kp1@pcv[,1:3], col = gaba + 1)
+  u <- Reduce(c, lapply(levels(L1), strsplit, split = ''))
 ```
 
+
+```{r substrings}
+L1
+
+lev <- levels(L1)
+
+recSub <- function(g){
+
+  len <- lapply(lev,nchar)
+
+  ll <- list()
+  for(i in 1:length(lev)){
+    nc <- nchar(lev[i])
+    ll[[i]] <- lapply(1:nc, function(x) substr(lev[i], 1,x))
+  }
+
+  LL <- Reduce(c, Reduce(c, ll))
+}
+
+uL <- paste0("^", unique(LL))
+
+
+L1
+
+grepl(uL[1], L1)
+uL
+paste0("^", uL)
+```
 
 
 
