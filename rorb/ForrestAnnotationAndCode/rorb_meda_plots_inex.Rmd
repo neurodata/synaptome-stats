@@ -1,0 +1,123 @@
+---
+title: "RORB Data: pseudo-centroids from annotation polygons using Gaussian weighted average over 11x11x11 cubes  ≈ 0.61 microns^3 followed by inhibitory/excitatory analysis."
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 5
+    fig_width: 5
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 2
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = FALSE, dev = "png")
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+require(knitr)
+rmarkdown::render("rorb_meda_plots_inex.Rmd")
+system("open rorb_meda_plots_inex.html -a /Applications/Chrome.app")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+# Library calls here.
+require(rmarkdown)
+require(knitr)
+require(doMC)
+require(foreach)
+require(scales)
+require(kernlab)
+require(dimRed)
+require(car)
+registerDoMC(4)
+suppressMessages(require(meda))
+```
+
+```{r, eval = TRUE, echo = FALSE, include = FALSE}
+dat <- read.csv("rorb_gaussianAvg_at.csv")
+loc <- read.csv("rorb_gaussianAvg_at_orderLocations.csv")
+gabaID <- read.csv("rorb_gaba.csv")
+truth <- gaba <- gabaID$gaba
+
+ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'green', 'black', 'green', 'green', 'black', 'green')
+ind <- order(ccol)
+ccol <- sort(ccol)
+
+dat <- dat[,ind]
+sdat <- as.data.frame(scale(dat, center = TRUE, scale = TRUE))
+#stackMraw(sdat, as.factor(gaba), ccol = ccol, centered = TRUE, depth = 2) + ggtitle("True Clusters")
+```
+
+
+# In/Ex
+
+I start with the Gaussian weighted averages over the `11 x 11 x 11 x Ch` cubes at
+each synapse location.
+
+Here I re-factor the data into a two-variable dataset: 
+
+INH $:= \text{Z-score} \circ \sum{\text{Inhibitory Features}}$
+
+EX $:= \text{Z-score} \circ \sum{\text{Excitatory Features}}$
+
+Then plot the new dataset colored by the given `gaba` labels.
+The ellipses superimposed on the plot correspond to the class conditional covariances (at 1,2, and 3 standard deviations) of
+the components.
+
+
+```{r inex, fig.width = 8, fig.height = 8, echo = FALSE}
+ndat <- data.frame(
+                   "inhibitory" = Reduce('+', sdat[, ccol == 'green']), 
+                   "excitatory" = Reduce('+', sdat[, ccol == 'red'])
+                   )
+
+sndat <- data.frame(gaba = gaba, scale(ndat, center = TRUE, scale = TRUE))
+
+plot(sndat[, -1], type = 'n')
+points(sndat[gaba == 0, -1], col = alpha('darkblue', 0.5), pch = 20, cex = 0.5)
+points(sndat[gaba == 1, -1], col = alpha('red', 0.5), pch = 20, cex = 0.5)
+abline(h = 0)
+abline(v = 0)
+
+
+points(colMeans(sndat[gaba == 0, -1])[1],colMeans(sndat[gaba == 0, -1])[2], col = 'blue', cex = 3)
+points(colMeans(sndat[gaba == 0, -1])[1],colMeans(sndat[gaba == 0, -1])[2], col = 'blue', cex = 2, pch = 3)
+points(colMeans(sndat[gaba == 1, -1])[1],colMeans(sndat[gaba == 1, -1])[2], col = 'red', cex = 3)
+points(colMeans(sndat[gaba == 1, -1])[1],colMeans(sndat[gaba == 1, -1])[2], col = 'red', cex = 2, pch = 3)
+
+
+A <- cov(sndat[gaba == 0, -1])
+B <- cov(sndat[gaba == 1, -1])
+
+ctr <- colMeans(sndat[gaba == 0, -1])
+RR <- chol(A)
+
+angles <- seq(0, 2*pi, length.out=200)          # angles for ellipse
+ell    <- 1 * cbind(cos(angles), sin(angles)) %*% RR  # ellipse scaled with factor 1
+ellCtr <- sweep(ell, 2, ctr, "+")               # center ellipse to the data centroid
+#plot(ellCtr, type="l", lwd=2, asp=1)            # plot ellipse
+#points(ctr[1], ctr[2], pch=4, lwd=2)            # plot data centroid
+ellipse(ctr, shape=A, radius=1, col=alpha("blue", 0.5), lty=2, add = TRUE, center.pch = 3)
+ellipse(ctr, shape=A, radius=2, col=alpha("blue", 0.5), lty=2, add = TRUE, center.pch = 0)
+ellipse(ctr, shape=A, radius=3, col=alpha("blue", 0.5), lty=2, add = TRUE, center.pch = 0)
+
+
+ctr <- colMeans(sndat[gaba == 1, -1])
+RR <- chol(B)
+
+
+angles <- seq(0, 2*pi, length.out=200)          # angles for ellipse
+ell    <- 1 * cbind(cos(angles), sin(angles)) %*% RR  # ellipse scaled with factor 1
+ellCtr <- sweep(ell, 2, ctr, "+")               # center ellipse to the data centroid
+
+ellipse(ctr, shape=B, radius=1, col=alpha("red",0.5), lty=2, add = TRUE, center.pch = 3)
+ellipse(ctr, shape=B, radius=2, col=alpha("red",0.5), lty=2, add = TRUE, center.pch = 0)
+ellipse(ctr, shape=B, radius=3, col=alpha("red",0.5), lty=2, add = TRUE, center.pch = 0)
+```
+
+
+
