@@ -42,12 +42,13 @@ loc <- read.csv("rorb_gaussianAvg_at_orderLocations.csv")
 gabaID <- read.csv("rorb_gaba.csv")
 truth <- gaba <- gabaID$gaba
 
-ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
+ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'green', 'black', 'green', 'green', 'black', 'green')
 ind <- order(ccol)
 ccol <- sort(ccol)
 
 dat <- dat[,ind]
-sdat <- as.matrix(scale(dat, center = TRUE, scale = TRUE))
+sdat <- as.data.frame(scale(dat, center = TRUE, scale = TRUE))
+stackMraw(sdat, as.factor(gaba), ccol = ccol, centered = TRUE, depth = 2) + ggtitle("True Clusters")
 ```
 
 
@@ -114,7 +115,7 @@ plotDend(Lt[[7]])
 dev.off()
 
 png("stackMeans_isomap.png", width = w, height = 2*h)
-p1 <- stackM(Lt[[7]], ccol = ccol, depth = 3, centered = TRUE)
+p1 <- stackM(Lt[[7]], ccol = "black", depth = 3, centered = TRUE)
 p1
 dev.off()
 
@@ -174,13 +175,12 @@ h2col <- h2$dat$labels$col
 
 
 ## K = 2 stacked means plot
-```{r k2-stack}
-stackM(h2, ccol = ccol, centered = TRUE, depth = 1)
-```
-
-```{r stackManual}
+```{r k2-stack, fig.width = 10}
+p1 <- stackM(h2, ccol = "black", centered = TRUE, depth = 1)
 L1 <- h2$dat$labels$L1
-stackMraw(as.data.frame(sdat), L1, ccol = ccol, depth = 2, centered = TRUE)
+p2 <- stackMraw(as.data.frame(sdat), L1, ccol = ccol, depth = 2, centered = TRUE)
+
+grid.arrange(p1, p2, nrow = 1)
 ```
 
 ## Pairs plot colored by true gaba classification 
@@ -197,8 +197,10 @@ pairs(sdat, col = acols, pch = c(19,3)[gaba+1], cex = c(0.5,1)[gaba+1])
 
 ```{r plotK2pred, fig.height = 10, fig.width = 10}
 acols2 <- alpha(h2lab[h2$dat$labels$col], 0.45)
-pairs(h2$dat$data, pch = 19, cex = 0.7, col = acols2)
+par(bg = "gray45")
+plot(h2$dat$data, pch = c(3,20)[gaba + 1], cex = 1, col = acols2)
 pairs(sdat, pch = 19, cex = 0.7, col = acols2)
+dev.off()
 ```
 
 
