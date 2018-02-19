@@ -33,6 +33,7 @@ require(scales)
 require(kernlab)
 require(dimRed)
 require(car)
+require(MASS)
 registerDoMC(4)
 suppressMessages(require(meda))
 ```
@@ -94,32 +95,35 @@ points(colMeans(sndat[gaba == 1, -1])[1],colMeans(sndat[gaba == 1, -1])[2], col 
 A <- cov(sndat[gaba == 0, -1])
 B <- cov(sndat[gaba == 1, -1])
 
-ctr <- colMeans(sndat[gaba == 0, -1])
-RR <- chol(A)
+ctrA <- colMeans(sndat[gaba == 0, -1])
+RRA <- chol(A)
 
-angles <- seq(0, 2*pi, length.out=200)          # angles for ellipse
-ell    <- 1 * cbind(cos(angles), sin(angles)) %*% RR  # ellipse scaled with factor 1
-ellCtr <- sweep(ell, 2, ctr, "+")               # center ellipse to the data centroid
-#plot(ellCtr, type="l", lwd=2, asp=1)            # plot ellipse
-#points(ctr[1], ctr[2], pch=4, lwd=2)            # plot data centroid
-ellipse(ctr, shape=A, radius=1, col=alpha("blue", 0.5), lty=2, add = TRUE, center.pch = 3)
-ellipse(ctr, shape=A, radius=2, col=alpha("blue", 0.5), lty=2, add = TRUE, center.pch = 0)
-ellipse(ctr, shape=A, radius=3, col=alpha("blue", 0.5), lty=2, add = TRUE, center.pch = 0)
-
-
-ctr <- colMeans(sndat[gaba == 1, -1])
-RR <- chol(B)
+angles <- seq(0, 2*pi, length.out=200)          # angles for ellAipse
+ellA    <- 1 * cbind(cos(angles), sin(angles)) %*% RRA  # ellAipse scaled with factor 1
+ellACtr <- sweep(ellA, 2, ctrA, "+")               # center ellAipse to the data centroid
+#plot(ellACtr, type="l", lwd=2, asp=1)            # plot ellAipse
+#points(ctrA[1], ctrA[2], pch=4, lwd=2)            # plot data centroid
+ellipse(ctrA, shape=A, radius=1, col=alpha("blue", 0.5), lty=2, add = TRUE, center.pch = 3)
+ellipse(ctrA, shape=A, radius=2, col=alpha("blue", 0.5), lty=2, add = TRUE, center.pch = 0)
+ellipse(ctrA, shape=A, radius=3, col=alpha("blue", 0.5), lty=2, add = TRUE, center.pch = 0)
 
 
-angles <- seq(0, 2*pi, length.out=200)          # angles for ellipse
-ell    <- 1 * cbind(cos(angles), sin(angles)) %*% RR  # ellipse scaled with factor 1
-ellCtr <- sweep(ell, 2, ctr, "+")               # center ellipse to the data centroid
+ctrB <- colMeans(sndat[gaba == 1, -1])
+RRB <- chol(B)
 
-ellipse(ctr, shape=B, radius=1, col=alpha("red",0.5), lty=2, add = TRUE, center.pch = 3)
-ellipse(ctr, shape=B, radius=2, col=alpha("red",0.5), lty=2, add = TRUE, center.pch = 0)
-ellipse(ctr, shape=B, radius=3, col=alpha("red",0.5), lty=2, add = TRUE, center.pch = 0)
+
+ellB    <- 1 * cbind(cos(angles), sin(angles)) %*% RRB  # ellBipse scaled with factor 1
+ellBCtr <- sweep(ellB, 2, ctrB, "+")               # center ellBipse to the data centroid
+
+ellipse(ctrB, shape=B, radius=1, col=alpha("red",0.5), lty=2, add = TRUE, center.pch = 3)
+ellipse(ctrB, shape=B, radius=2, col=alpha("red",0.5), lty=2, add = TRUE, center.pch = 0)
+ellipse(ctrB, shape=B, radius=3, col=alpha("red",0.5), lty=2, add = TRUE, center.pch = 0)
 ```
 
+```{r L-v-d}
+
+
+```
 
 ```{r runAll, eval = TRUE, echo = FALSE, include = FALSE}
 set.seed(3174)
@@ -169,7 +173,7 @@ dev.off()
 
 png("stackMeans_inex.png", width = w, height = 2*h)
 p1 <- stackM(Lt[[7]], ccol = "black", depth = 3, centered = TRUE)
-p1
+p2 <- stackMraw(as.matrix(sndat[, -1]), Lt[[7]]$dat$labels$L1)
 dev.off()
 
 png("clusterMeans_inex.png", width = w, height = 0.75*h)
