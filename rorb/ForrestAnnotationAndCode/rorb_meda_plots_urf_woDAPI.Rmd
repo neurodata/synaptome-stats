@@ -25,6 +25,7 @@ system("open rorb_meda_plots_urf_woDAPI.html -a /Applications/Chrome.app")
 
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
 # Library calls here.
+source("~/neurodata/U-Rerf/rfr_us.R")
 require(rmarkdown)
 require(knitr)
 require(doMC)
@@ -54,12 +55,255 @@ nonSynaptic <- names(sdat) %in% c("DAPI1", "DAPI2", "DAPI3", "MBP")
 
 ccol <- ccol[!nonSynaptic]
 sdat <- sdat[, !nonSynaptic]
+po <- order(gaba)
 ```
 
 
 # Unsupervised RandomForest
 
+## U-Rerf
+```{r urerf, fig.width = 8, fig.height = 8}
+set.seed(10301)
+simMat <- createSimilarityMatrix(as.matrix(sdat), 500, floor(nrow(sdat)*0.23))
+image(simMat[po,po], col = viridis(255))
+title('Similarity Matrix')
+disMat <- createDistanceMatrix(as.matrix(sdat), 500, floor(nrow(sdat)*0.23))
+image(disMat[po,po], col = viridis(255))
+title('Distance Matrix')
 
+eigM <- eigen(simMat)
+eio <- order(eigM$values)
+pcU <- prcomp(simMat)
+el1 <- getElbows(pcU$sdev, plot= FALSE)[1]
+el2 <- getElbows(pcU$sdev, plot= FALSE)[2]
+
+urerfDat <- pcU$x[, 1:el1]
+```
+
+## U-Rerf Pairs
+```{r urerf-pairs, fig.width = 8, fig.height = 8}
+pairs(urerfDat[,1:7], col = gaba + 1, pch = 20, cex = 0.2)
+```
+
+```{r urerf-runAll, eval = TRUE, echo = FALSE, include = FALSE}
+set.seed(3180)
+Lu <- runAll(urerfDat, ccol = "black")
+Lu[[1]] <- mlocation(urerfDat, ccol = "black")
+
+w = 720
+h = 720 
+
+png("d1heat_urerf_woDAPI.png", width = w, height = h)
+p1 <- plot(Lu[[2]]) 
+p1
+dev.off()
+
+png("mlocation_urerf_woDAPI.png", width = 720, height = 480)
+p1 <- plot(Lu[[1]]) 
+p1
+dev.off()
+
+png("cumulativeVariance_urerf_woDAPI.png", width = w, height = h)
+p1 <- plot(Lu[[3]]) 
+p1
+dev.off()
+
+png("outliers_urerf_woDAPI.png", width = w, height = h)
+p1 <- plot(Lu[[4]]) 
+p1
+dev.off()
+
+png("cor_urerf_woDAPI.png", width = w, height = h)
+plot(Lu[[6]]) 
+dev.off()
+
+png("pairhex_urerf_woDAPI.png", width = w, height = h)
+pairhex(urerfDat)
+dev.off()
+
+png("hmcClassifications_urerf_woDAPI.png", width = w, height = h)
+cr <- alpha(viridis(max(Lu[[7]]$dat$labels$col)), 0.35)
+#pairs(Lu[[7]]$dat$data, pch = 19, cex = 0.5, col = cr[Lu[[7]]$dat$labels$col])
+pairs(sdat, pch = 19, cex = 0.5, col = cr[Lu[[7]]$dat$labels$col])
+dev.off()
+
+png("dendrograms_urerf_woDAPI.png", width = w, height = h)
+plotDend(Lu[[7]])
+dev.off()
+
+png("stackMeans_urerf_woDAPI.png", width = 2*w, height = 2*h)
+p1 <- stackM(Lu[[7]], ccol = "black", depth = 3, centered = TRUE)
+#p2 <- stackMraw(sdat, Lu[[7]]$dat$labels$L1, centered = TRUE, depth = 3, ccol = ccol)
+#grid.arrange(p1, p2, nrow = 1)
+p1
+dev.off()
+
+png("clusterMeans_urerf_woDAPI.png", width = w, height = 0.75*h)
+p1 <- clusterMeans(Lu[[7]], ccol = "black")
+p1
+dev.off()
+```
+
+
+# U-Rerf Results
+
+## 1-d Heatmap
+![](./d1heat_urerf_woDAPI.png)
+
+## Location meda_plots
+![](./mlocation_urerf_woDAPI.png)
+
+## Outliers as given by randomForest
+![](./outliers_urerf_woDAPI.png)
+
+## Correlation Matrix
+![](./cor_urerf_woDAPI.png)
+
+## Cumulative Variance with Elbows
+![](./cumulativeVariance_urerf_woDAPI.png)
+
+## Paired Hex-binned plot
+![](./pairhex_urerf_woDAPI.png)
+
+## Hierarchical GMM Classifications
+![](./hmcClassifications_urerf_woDAPI.png)
+
+## Hierarchical GMM Dendrogram
+![](./dendrograms_urerf_woDAPI.png)
+
+## Stacked Means
+![](./stackMeans_urerf_woDAPI.png)
+
+## Cluster Means
+![](./clusterMeans_urerf_woDAPI.png)
+
+
+## Similarity Matrix ordered by hGMM
+```{r usimfullHGMM, fig.width = 8, fig.height = 8}
+utmp <- order(Lu[[7]]$dat$labels$col)
+image(simMat[utmp,utmp], col = viridis(255))
+title("Similarity Matrix ordered by hGMM to level 4")
+```
+
+
+# U-Rerf: Restricting hGMM to $K = 2$
+
+Here we are restricting hierarchical GMM to only go through on level. 
+We are comparing the cluster results to the `gaba` labels.
+
+
+```{r urerf-hmc_k2, results = 'hide'}
+set.seed(3144)
+uh2 <- hmc(urerfDat, maxDepth = 3, ccol = ccol)
+uh2lab <- viridis(max(uh2$dat$labels$col))
+uh2col <- uh2$dat$labels$col
+poh <- order(uh2col)
+```
+
+## Similarity Matrix ordered by hGMM
+```{r usimHGMM, fig.width = 8, fig.height = 8}
+image(simMat[poh,poh], col = viridis(255))
+title("Similarity Matrix ordered by hGMM level 2")
+```
+
+
+## K = 2 stacked means plot
+```{r uk2-stack, fig.width = 10}
+p1 <- stackM(uh2, ccol = "black", centered = TRUE, depth = 3)
+p2 <- stackMraw(sdat, uh2$dat$labels$L1, centered = TRUE, depth = 1, ccol = ccol)
+grid.arrange(p1,p2, nrow=1)
+```
+
+## Pairs plot colored by true gaba classification 
+
+```{r uplotK2, fig.width = 10, fig.height = 10}
+cols <- c("black", "magenta")[gabaID$gaba+1]
+acols <- alpha(cols, 0.35)
+#pairs(h2$dat$data, pch = 19, cex = 0.7, col = acols)
+plot(uh2$dat$data, col = acols, pch = c(19,3)[gaba+1], cex = c(0.5,1)[gaba+1])
+pairs(sdat, col = acols, pch = c(19,3)[gaba+1], cex = c(0.5,1)[gaba+1])
+```
+
+## Pairs plot colored by hGMM cluster classification 
+
+```{r uplotK2pred, fig.height = 10, fig.width = 10}
+acols2 <- alpha(uh2lab[uh2$dat$labels$col], 0.45)
+par(bg = "gray45")
+plot(uh2$dat$data, pch = c(3,20)[gaba + 1], cex = 1, col = acols2)
+pairs(sdat, pch = 19, cex = 0.7, col = acols2)
+dev.off()
+```
+
+
+```{r utable2, include = FALSE}
+upred <-  uh2$dat$labels$col - 1
+t1 <- table(pred = as.logical(uh2$dat$labels$col - 1), truth = as.logical(truth))
+
+TP <- t1[4]
+TN <- t1[1]
+FP <- t1[2]
+FN <- t1[3]
+
+Pos <- TP + FN
+Neg <- TN + FP
+ 
+sens <- (TP/Pos)
+spec <- TN/Neg
+prec <- TP / (TP + FP)
+recall <- TP / (TP + FN)
+
+F1 <- 2 * prec*recall / (prec + recall)
+
+ACC <- (TP + TN)/(TP + FP + FN + TN)
+mis <- (FP + FN)/(TP + FP + FN + TN)
+```
+
+## Permutation test for ARI
+
+```{r uperm}
+p0 <- mclust::adjustedRandIndex(upred, gaba)
+uperms <- foreach(i = 1:1.5e4, .combine = c) %dopar% {
+  set.seed(i*2)
+  mclust::adjustedRandIndex(sample(upred), gaba)
+}
+pv0 <- sum(c(perms,p0) >= p0)/length(perms)
+```
+
+
+```{r uhist, fig.height = 4, fig.width = 8}
+hist(uperms, xlim = c(min(p0, range(uperms)[1]), max(p0, range(uperms)[2])),
+     main = "permutation test of ARI values", probability = TRUE)
+abline(v = p0, col = 'red')
+t1
+```
+
+
+## Summary Table
+
+| measurment | value |
+|------------|-------|
+| Misclassification Rate | `r mis `|
+| Accuracy    | `r ACC `|
+| Sensitivity | `r sens `|
+| Specificity | `r spec `|
+| Precision   | `r prec `|
+| Recall      | `r recall `|
+| ARI         | `r p0 `|
+| $p$-value for ARI | `r sprintf("%f", pv0) `|
+| F1-score    | `r F1 `|
+| TP          | `r TP `|
+| FP          | `r FP `|
+| TN          | `r TN `|
+| FN          | `r FN `|
+
+
+
+
+
+
+
+
+# Random Forest 
 ```{r urf_woDAPI}
 rf1 <- randomForest(sdat, proximity = TRUE)
 kern <- rf1$prox
@@ -72,14 +316,14 @@ el2 <- getElbows(pc1$sdev, plot = FALSE)[2]
 edat <- pc1$x[, 1:el1]
 ```
 
-```{r pairs1}
+```{r pairs1, fig.width = 8, fig.height = 8}
 pairs(edat, col = gaba + 1, pch = 20, cex = 0.5)
 ```
 
 ## Kernel/Proximity Matrix in heatmap
 
 ```{r kernPlot, fig.width = 9, fig.height = 9}
-image(kern, col = viridis(255))
+image(kern[po,po], col = viridis(255))
 ```
 
 ```{r runAll, eval = TRUE, echo = FALSE, include = FALSE}
@@ -173,6 +417,13 @@ dev.off()
 ## Cluster Means
 ![](./clusterMeans_urf_woDAPI.png)
 
+## Similarity Matrix ordered by hGMM
+```{r simfullHGMM, fig.width = 8, fig.height = 8}
+tmp <- order(Lt[[7]]$dat$labels$col)
+image(kern[tmp,tmp], col = viridis(255))
+title("Proximity Matrix ordered by hGMM to level 4")
+```
+
 
 # Restricting hGMM to $K = 2$
 
@@ -182,17 +433,24 @@ We are comparing the cluster results to the `gaba` labels.
 
 ```{r hmc_k2, results = 'hide'}
 set.seed(3144)
-h2 <- hmc(edat, maxDepth = 2, ccol = ccol)
+h2 <- hmc(edat, maxDepth = 3, ccol = ccol)
 h2lab <- viridis(max(h2$dat$labels$col))
 h2col <- h2$dat$labels$col
+poh1 <- order(h2col)
+```
+
+## Similarity Matrix ordered by hGMM
+```{r simHGMM, fig.width = 8, fig.height = 8}
+image(kern[poh,poh], col = viridis(255))
+title("Proximity Matrix ordered by hGMM clusters")
 ```
 
 
 
 ## K = 2 stacked means plot
 ```{r k2-stack, fig.width = 10}
-p1 <- stackM(h2, ccol = "black", centered = TRUE, depth = 1)
-p2 <- stackMraw(sdat, h2$dat$labels$L1, centered = TRUE, depth = 2, ccol = ccol)
+p1 <- stackM(h2, ccol = "black", centered = TRUE, depth = 3)
+p2 <- stackMraw(sdat, h2$dat$labels$L1, centered = TRUE, depth = 1, ccol = ccol)
 grid.arrange(p1,p2, nrow=1)
 ```
 
@@ -253,7 +511,7 @@ pv0 <- sum(c(perms,p0) >= p0)/length(perms)
 
 
 ```{r hist, fig.height = 4, fig.width = 8}
-hist(perms, xlim = c(min(perms), p0 + 0.25*p0),
+hist(perms, xlim = c(min(p0, range(perms)[1]), max(p0, range(perms)[2])),
      main = "permutation test of ARI values", probability = TRUE)
 #hist(perms, probability = TRUE)
 abline(v = p0, col = 'red')

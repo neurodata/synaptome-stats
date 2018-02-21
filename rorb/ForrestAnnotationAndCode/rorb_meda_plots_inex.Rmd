@@ -34,6 +34,7 @@ require(kernlab)
 require(dimRed)
 require(car)
 require(MASS)
+require(mvtnorm)
 registerDoMC(4)
 suppressMessages(require(meda))
 ```
@@ -79,9 +80,10 @@ ndat <- data.frame(
 
 sndat <- data.frame(gaba = gaba, scale(ndat, center = TRUE, scale = TRUE))
 
-plot(sndat[, -1], type = 'n')
+plot(sndat[, -1], type = 'n', asp = 1)
 points(sndat[gaba == 0, -1], col = alpha('darkblue', 0.5), pch = 20, cex = 0.5)
 points(sndat[gaba == 1, -1], col = alpha('red', 0.5), pch = 20, cex = 0.5)
+text(sndat[1:10,-1], text = 1:nrow(sndat)[1:10])
 abline(h = 0)
 abline(v = 0)
 
@@ -120,10 +122,6 @@ ellipse(ctrB, shape=B, radius=2, col=alpha("red",0.5), lty=2, add = TRUE, center
 ellipse(ctrB, shape=B, radius=3, col=alpha("red",0.5), lty=2, add = TRUE, center.pch = 0)
 ```
 
-```{r L-v-d}
-
-
-```
 
 ```{r runAll, eval = TRUE, echo = FALSE, include = FALSE}
 set.seed(3174)
