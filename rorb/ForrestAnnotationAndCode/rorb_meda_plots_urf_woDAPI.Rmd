@@ -194,7 +194,8 @@ We are comparing the cluster results to the `gaba` labels.
 
 ```{r urerf-hmc_k2, results = 'hide'}
 set.seed(3144)
-uh2 <- hmc(urerfDat, maxDepth = 3, ccol = ccol)
+uh2 <- hmc(urerfDat, maxDepth = 2, ccol = ccol)
+uh3 <- hmc(urerfDat, maxDepth = 3, ccol = ccol)
 uh2lab <- viridis(max(uh2$dat$labels$col))
 uh2col <- uh2$dat$labels$col
 poh <- order(uh2col)
@@ -209,8 +210,8 @@ title("Similarity Matrix ordered by hGMM level 2")
 
 ## K = 2 stacked means plot
 ```{r uk2-stack, fig.width = 10}
-p1 <- stackM(uh2, ccol = "black", centered = TRUE, depth = 3)
-p2 <- stackMraw(sdat, uh2$dat$labels$L1, centered = TRUE, depth = 1, ccol = ccol)
+p1 <- stackM(uh3, ccol = "black", centered = TRUE, depth = 3)
+p2 <- stackMraw(sdat, uh3$dat$labels$L1, centered = TRUE, depth = 1, ccol = ccol)
 grid.arrange(p1,p2, nrow=1)
 ```
 
@@ -266,7 +267,7 @@ uperms <- foreach(i = 1:1.5e4, .combine = c) %dopar% {
   set.seed(i*2)
   mclust::adjustedRandIndex(sample(upred), gaba)
 }
-pv0 <- sum(c(perms,p0) >= p0)/length(perms)
+pv0 <- sum(c(uperms,p0) >= p0)/length(uperms)
 ```
 
 
