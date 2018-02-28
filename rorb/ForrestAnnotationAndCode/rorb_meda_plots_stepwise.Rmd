@@ -60,8 +60,8 @@ sdat <- as.data.frame(scale(dat, center = TRUE, scale = TRUE))
 
 ```{r stepwise, fig.width = 8, fig.height = 8, echo = FALSE}
 set.seed(1030)
-lm1 <- lm(gaba ~ ., data = sdat)
-slm1 <- step(lm1, direction = "backward")
+lm1 <- glm(gaba ~ ., data = sdat, family = "binomial")
+slm1 <- step(lm1, direction = "both")
 summary(slm1)
 
 
