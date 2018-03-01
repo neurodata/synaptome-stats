@@ -13,7 +13,7 @@ output:
     toc_depth: 2
 ---
 ```{r knitOPTS, include=FALSE}
-knitr::opts_chunk$set(cache = FALSE, dev = "png")
+knitr::opts_chunk$set(cache = FALSE, dev = "png", results = 'hold')
 ```
 
 ```{r render, eval=FALSE, echo=FALSE}
@@ -35,6 +35,7 @@ require(dimRed)
 require(randomForest)
 require(mvtnorm)
 require(class)
+require(MASS)
 registerDoMC(4)
 suppressMessages(require(meda))
 ```
@@ -46,7 +47,7 @@ We start with observations of 793 synapses with 12 measurments formatted as a 79
 matrix. The matrix is Z-scored column-wise and plotted in a pairs plot
 colored according to the labels given by the field expert. 
 
-```{r, eval = TRUE, echo = TRUE, include = TRUE}
+```{r, eval = TRUE, echo = TRUE, include = TRUE, fig.height = 10, fig.width = 10}
 dat <- read.csv("rorb_gaussianAvg_at.csv")
 loc <- read.csv("rorb_gaussianAvg_at_orderLocations.csv")
 gabaID <- read.csv("rorb_gaba.csv")
@@ -65,10 +66,11 @@ main = "Pairs plot colored by true class")
 
 ## ZG: Get Elbows
 
-We run the Z-scored data through PCA and plot the scree-plot wiht the
-elbows as given by Zhu and Ghodsi. 
+We run the Z-scored data through PCA and plot the scree-plot with the
+elbows as given by Zhu and Ghodsi.  A pairs plot is shown on the PCA
+data again colored by class labels. 
 
-```{r pca}
+```{r pca, fig.height = 10, fig.width = 10}
 pc1 <- princomp(sdat)
 getElbows(pc1$sdev)
 pairs(pc1$scores, col = gaba +1, pch = 20, cex = 0.5)
@@ -76,8 +78,8 @@ pairs(pc1$scores, col = gaba +1, pch = 20, cex = 0.5)
 
 ## LDA and QDA
 
-Next applying LDA and QDA by increasing the number of principal
-components by one. 
+Next, applying LDA and QDA iterating on the number of PCA dimension
+included. 
 ```{r lda}
 ldaL <- 
   lapply(1:12, 
@@ -96,25 +98,210 @@ qdaL <-
 ll <- sapply(lapply(ldaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
 ql <- sapply(lapply(qdaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
 
-plot(x = 1:12, y = seq(0,0.12,length = 12), type = 'n', xlab = expression(hat(d)), ylab = "L")
+#png(file = "~/Desktop/supRes.png", 480,480)
+plot(x = 1:12, y = seq(0,0.13,length = 12), type = 'n', xlab = expression(hat(d)), ylab = "L")
 points(ll, type = 'b', col = 'blue')
 points(ql, type = 'b', col = 'darkred')
 text(10,max(ql), label = "qda", col = 'darkred')
 text(10, min(ll), label = "lda", col = 'blue', pos = 1)
+#dev.off()
 
 qmm <- sapply(1:12, function(x) sum((gaba - qdaL[[x]]$post[, 1])^2))
 lmm <- sapply(1:12, function(x) sum((gaba - ldaL[[x]]$post[, 1])^2))
-
-plot(qmm,  type = 'b', col = 'blue')
-points(lmm,  type = 'b', col = 'darkred')
 ```
+
+
+## Office Chat CEP 20180228
+
+Data in $M_{793 \times 12}$ is transformed using PCA with `center=TRUE` and
+`scale=TRUE` to $D_{793 \times 12}$.  Class labels, $Y_{i\in [793]} \in
+{0,1}$ have been given by the field experts (quite possibly errorful)
+with proportions 708 and 85 out of 793 of non-gaba and gaba, respectively. 
+
+Let $n_0, n_1$ be the numbers of points in class 0 and 1, respectively.
 
 ```{r t}
+n0 <- 708
+n1 <- 85
 
+params <- list()
+for(i in 1:12){
+  params[[i]] <- list()
+  for(j in unique(gaba)){
+    params[[i]][[as.character(j)]] <- 
+      list( 
+           means = colMeans(as.matrix(pc1$scores[gaba == j, 1:i])), 
+           sigma   = if(i == 1){
+             sd(pc1$scores[gaba == j, 1:i])
+           } else {
+                  cov(pc1$scores[gaba == j, 1:i])
+                  }
+           )
+  }}
 ```
 
 
-# L
+## Sampling 
+
+```{r d-all}
+mont <- 500
+
+truth  <- c(rep(0, n0), rep(1,n1))
+ds <- foreach(j = 1:12) %:% 
+      foreach(x = 1:mont, .combine = 'rbind') %do% {
+        set.seed(x)
+        if(j == 1){
+            s <- c( 
+                   rnorm(n0, mean = params[[j]]$'0'$means, sd = params[[j]]$'0'$sigma),
+                   rnorm(n1, mean = params[[j]]$'1'$means, sd = params[[j]]$'1'$sigma)
+                  )
+        } else {
+            s <- rbind( 
+                       rmvnorm(n0, mean = params[[j]]$'0'$means, sigma = params[[j]]$'0'$sigma),
+                       rmvnorm(n1, mean = params[[j]]$'1'$means, sigma = params[[j]]$'1'$sigma)
+                      )
+        }
+        
+        qdaR <- qda(truth ~ s)
+        rcl <- as.numeric(predict(qdaR)$class) - 1
+        
+        qdaD <- qda(truth ~ s, CV = TRUE)
+        
+        (Lr <- sum(rcl != truth)/length(truth))
+        (Ld <- sum((as.numeric(qdaD$class) - 1) != truth)/length(truth))
+        #assign(paste0("Lr", j), Lr)
+        #assign(paste0("Ld", j), Ld)
+
+        #cbind(
+        #      eval(as.symbol(paste0("Lr", j))), 
+        #      eval(as.symbol(paste0("Ld", j)))
+        #      )
+        cbind(Lr, Ld)
+}
+
+tmp <- cbind(Reduce(rbind, ds))
+
+tmp1 <- as.data.frame(cbind(data.table::melt(tmp)))
+
+tmp1$Var1 <- as.factor(rep(1:12, each = mont))
+tmp1$Var2 <- as.factor(tmp1$Var2)
+names(tmp1) <- c("dim", "L", "value")
+p <- ggplot(data = tmp1, aes(x = L, y = value, fill = dim)) + 
+     geom_boxplot(notch = TRUE) + facet_grid(. ~ dim)
+```
+
+
+```{r p1, fig.height = 8, fig.width = 12}
+plot(p)
+```
+
+
+```{r test-sample, echo = FALSE, eval = FALSE, include = FALSE}
+n0 <- 708
+n1 <- 85
+
+params <- list()
+for(i in 1:12){
+  params[[i]] <- list()
+  for(j in unique(gaba)){
+    params[[i]][[as.character(j)]] <- 
+      list( 
+           means = colMeans(as.matrix(pc1$scores[gaba == j, 1:i])), 
+           sigma   = if(i == 1){
+             sd(pc1$scores[gaba == j, 1:i])
+           } else {
+                  cov(pc1$scores[gaba == j, 1:i])
+                  }
+           )
+  }}
+
+mont <- 500
+
+truth  <- c(rep(0, n0), rep(1,n1))
+ds <- foreach(j = 1:12) %:% 
+      foreach(x = 1:mont, .combine = 'rbind') %do% {
+        set.seed(x)
+        if(j == 1){
+            s <- c( 
+                   rnorm(n0, mean = params[[j]]$'0'$means, sd = params[[j]]$'0'$sigma),
+                   rnorm(n1, mean = params[[j]]$'1'$means, sd = params[[j]]$'1'$sigma)
+                  )
+        } else {
+            s <- rbind( 
+                       rmvnorm(n0, mean = params[[j]]$'0'$means, sigma = params[[j]]$'0'$sigma),
+                       rmvnorm(n1, mean = params[[j]]$'1'$means, sigma = params[[j]]$'1'$sigma)
+                      )
+        }
+        
+        qdaR <- qda(truth ~ s)
+        rcl <- as.numeric(predict(qdaR)$class) - 1
+        
+        qdaD <- qda(truth ~ s, CV = TRUE)
+        
+        (Lr <- sum(rcl != truth)/length(truth))
+        (Ld <- sum((as.numeric(qdaD$class) - 1) != truth)/length(truth))
+        #assign(paste0("Lr", j), Lr)
+        #assign(paste0("Ld", j), Ld)
+
+        #cbind(
+        #      eval(as.symbol(paste0("Lr", j))), 
+        #      eval(as.symbol(paste0("Ld", j)))
+        #      )
+        cbind(Lr, Ld)
+}
+
+tmp <- cbind(Reduce(rbind, ds))
+
+tmp1 <- as.data.frame(cbind(data.table::melt(tmp)))
+
+tmp1$Var1 <- as.factor(rep(1:12, each = mont))
+tmp1$Var2 <- as.factor(tmp1$Var2)
+names(tmp1) <- c("dim", "L", "value")
+p <- ggplot(data = tmp1, aes(x = L, y = value, fill = dim)) + 
+     geom_boxplot(notch = TRUE) + facet_grid(. ~ dim)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r L, eval = FALSE, include = FALSE}
 pi0 <- sum(gaba == 0)/length(gaba)
