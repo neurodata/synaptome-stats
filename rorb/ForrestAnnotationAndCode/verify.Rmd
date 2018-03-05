@@ -63,7 +63,7 @@ suppressMessages(require(meda))
 
 ## Emprical results:
 
-### For 500 Monticarlo replicates in a 4-dimensional setting with $f_0 = MVN([0,0,0,0], I)$ and $f_1 = MVN([1,0,0,0], I)$
+### 500 Monticarlo replicates with $f_0 = MVN([0,0,0,0], I)$ and $f_1 = MVN([1,0,0,0], I)$
 
 
 ```{r ls}
