@@ -108,7 +108,7 @@ foreach(i = 1:mont, .combine = 'rbind') %dopar% {
 | $\mathbb{P}\left[\hat{L}^{(R)}_4 = \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr4 == Ls$Lr1)/nrow(Ls)`|
 
 
-# Box, jitter, and violin
+# Box for Carey, jitter, and violin for Joshua
 
 ```{r jitter, fig.height = 14, fig.width = 8, echo = FALSE}
 m <- melt(LsM)
