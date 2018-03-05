@@ -13,7 +13,7 @@ output:
     toc_depth: 2
 ---
 ```{r knitOPTS, include=FALSE}
-knitr::opts_chunk$set(cache = FALSE, dev = "png", results = 'hold')
+knitr::opts_chunk$set(cache = FALSE, dev = "png", results = 'hold', messages = FALSE, warnings = FALSE)
 ```
 
 ```{r render, eval=FALSE, echo=FALSE}
@@ -102,17 +102,27 @@ foreach(i = 1:mont, .combine = 'rbind') %dopar% {
 |------------|-------|
 | $\mathbb{P}\left[\hat{L}^{(R)}_2 > \hat{L}^{(R)}_1\right]$| <span style="color:red">`r sum(Ls$Lr2 > Ls$Lr1)/nrow(Ls)`</span>|
 | $\mathbb{P}\left[\hat{L}^{(R)}_2 = \hat{L}^{(R)}_1\right]$| <span style="color:red">`r sum(Ls$Lr2 == Ls$Lr1)/nrow(Ls)`</span>|
-| $\mathbb{P}\left[\hat{L}^{(R)}_3 > \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr3 > Ls$Lr1)/nrow(Ls)`|
-| $\mathbb{P}\left[\hat{L}^{(R)}_3 = \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr3 == Ls$Lr1)/nrow(Ls)`|
-| $\mathbb{P}\left[\hat{L}^{(R)}_4 > \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr4 > Ls$Lr1)/nrow(Ls)`|
-| $\mathbb{P}\left[\hat{L}^{(R)}_4 = \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr4 == Ls$Lr1)/nrow(Ls)`|
+| $\mathbb{P}\left[\hat{L}^{(R)}_3 > \hat{L}^{(R)}_2\right]$| `r sum(Ls$Lr3 >  Ls$Lr2)/nrow(Ls)`|
+| $\mathbb{P}\left[\hat{L}^{(R)}_3 = \hat{L}^{(R)}_2\right]$| `r sum(Ls$Lr3 == Ls$Lr2)/nrow(Ls)`|
+| $\mathbb{P}\left[\hat{L}^{(R)}_4 > \hat{L}^{(R)}_3\right]$| `r sum(Ls$Lr4 >  Ls$Lr3)/nrow(Ls)`|
+| $\mathbb{P}\left[\hat{L}^{(R)}_4 = \hat{L}^{(R)}_3\right]$| `r sum(Ls$Lr4 == Ls$Lr3)/nrow(Ls)`|
 
 
 # Box for Carey; jitter and violin for Joshua
 
+#### The plots below show the observed paired difference between $L^{(R)}_d$ and $L^{(R)}_{d-1}$ for $d = (2,3,4)$
+
+
 ```{r jitter, fig.height = 14, fig.width = 8, echo = FALSE}
-m <- melt(LsM)
-p <- ggplot(m, aes(x = Var2, y = value)) + xlab("") + ylab("") + geom_hline(yintercept=0, color='red', lty=2)
+
+LsM <- data.frame(
+                  L_21 = Ls$Lr2 - Ls$Lr1,
+                  L_32 = Ls$Lr3 - Ls$Lr2,
+                  L_43 = Ls$Lr4 - Ls$Lr3
+                  )
+
+suppressMessages(m <- melt(LsM))
+p <- ggplot(m, aes(x = variable, y = value)) + xlab("") + ylab("") + geom_hline(yintercept=0, color='red', lty=2)
 
 grid.arrange(
 p + geom_boxplot(notch=TRUE, outlier.color=alpha('red',0.5))
