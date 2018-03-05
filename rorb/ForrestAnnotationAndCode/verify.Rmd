@@ -108,7 +108,7 @@ foreach(i = 1:mont, .combine = 'rbind') %dopar% {
 | $\mathbb{P}\left[\hat{L}^{(R)}_4 = \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr4 == Ls$Lr1)/nrow(Ls)`|
 
 
-# Box for Carey, jitter, and violin for Joshua
+# Box for Carey; jitter and violin for Joshua
 
 ```{r jitter, fig.height = 14, fig.width = 8, echo = FALSE}
 m <- melt(LsM)
@@ -124,6 +124,17 @@ p + geom_violin(alpha = 0.75)
 
 ```
 
+
+
+```{r, eval = FALSE, include = FALSE, echo = FALSE}
+plot(Ls[,1:2], type = 'n')
+
+Ls
+
+tmp <- cbind(melt(Ls), id = c(1:1e3, 1:1e3))
+
+ggplot(tmp, aes(x = variable, y = value)) + geom_line(aes(group = id))
+```
 
 
 
