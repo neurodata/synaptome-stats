@@ -275,7 +275,44 @@ show(p1sig)
 
 
 
+```{r 1sig2}
+mdim <- 1.5e3
+mu1sig <- 1
+trueBig <- c(rep(0,1e3), rep(1,1e3))
 
+params <- list(means = c(1, rep(0,mdim-1)), Sigma = diag(1, mdim))
+
+dlist <- c(1,seq(100, mdim, by = 100))
+
+bigD <- 
+foreach(i = 16:17 .combine = 'rbind') %:% 
+foreach(x = 1:2, .combine = 'rbind') %do% {
+  set.seed(i)
+  w <- 
+    rbind( 
+          rmvnorm(1e3,  mean = c(1,rep(0,dlist[i]-1)), sigma = diag(2,dlist[i])),
+          rmvnorm(1e3,  mean = -c(1,rep(0,dlist[i]-1)), sigma = diag(2,dlist[i]))
+          )
+
+  qdaR <- qda(trueBig ~ w)
+  rcl <- as.numeric(predict(qdaR)$class) - 1
+        
+  qdaD <- qda(trueBig ~ w, CV = TRUE)
+        
+  (Lr <- sum(rcl != trueBig)/length(trueBig))
+  (Ld <- sum((as.numeric(qdaD$class) - 1) != trueBig)/length(trueBig))
+  cbind(Lr, Ld, dim = i)
+}
+
+bigMelt <- as.data.frame(cbind(data.table::melt(bigD)))
+
+tmp1$Var1 <- as.factor(rep(1:mdim, each = mont))
+tmp1$Var2 <- as.factor(tmp1$Var2)
+names(tmp1) <- c("dim", "L", "value")
+p1sig <- ggplot(data = tmp1, aes(x = L, y = value, fill = dim)) + 
+     geom_boxplot(notch = TRUE) + facet_grid(. ~ dim)
+
+```
 
 
 

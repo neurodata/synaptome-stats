@@ -1,0 +1,129 @@
+---
+title: "RORB Data: "
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 8
+    fig_width: 8
+    highlight: pygments
+    number_sections: no
+    theme: cerulean
+    toc: yes
+    toc_depth: 2
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = FALSE, dev = "png", results = 'hold')
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+require(knitr)
+rmarkdown::render("verify.Rmd")
+system("open verify.html -a /Applications/Chrome.app")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+# Library calls here.
+require(rmarkdown)
+require(knitr)
+require(doMC)
+require(foreach)
+require(scales)
+require(kernlab)
+require(dimRed)
+require(randomForest)
+require(mvtnorm)
+require(class)
+require(MASS)
+registerDoMC(6)
+suppressMessages(require(meda))
+```
+
+
+# Verifiy and Extend
+> Verify and extend this, Jesse:
+> 
+> by my calculations,
+> letting
+>   $\hat{L}^{(R)}_d$
+> denote the resubstitution error rate of the quadratic Bayes plug-in classifier using $d$ dimensions
+> when $f_0 = MVN([0,0],I)$ and $f_1 = MVN([1,0],I)$,
+> conditioning on $n_0=n_1=n/2$
+> with $n=20$
+> yields
+> $$\mathbb{P}[ \hat{L}^{(R)}_2 > \hat{L}^{(R)}_1 ] \approx 0.18$$
+> and
+> $$\mathbb{P}[ \hat{L}^{(R)}_2 = \hat{L}^{(R)}_1 ] \approx 0.29$$
+> that is,
+> the probability that the second (useless) feature *degrades* performance,
+> even when testing on the training set, is substantial.
+
+---
+
+## Emprical results:
+
+### For 500 Monticarlo replicates in a 4-dimensional setting with $f_0 = MVN([0,0,0,0], I)$ and $f_1 = MVN([1,0,0,0], I)$
+
+
+```{r ls}
+mont <- 500 
+
+d <- 4
+n <- 20
+n0 <- n1 <- n/2
+
+truth <- c(rep(0,n0), rep(1,n1))
+
+mu1 <- rep(0,d)
+mu2 <- c(1, rep(0,d-1))
+Ls <- 
+foreach(i = 1:mont, .combine = 'rbind') %dopar% {
+  set.seed(i)
+  s0 <- rmvnorm(n0, mean = mu1, sigma = diag(1,d))
+  s1 <- rmvnorm(n1, mean = mu2, sigma = diag(1,d))
+
+  samp_dat <- as.matrix(rbind(s0,s1))
+
+  Lrd <- 
+    Reduce('cbind',
+    lapply(1:d, function(x){
+           sum(truth != predict(qda(truth ~ samp_dat[, 1:x]))$class)/length(truth)
+  }))
+  
+  colnames(Lrd) <- paste0("Lr", 1:d)
+
+  as.data.frame(Lrd)
+}
+
+```
+
+| measurment | value |
+|------------|-------|
+| $\mathbb{P}\left[\hat{L}^{(R)}_2 > \hat{L}^{(R)}_1\right]$| <span style="color:red">`r sum(Ls$Lr2 > Ls$Lr1)/nrow(Ls)`</span>|
+| $\mathbb{P}\left[\hat{L}^{(R)}_2 = \hat{L}^{(R)}_1\right]$| <span style="color:red">`r sum(Ls$Lr2 == Ls$Lr1)/nrow(Ls)`</span>|
+| $\mathbb{P}\left[\hat{L}^{(R)}_3 > \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr3 > Ls$Lr1)/nrow(Ls)`|
+| $\mathbb{P}\left[\hat{L}^{(R)}_3 = \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr3 == Ls$Lr1)/nrow(Ls)`|
+| $\mathbb{P}\left[\hat{L}^{(R)}_4 > \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr4 > Ls$Lr1)/nrow(Ls)`|
+| $\mathbb{P}\left[\hat{L}^{(R)}_4 = \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr4 == Ls$Lr1)/nrow(Ls)`|
+
+
+# Box, jitter, and violin
+
+```{r jitter, fig.height = 14, fig.width = 8, echo = FALSE}
+m <- melt(LsM)
+p <- ggplot(m, aes(x = Var2, y = value)) + xlab("") + ylab("") + geom_hline(yintercept=0, color='red', lty=2)
+
+grid.arrange(
+p + geom_boxplot(notch=TRUE, outlier.color=alpha('red',0.5))
+, 
+p + geom_jitter(pch = 20, height = 0.1, width = 0.3)
+,
+p + geom_violin(alpha = 0.75)
+)
+
+```
+
+
+
+
