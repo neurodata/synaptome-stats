@@ -285,7 +285,7 @@ params <- list(means = c(1, rep(0,mdim-1)), Sigma = diag(1, mdim))
 dlist <- c(1,seq(100, mdim, by = 100))
 
 bigD <- 
-foreach(i = 16:17 .combine = 'rbind') %:% 
+foreach(i = 16:17, .combine = 'rbind') %:% 
 foreach(x = 1:2, .combine = 'rbind') %do% {
   set.seed(i)
   w <- 
@@ -316,8 +316,7 @@ p1sig <- ggplot(data = tmp1, aes(x = L, y = value, fill = dim)) +
 
 
 
-
-
+# Model mis-specification
 
 
 

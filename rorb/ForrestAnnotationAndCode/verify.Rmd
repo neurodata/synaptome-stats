@@ -1,5 +1,5 @@
 ---
-title: "RORB Data: "
+title: "Verify and Extend"
 date: '`r Sys.Date()`'
 output:
   html_document:
@@ -110,7 +110,7 @@ foreach(i = 1:mont, .combine = 'rbind') %dopar% {
 
 # Box for Carey; jitter and violin for Joshua
 
-#### The plots below show the observed paired difference between $L^{(R)}_d$ and $L^{(R)}_{d-1}$ for $d = (2,3,4)$
+#### The plots below show the observed paired difference $L^{(R)}_d -  L^{(R)}_{d-1}$ for $d = (2,3,4)$
 
 
 ```{r jitter, fig.height = 14, fig.width = 8, echo = FALSE}
