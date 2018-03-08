@@ -139,6 +139,7 @@ for(i in 1:12){
                   }
            )
   }}
+
 ```
 
 
@@ -275,34 +276,48 @@ show(p1sig)
 
 
 
-```{r 1sig2}
-mdim <- 1.5e3
-mu1sig <- 1
-trueBig <- c(rep(0,1e3), rep(1,1e3))
 
-params <- list(means = c(1, rep(0,mdim-1)), Sigma = diag(1, mdim))
+# Model mis-specification
 
-dlist <- c(1,seq(100, mdim, by = 100))
+```{r normCau}
+mu1 <- 1/2
+ncDim <- 25
+montc <- 500
 
-bigD <- 
-foreach(i = 16:17, .combine = 'rbind') %:% 
-foreach(x = 1:2, .combine = 'rbind') %do% {
-  set.seed(i)
-  w <- 
-    rbind( 
-          rmvnorm(1e3,  mean = c(1,rep(0,dlist[i]-1)), sigma = diag(2,dlist[i])),
-          rmvnorm(1e3,  mean = -c(1,rep(0,dlist[i]-1)), sigma = diag(2,dlist[i]))
-          )
+nc <- 100
+nc0 <- nc1 <- nc/2
 
-  qdaR <- qda(trueBig ~ w)
+truC <- c(rep(0,nc0), rep(1, nc1))
+
+sc <- list()
+
+for(mi in 1:montc){
+  
+  tmp1 <- c(rnorm(nc0, mean = mu1, sd = 1),
+  rnorm(nc1, mean =-mu1, sd = 1))
+    
+  tmp2 <- sapply(1:(ncDim-1), function(x) rcauchy(nc, location = 0, scale = 1))
+  
+  sc[[mi]] <- as.matrix(cbind(tmp1, tmp2))
+}
+
+
+qList <- 
+foreach(i = 1:montc, .combine = 'rbind') %:%
+foreach(j = 1:ncDim, .combine = 'rbind') %dopar% {
+  dat <- sc[[i]][, 1:j]  
+
+  qdaR <- qda(truC ~ dat)
   rcl <- as.numeric(predict(qdaR)$class) - 1
         
-  qdaD <- qda(trueBig ~ w, CV = TRUE)
+  qdaD <- qda(truC ~ dat, CV = TRUE)
         
-  (Lr <- sum(rcl != trueBig)/length(trueBig))
-  (Ld <- sum((as.numeric(qdaD$class) - 1) != trueBig)/length(trueBig))
-  cbind(Lr, Ld, dim = i)
-}
+  (Lr <- sum(rcl != truC)/length(truC))
+  (Ld <- sum((as.numeric(qdaD$class) - 1) != truC)/length(truC))
+  cbind(Lr, Ld, id = i, dim = j)
+  }
+
+m1 <- melt(qList[, 1:2])
 
 bigMelt <- as.data.frame(cbind(data.table::melt(bigD)))
 
@@ -312,11 +327,19 @@ names(tmp1) <- c("dim", "L", "value")
 p1sig <- ggplot(data = tmp1, aes(x = L, y = value, fill = dim)) + 
      geom_boxplot(notch = TRUE) + facet_grid(. ~ dim)
 
+
+
+ggplot(m1, aes(x = as.factor(Var2), y = value)) + 
+  geom_boxplot()
+
+
+
+
+
+
+
+
 ```
-
-
-
-# Model mis-specification
 
 
 

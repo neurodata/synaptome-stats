@@ -13,7 +13,7 @@ output:
     toc_depth: 2
 ---
 ```{r knitOPTS, include=FALSE}
-knitr::opts_chunk$set(cache = FALSE, dev = "png", results = 'hold', messages = FALSE, warnings = FALSE)
+knitr::opts_chunk$set(cache = TRUE, dev = "png", results = 'hold', messages = FALSE, warnings = FALSE)
 ```
 
 ```{r render, eval=FALSE, echo=FALSE}
@@ -106,19 +106,22 @@ foreach(i = 1:mont, .combine = 'rbind') %dopar% {
 | $\mathbb{P}\left[\hat{L}^{(R)}_3 = \hat{L}^{(R)}_2\right]$| `r sum(Ls$Lr3 == Ls$Lr2)/nrow(Ls)`|
 | $\mathbb{P}\left[\hat{L}^{(R)}_4 > \hat{L}^{(R)}_3\right]$| `r sum(Ls$Lr4 >  Ls$Lr3)/nrow(Ls)`|
 | $\mathbb{P}\left[\hat{L}^{(R)}_4 = \hat{L}^{(R)}_3\right]$| `r sum(Ls$Lr4 == Ls$Lr3)/nrow(Ls)`|
-
+| $\mathbb{P}\left[\hat{L}^{(R)}_3 > \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr3 >  Ls$Lr1)/nrow(Ls)`|
+| $\mathbb{P}\left[\hat{L}^{(R)}_3 = \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr3 == Ls$Lr1)/nrow(Ls)`|
+| $\mathbb{P}\left[\hat{L}^{(R)}_4 > \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr4 >  Ls$Lr1)/nrow(Ls)`|
+| $\mathbb{P}\left[\hat{L}^{(R)}_4 = \hat{L}^{(R)}_1\right]$| `r sum(Ls$Lr4 == Ls$Lr1)/nrow(Ls)`|
 
 # Box for Carey; jitter and violin for Joshua
 
-#### The plots below show the observed paired difference $L^{(R)}_d -  L^{(R)}_{d-1}$ for $d = (2,3,4)$
+#### The plots below show the observed paired difference $L^{(R)}_{(1:d)} -  L^{(R)}_{1}$ for $d = (2,3,4)$
 
 
 ```{r jitter, fig.height = 14, fig.width = 8, echo = FALSE}
 
 LsM <- data.frame(
                   L_21 = Ls$Lr2 - Ls$Lr1,
-                  L_32 = Ls$Lr3 - Ls$Lr2,
-                  L_43 = Ls$Lr4 - Ls$Lr3
+                  L_31 = Ls$Lr3 - Ls$Lr1,
+                  L_41 = Ls$Lr4 - Ls$Lr1
                   )
 
 suppressMessages(m <- melt(LsM))
@@ -136,15 +139,229 @@ p + geom_violin(alpha = 0.75)
 
 
 
-```{r, eval = FALSE, include = FALSE, echo = FALSE}
-plot(Ls[,1:2], type = 'n')
+# Showing the "going up" thing. 
 
-Ls
+Here we chose a sub-sample where the $L^{(R)}_{(1:d)} >  L^{(R)}_{1}$ for $d = (2,\dots,9)$
+```{r bigd, echo = FALSE}
+mont <- 500 
 
-tmp <- cbind(melt(Ls), id = c(1:1e3, 1:1e3))
+d <- 9
+n <- 20
+n0 <- n1 <- n/2
 
-ggplot(tmp, aes(x = variable, y = value)) + geom_line(aes(group = id))
+truth <- c(rep(0,n0), rep(1,n1))
+
+mu1 <- rep(0,d)
+mu2 <- c(1, rep(0,d-1))
+Ls <- 
+foreach(i = 1:mont, .combine = 'rbind') %dopar% {
+  set.seed(i)
+  s0 <- rmvnorm(n0, mean = mu1, sigma = diag(1,d))
+  s1 <- rmvnorm(n1, mean = mu2, sigma = diag(1,d))
+
+  samp_dat <- as.matrix(rbind(s0,s1))
+
+  Lrd <- 
+    Reduce('cbind',
+    lapply(1:d, function(x){
+           sum(truth != predict(qda(truth ~ samp_dat[, 1:x]))$class)/length(truth)
+  }))
+  
+  colnames(Lrd) <- paste0("Lr", 1:d)
+
+  as.data.frame(Lrd)
+}
+
+suppressMessages(m1 <- melt(Ls[Ls$Lr1 < Ls$Lr5,]))
+suppressMessages(m2 <- melt(Ls[Ls$Lr1 < Ls$Lr2,][1,]))
+suppressMessages(m3 <- melt(Ls[Ls$Lr1 < Ls$Lr3,][1,]))
+suppressMessages(m4 <- melt(Ls[Ls$Lr1 < Ls$Lr4,][1,]))
+suppressMessages(m5 <- melt(Ls[Ls$Lr1 < Ls$Lr5,][1,]))
+suppressMessages(m6 <- melt(Ls[Ls$Lr1 < Ls$Lr6,][1,]))
+suppressMessages(m7 <- melt(Ls[Ls$Lr1 < Ls$Lr7,][1,]))
+
+#num <- Reduce(c, (sapply(list(m2,m3,m4,m5,m6,m7), function(x) 1:sum(x$var == "Lr1"))))
+#tmp <- cbind(rbind(m2,m3,m4,m5,m6,m7), group = rep(2:7, sapply(list(m2,m3,m4,m5,m6,m7), nrow))
+#               )
+
+tmp <- cbind(rbind(m2,m3,m4,m5,m6,m7), id = rep(2:7, each = 9))
+#tmp <- cbind(m1, id = as.factor(rep(1:sum(m1$var == "Lr1"))))
+
+#tmp <- cbind(melt(Ls), id = 1:500)
+
+ggplot(tmp, aes(x = variable, y = value, group = id, color = as.factor(id))) +
+  geom_line(alpha = 0.5) + 
+  geom_point() +
+  scale_color_manual(values = viridis(6))
 ```
+
+
+
+
+
+```{r mm, eval = TRUE, include = TRUE}
+mu1 <- 1/2
+ncDim <- 25
+montc <- 500
+
+nc <- 100
+nc0 <- nc1 <- nc/2
+
+truC <- c(rep(0,nc0), rep(1, nc1))
+
+sc <- list()
+
+for(mi in 1:montc){
+  
+  tmp1 <- c(rnorm(nc0, mean = mu1, sd = 1), rnorm(nc1, mean =-mu1, sd = 1))
+    
+  tmp2 <- sapply(1:(ncDim-1), function(x) rcauchy(nc, location = 0, scale = 1))
+  
+  sc[[mi]] <- as.matrix(cbind(tmp1, tmp2))
+}
+
+
+
+qList <- 
+foreach(i = 1:100, .combine = 'rbind') %:%
+foreach(j = 1:10, .combine = 'rbind') %dopar% {
+  dat <- sc[[i]][, 1:j]  
+
+  qdaR <- qda(truC ~ dat)
+  rcl <- as.numeric(predict(qdaR)$class) - 1
+        
+  qdaD <- qda(truC ~ dat, CV = TRUE)
+        
+  (Lr <- sum(rcl != truC)/length(truC))
+  (Ld <- sum((as.numeric(qdaD$class) - 1) != truC)/length(truC))
+
+  rbind(
+  data.frame(Type = "Lr", value = Lr, Run = i, Dim = j),
+  data.frame(Type = "Ld", value = Ld, Run = i, Dim = j))
+  }
+
+#m1 <- melt(qList[, 1:2])
+#m1 <- melt(qList)
+
+p <- ggplot(qList, aes(x = Type, y = value)) + geom_boxplot(notch = TRUE, alpha = 0.75) +
+  geom_jitter(aes(color = Type), alpha = 0.5, size = 0.5) + 
+  facet_grid(. ~ Dim) + ggtitle("1st normal, then Cauchy")
+show(p)
+
+pairs(sc[[1]][, 1:5], col = alpha(truC + 1,0.5), pch = 20, cex = 0.4, xlim = c(-2,2), ylim = c(-2,2))
+```
+
+
+
+```{r mm2, eval = TRUE, include = TRUE}
+mu1 <- 1/2
+ncDim <- 25
+montc <- 500
+
+nc <- 100
+nc0 <- nc1 <- nc/2
+
+truC <- c(rep(0,nc0), rep(1, nc1))
+
+sc <- list()
+
+for(mi in 1:montc){
+  
+  tmp1 <- c(rnorm(nc0, mean = mu1, sd = 1), rnorm(nc1, mean =-mu1, sd = 1))
+    
+  tmp2 <- sapply(1:(ncDim-1), function(x) rnorm(nc, mean = 0, sd = sqrt(1/128)))
+  
+  sc[[mi]] <- as.matrix(cbind(tmp1, tmp2))
+}
+
+
+
+aList <- 
+foreach(i = 1:montc, .combine = 'rbind') %:%
+foreach(j = 1:ncDim, .combine = 'rbind') %dopar% {
+  dat <- sc[[i]][, 1:j]  
+
+  qdaR <- qda(truC ~ dat)
+  rcl <- as.numeric(predict(qdaR)$class) - 1
+        
+  qdaD <- qda(truC ~ dat, CV = TRUE)
+        
+  (Lr <- sum(rcl != truC)/length(truC))
+  (Ld <- sum((as.numeric(qdaD$class) - 1) != truC)/length(truC))
+
+  rbind(
+  data.frame(Type = "Lr", value = Lr, Run = i, Dim = j),
+  data.frame(Type = "Ld", value = Ld, Run = i, Dim = j))
+  }
+
+#m1 <- melt(qList[, 1:2])
+#m1 <- melt(qList)
+
+p2 <- ggplot(aList, aes(x = Type, y = value)) + 
+  geom_jitter(aes(color = Type), alpha = 0.5, size = 0.25) + 
+  geom_boxplot(notch = TRUE, alpha = 0.5) +
+  facet_grid(. ~ Dim) + ggtitle("1st normal (0.5,-0.5), rest normal(0,0)")
+
+show(p2)
+pairs(sc[[1]][, 1:10], col = alpha(truC + 1,0.2), pch = 20, cex = 0.4, xlim = c(-2,2), ylim = c(-2,2))
+plot(sc[[1]][,1])
+```
+
+```{r mm3, eval = FALSE, include = TRUE}
+mu1 <- 1/2
+ncDim <- 500
+montc <- 100
+
+nc <- 5000
+nc0 <- nc1 <- nc/2
+
+truC <- c(rep(0,nc0), rep(1, nc1))
+
+sc <- list()
+set.seed(317)
+for(mi in 1:montc){
+  
+  tmp1 <- c(rnorm(nc0, mean = mu1, sd = 1), rnorm(nc1, mean =-mu1, sd = 1))
+    
+  tmp2 <- sapply(1:(ncDim-1), function(x) rnorm(nc, mean = 0, sd = sqrt(mi)))
+  
+  sc[[mi]] <- as.matrix(cbind(tmp1, tmp2))
+}
+
+
+bList <- 
+foreach(i = 1:50, .combine = 'rbind') %:%
+foreach(j = c(1,seq(50,ncDim, by = 50)), .combine = 'rbind') %dopar% {
+  dat <- sc[[i]][, 1:j]  
+
+  qdaR <- qda(truC ~ dat)
+  rcl <- as.numeric(predict(qdaR)$class) - 1
+        
+  qdaD <- qda(truC ~ dat, CV = TRUE)
+        
+  (Lr <- sum(rcl != truC)/length(truC))
+  (Ld <- sum((as.numeric(qdaD$class) - 1) != truC)/length(truC))
+
+  rbind(
+  data.frame(Type = "Lr", value = Lr, Run = i, Dim = j),
+  data.frame(Type = "Ld", value = Ld, Run = i, Dim = j))
+  }
+
+#m1 <- melt(qList[, 1:2])
+#m1 <- melt(qList)
+
+p3 <- ggplot(bList, aes(x = Type, y = value)) + geom_boxplot(notch = TRUE) +
+  geom_jitter(aes(color = Type), alpha = 0.5, size = 0.25) + 
+  facet_grid(. ~ Dim) + ggtitle("1st normal (0.5,-0.5), rest normal(0,0)")
+```
+
+```{r}
+show(p3)
+pairs(sc[[1]][, 1:10], col = alpha(truC + 1,0.2), pch = 20, cex = 0.4, xlim = c(-2,2), ylim = c(-2,2))
+pairs(sc[[1]][, 1:10], col = alpha(truC + 1,0.2), pch = 20, cex = 0.4)
+```
+
+
 
 
 
