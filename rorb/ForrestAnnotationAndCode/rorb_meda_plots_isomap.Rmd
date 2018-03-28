@@ -40,6 +40,11 @@ suppressMessages(require(meda))
 dat <- read.csv("rorb_gaussianAvg_at.csv")
 loc <- read.csv("rorb_gaussianAvg_at_orderLocations.csv")
 gabaID <- read.csv("rorb_gaba.csv")
+shaftID <- read.csv("rorb_shaft.csv")
+TdID <- read.csv("rorb_TdTom.csv")
+
+TdTom <- TdID$TdTom
+shaft <- shaftID$shaft
 truth <- gaba <- gabaID$gaba
 
 ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'green', 'black', 'green', 'green', 'black', 'green')
@@ -57,13 +62,56 @@ stackMraw(sdat, as.factor(gaba), ccol = ccol, centered = TRUE, depth = 2) + ggti
 
 ```{r manifold}
 emb <- embed(sdat, "Isomap", knn = 7, ndim = 2)
+emb <- embed(sdat, "Isomap", knn = 7, ndim = 4)
 
-edat <- emb@data@data
+EMB <- foreach(i = 5:7) %:%
+       foreach(j = 2:4) %dopar% {
+         emb <- embed(sdat, "Isomap", knn = i, ndim = j)
+         emb@data@data
+       }
 
-cols <- c("black", "magenta")[gabaID$gaba+1]
-acols <- alpha(cols, 0.35)
+edat <- EMB[[3]][[1]]
 
-pairs(emb@data@data, pch = 19, col = acols, cex = 0.2)
+cgaba <- c("black", "magenta")[gabaID$gaba+1]
+cshaft <- c("black", "magenta")[shaft+1]
+ctdtom <- c("black", "magenta")[TdTom + 1]
+
+cgaba <-scales::alpha(cgaba, 0.35)
+cshaft<-scales::alpha(cshaft, 0.35)
+ctdtom<-scales::alpha(ctdtom, 0.35)
+
+#pairs(emb@data@data, pch = 19, col = acols, cex = 0.5)
+pdf('~/Desktop/isomapKN.pdf', height = 10, width = 10)
+pairs(EMB[[1]][[1]], pch = 19, col = cgaba, cex = 0.5, main = "gaba")
+pairs(EMB[[2]][[1]], pch = 19, col = cgaba, cex = 0.5, main = "gaba")
+pairs(EMB[[3]][[1]], pch = 19, col = cgaba, cex = 0.5, main = "gaba")
+pairs(EMB[[1]][[2]], pch = 19, col = cgaba, cex = 0.5, main = "gaba")
+pairs(EMB[[2]][[2]], pch = 19, col = cgaba, cex = 0.5, main = "gaba")
+pairs(EMB[[3]][[2]], pch = 19, col = cgaba, cex = 0.5, main = "gaba")
+pairs(EMB[[1]][[3]], pch = 19, col = cgaba, cex = 0.5, main = "gaba")
+pairs(EMB[[2]][[3]], pch = 19, col = cgaba, cex = 0.5, main = "gaba")
+pairs(EMB[[3]][[3]], pch = 19, col = cgaba, cex = 0.5, main = "gaba")
+
+pairs(EMB[[1]][[1]], pch = 19, col = cshaft, cex = 0.5, main = "shaft")
+pairs(EMB[[2]][[1]], pch = 19, col = cshaft, cex = 0.5, main = "shaft")
+pairs(EMB[[3]][[1]], pch = 19, col = cshaft, cex = 0.5, main = "shaft")
+pairs(EMB[[1]][[2]], pch = 19, col = cshaft, cex = 0.5, main = "shaft")
+pairs(EMB[[2]][[2]], pch = 19, col = cshaft, cex = 0.5, main = "shaft")
+pairs(EMB[[3]][[2]], pch = 19, col = cshaft, cex = 0.5, main = "shaft")
+pairs(EMB[[1]][[3]], pch = 19, col = cshaft, cex = 0.5, main = "shaft")
+pairs(EMB[[2]][[3]], pch = 19, col = cshaft, cex = 0.5, main = "shaft")
+pairs(EMB[[3]][[3]], pch = 19, col = cshaft, cex = 0.5, main = "shaft")
+
+pairs(EMB[[1]][[1]], pch = 19, col = ctdtom, cex = 0.5, main = "tdtom")
+pairs(EMB[[2]][[1]], pch = 19, col = ctdtom, cex = 0.5, main = "tdtom")
+pairs(EMB[[3]][[1]], pch = 19, col = ctdtom, cex = 0.5, main = "tdtom")
+pairs(EMB[[1]][[2]], pch = 19, col = ctdtom, cex = 0.5, main = "tdtom")
+pairs(EMB[[2]][[2]], pch = 19, col = ctdtom, cex = 0.5, main = "tdtom")
+pairs(EMB[[3]][[2]], pch = 19, col = ctdtom, cex = 0.5, main = "tdtom")
+pairs(EMB[[1]][[3]], pch = 19, col = ctdtom, cex = 0.5, main = "tdtom")
+pairs(EMB[[2]][[3]], pch = 19, col = ctdtom, cex = 0.5, main = "tdtom")
+pairs(EMB[[3]][[3]], pch = 19, col = ctdtom, cex = 0.5, main = "tdtom")
+dev.off()
 ```
 
 

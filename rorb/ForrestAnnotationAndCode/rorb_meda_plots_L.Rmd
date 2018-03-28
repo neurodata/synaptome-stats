@@ -47,7 +47,7 @@ We start with observations of 793 synapses with 12 measurments formatted as a 79
 matrix. The matrix is Z-scored column-wise and plotted in a pairs plot
 colored according to the labels given by the field expert. 
 
-```{r, eval = TRUE, echo = TRUE, include = TRUE, fig.height = 10, fig.width = 10}
+```{r r1, eval = FALSE, echo = FALSE, include = FALSE, fig.height = 10, fig.width = 10}
 dat <- read.csv("rorb_gaussianAvg_at.csv")
 loc <- read.csv("rorb_gaussianAvg_at_orderLocations.csv")
 gabaID <- read.csv("rorb_gaba.csv")
@@ -64,6 +64,30 @@ main = "Pairs plot colored by true class")
 repHeat(sdat); title("Representative heatmap")
 ```
 
+```{r r2, eval = TRUE, echo = TRUE, include = TRUE, fig.height = 10, fig.width = 10}
+dat <- read.csv("rorb_gaussianAvg_at.csv")
+loc <- read.csv("rorb_gaussianAvg_at_orderLocations.csv")
+gabaID <- read.csv("rorb_gaba.csv")
+shaftID <- read.csv("rorb_shaft.csv")
+TdID <- read.csv("rorb_TdTom.csv")
+
+TdTom <- TdID$TdTom
+TdTom[TdTom %in% 3] <- 2 ## ASK ABOUT THIS
+shaft <- shaftID$shaft
+gaba <- truth <- gabaID$gaba
+
+ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'green', 'black', 'green', 'green', 'black', 'green')
+ind <- order(ccol)
+ccol <- sort(ccol)
+
+dat <- dat[,ind]
+sdat <- as.data.frame(scale(dat, center = TRUE, scale = TRUE))
+stackMraw(sdat, as.factor(gaba), ccol = ccol, centered = TRUE, depth = 2) + ggtitle("True Clusters")
+
+pairs(sdat, col = gaba + 1, pch = 20, cex = 0.2,
+main = "Pairs plot colored by true class")
+repHeat(sdat); title("Representative heatmap")
+```
 
 ## ZG: Get Elbows
 
@@ -81,7 +105,7 @@ pairs(pc1$scores, col = gaba +1, pch = 20, cex = 0.5)
 
 Next, applying LDA and QDA iterating on the number of PCA dimension
 included. 
-```{r lda}
+```{r lda-gaba}
 ldaL <- 
   lapply(1:12, 
          function(x){
@@ -96,22 +120,105 @@ qdaL <-
            predict(qdatmp)
          })
 
+rfL <- 
+  lapply(1:12, 
+         function(x){
+           rftmp <- randomForest(as.factor(gaba) ~ pc1$scores[, 1:x])
+           predict(rftmp)
+         })
+
 ll <- sapply(lapply(ldaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
 ql <- sapply(lapply(qdaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
+rl <- sapply(lapply(rfL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
+
 
 #png(file = "~/Desktop/supRes.png", 480,480)
 plot(x = 1:12, y = seq(0,0.13,length = 12), type = 'n', xlab = expression(hat(d)), ylab = "L")
 points(ll, type = 'b', col = 'blue')
-points(ql, type = 'b', col = 'darkred')
-text(10,max(ql), label = "qda", col = 'darkred')
+points(ql, type = 'b', col = 'orange')
+points(rl, type = 'b', col = 'darkgreen', lty = 2, pch = 3)
+abline(h = sum(gaba == 1)/length(gaba), col = 'magenta', lty=4)
+text(10,max(ql), label = "qda", col = 'orange')
 text(10, min(ll), label = "lda", col = 'blue', pos = 1)
+text(5,sum(gaba == 1)/length(gaba), label = "chance", col = 'magenta', pos = 1)
 #dev.off()
 
 qmm <- sapply(1:12, function(x) sum((gaba - qdaL[[x]]$post[, 1])^2))
 lmm <- sapply(1:12, function(x) sum((gaba - ldaL[[x]]$post[, 1])^2))
 ```
 
+```{r lda-shaft}
+ldaSHAFT <- 
+  lapply(1:12, 
+         function(x){
+           ldatmp <- lda(shaft ~ pc1$scores[, 1:x], CV = FALSE)
+           predict(ldatmp)
+         })
 
+qdaSHAFT <- 
+  lapply(1:12, 
+         function(x){
+           qdatmp <- qda(shaft ~ pc1$scores[, 1:x], CV = FALSE)
+           predict(qdatmp)
+         })
+
+rfSHAFT <- 
+  lapply(1:12, 
+         function(x){
+           rftmp <- randomForest(as.factor(shaft) ~ pc1$scores[, 1:x])
+           predict(rftmp)
+         })
+
+llshaft <- sapply(lapply(ldaSHAFT, '[[', 1), function(x) sum(x != shaft)/length(shaft))
+qlshaft <- sapply(lapply(qdaSHAFT, '[[', 1), function(x) sum(x != shaft)/length(shaft))
+rfshaft <- sapply(lapply(rfSHAFT, '[[', 1), function(x) sum(x != shaft)/length(shaft))
+
+#png(file = "~/Desktop/supRes.png", 480,480)
+plot(x = 1:12, y = seq(0,0.8,length = 12), type = 'n', xlab = expression(hat(d)), ylab = "L")
+points(llshaft, type = 'b', col = 'blue')
+points(qlshaft, type = 'b', col = 'darkred')
+points(rfshaft, type = 'b', col = 'darkgreen', lty = 3, pch = 3)
+abline(h = 1-sum(shaft==0)/length(shaft), lty = 2, col = "magenta")
+text(10,max(qlshaft), label = "qda", col = 'darkred')
+text(10, min(llshaft), label = "lda", col = 'blue', pos = 1)
+text(8, min(rfshaft), label = "rf", col = 'darkgreen', pos = 1)
+text(4, 0.29, label = "chance", col = 'magenta', pos = 1)
+#dev.off()
+
+qmm <- sapply(1:12, function(x) sum((shaft - qdaSHAFT[[x]]$post[, 1])^2))
+lmm <- sapply(1:12, function(x) sum((shaft - ldaSHAFT[[x]]$post[, 1])^2))
+```
+
+
+```{r lda-TdTom, eval = FALSE, include = FALSE}
+ldaTD <- 
+  lapply(1:12, 
+         function(x){
+           ldatmp <- lda(TdTom ~ pc1$scores[, 1:x], CV = FALSE)
+           predict(ldatmp)
+         })
+
+qdaTD <- 
+  lapply(1:12, 
+         function(x){
+           qdatmp <- qda(TdTom ~ pc1$scores[, 1:x], CV = FALSE, na.action = 'na.omit')
+           predict(qdatmp)
+         })
+
+llTD <- sapply(lapply(ldaTD, '[[', 1), function(x) sum(x != TdTom, na.rm=TRUE)/length(TdTom))
+qlTD <- sapply(lapply(qdaTD, '[[', 1), function(x) sum(x != TdTom, na.rm=TRUE)/length(TdTom))
+
+#png(file = "~/Desktop/supRes.png", 480,480)
+plot(x = 1:12, y = seq(0,1,length = 12), type = 'n', xlab = expression(hat(d)), ylab = "L")
+points(ll, type = 'b', col = 'blue')
+points(ql, type = 'b', col = 'darkred')
+text(10,max(ql), label = "qda", col = 'darkred')
+text(10, min(ll), label = "lda", col = 'blue', pos = 1)
+#dev.off()
+
+qmm <- sapply(1:12, function(x) sum((TdTom - qdaTD[[x]]$post[, 1])^2), na.rm = TRUE)
+lmm <- sapply(1:12, function(x) sum((TdTom - ldaTD[[x]]$post[, 1])^2), na.rm = TRUE)
+```
 ## Office Chat CEP 20180228
 
 Data in $M_{793 \times 12}$ is transformed using PCA with `center=TRUE` and
@@ -145,7 +252,7 @@ for(i in 1:12){
 
 ## Sampling 
 
-```{r d-all}
+```{r d-all, eval = FALSE}
 mont <- 500
 truth  <- c(rep(0, n0), rep(1,n1))
 
@@ -159,7 +266,7 @@ set.seed(mi)
 }
         
 d1 <- foreach(j = 1:12) %:% 
-      foreach(x = 1:mont, .combine = 'rbind') %do% {
+      foreach(x = 1:mont, .combine = 'rbind') %dopar% {
          
         qdaR <- qda(truth ~ s[[x]][, 1:j], CV = FALSE)
         rcl <- as.numeric(predict(qdaR)$class) - 1
@@ -178,24 +285,56 @@ d1 <- foreach(j = 1:12) %:%
         cbind(Lr, Ld)
 }
 
-tmp <- cbind(Reduce(rbind, d1))
-tmp1 <- as.data.frame(cbind(data.table::melt(tmp)))
+d2 <- foreach(j = 1:12) %:% 
+      foreach(x = 1:mont, .combine = 'rbind') %dopar% {
+         
+        ldaR <- lda(truth ~ s[[x]][, 1:j], CV = FALSE)
+        rcl <- as.numeric(predict(ldaR)$class) - 1
+        
+        ldaD <- lda(truth ~ s[[x]][, 1:j], CV = TRUE)
+        
+        (Lr <- sum(rcl != truth)/length(truth))
+        (Ld <- sum((as.numeric(ldaD$class) - 1) != truth)/length(truth))
+        #assign(paste0("Lr", j), Lr)
+        #assign(paste0("Ld", j), Ld)
 
-tmp1$Var1 <- as.factor(rep(1:12, each = mont))
-tmp1$Var2 <- as.factor(tmp1$Var2)
-names(tmp1) <- c("dim", "L", "value")
-p <- ggplot(data = tmp1, aes(x = L, y = value, fill = dim)) + 
-     geom_boxplot(notch = TRUE) + facet_grid(. ~ dim)
+        #cbind(
+        #      eval(as.symbol(paste0("Lr", j))), 
+        #      eval(as.symbol(paste0("Ld", j)))
+        #      )
+        cbind(Lr, Ld)
+}
+
+qtmp <- cbind(Reduce(rbind, d1))
+qtmp1 <- as.data.frame(cbind(data.table::melt(qtmp)))
+
+qtmp1$Var1 <- as.factor(rep(1:12, each = mont))
+qtmp1$Var2 <- as.factor(qtmp1$Var2)
+names(qtmp1) <- c("dim", "L", "value")
+
+pq <- ggplot(data = qtmp1, aes(x = L, y = value, fill = dim)) + 
+     geom_boxplot(notch = TRUE) + facet_grid(. ~ dim) + ggtitle("QDA")
+
+ltmp <- cbind(Reduce(rbind, d2))
+ltmp1 <- as.data.frame(cbind(data.table::melt(ltmp)))
+
+ltmp1$Var1 <- as.factor(rep(1:12, each = mont))
+ltmp1$Var2 <- as.factor(ltmp1$Var2)
+names(ltmp1) <- c("dim", "L", "value")
+
+pl <- ggplot(data = ltmp1, aes(x = L, y = value, fill = dim)) + 
+     geom_boxplot(notch = TRUE) + facet_grid(. ~ dim) + ggtitle("LDA")
 ```
 
 
 ```{r p1, fig.height = 8, fig.width = 12}
-plot(p)
+coord <- coord_cartesian(ylim = c(0, 0.11))
+grid.arrange(pq + coord,pl +coord, nrow = 1)
 ```
 
 
 
-```{r lines}
+```{r lines, eval = FALSE}
 dLines <- 
 foreach(mi = 1:mont) %:%
 foreach(x = 1:12, .combine = 'rbind') %dopar% {
@@ -213,11 +352,11 @@ lineDat <- Reduce('rbind', dLines)
 pLines <- ggplot(as.data.frame(lineDat), aes(x = x, group = mi)) + geom_line(aes(y = Lr, color = mi)) 
 ```
 
-```{r pLines, fig.height = 8, fig.width = 8}
+```{r pLines, fig.height = 8, fig.width = 8, eval = FALSE}
 show(pLines)
 ```
 
-```{r 1sig, echo = FALSE, eval = TRUE, include = TRUE}
+```{r 1sig, echo = FALSE, eval = FALSE, include = TRUE}
 mdim <- 50
 mu1sig <- 1
 params1sig <- list()
@@ -265,10 +404,37 @@ tmp1$Var2 <- as.factor(tmp1$Var2)
 names(tmp1) <- c("dim", "L", "value")
 p1sig <- ggplot(data = tmp1, aes(x = L, y = value, fill = dim)) + 
      geom_boxplot(notch = TRUE) + facet_grid(. ~ dim)
+
+
+lds1sig <- 
+  foreach(j = 1:mdim) %:% 
+  foreach(x = 1:mont, .combine = 'rbind') %dopar% {
+        
+        ldaR <- lda(truth ~ as.matrix(s1sig[[x]][, 1:j]))
+        rcl <- as.numeric(predict(ldaR)$class) - 1
+        
+        ldaD <- lda(truth ~ as.matrix(s1sig[[x]][, 1:j]), CV = TRUE)
+        
+        (Lr <- sum(rcl != truth)/length(truth))
+        (Ld <- sum((as.numeric(ldaD$class) - 1) != truth)/length(truth))
+        cbind(Lr, Ld)
+}
+
+ltmp <- cbind(Reduce(rbind, lds1sig))
+
+ltmp1 <- as.data.frame(cbind(data.table::melt(ltmp)))
+
+ltmp1$Var1 <- as.factor(rep(1:mdim, each = mont))
+ltmp1$Var2 <- as.factor(ltmp1$Var2)
+names(ltmp1) <- c("dim", "L", "value")
+
+lp1sig <- ggplot(data = ltmp1, aes(x = L, y = value, fill = dim)) + 
+     geom_boxplot(notch = TRUE) + facet_grid(. ~ dim)
+
 ```
 
-```{r p1sig, fig.width = 14, fig.height = 10}
-show(p1sig)
+```{r p1sig, fig.width = 14, fig.height = 10, eval = FALSE}
+grid.arrange(p1sig, lp1sig, nrow = 2)
 ```
 
 
@@ -279,7 +445,7 @@ show(p1sig)
 
 # Model mis-specification
 
-```{r normCau}
+```{r normCau, eval = FALSE}
 mu1 <- 1/2
 ncDim <- 25
 montc <- 500

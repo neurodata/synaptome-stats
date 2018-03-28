@@ -223,8 +223,8 @@ for(mi in 1:montc){
 
 
 qList <- 
-foreach(i = 1:100, .combine = 'rbind') %:%
-foreach(j = 1:10, .combine = 'rbind') %dopar% {
+foreach(i = 1:montc, .combine = 'rbind') %:%
+foreach(j = 1:ndDim, .combine = 'rbind') %dopar% {
   dat <- sc[[i]][, 1:j]  
 
   qdaR <- qda(truC ~ dat)
