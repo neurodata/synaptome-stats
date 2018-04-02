@@ -41,6 +41,7 @@ registerDoMC(6)
 suppressMessages(require(meda))
 ```
 
+# Python code to download a test area from the BOSS
 
 ```{python, eval = FALSE}
 #
@@ -191,7 +192,7 @@ getElbows(err)
 #  show(heatmap(N[[i]]@fit@H, col = gray.colors(255)))
 #}
 
-tmp[!ind,] <- N[[3]]@fit@W
+tmp[!ind,] <- N[[3]]@fit@W[, 1:3]
 am <- array(tmp, dim = c(200,200,3))
 plotRGB(raster::brick(am))
 ```
@@ -203,7 +204,6 @@ b1 <- array(pc$x[, 1:3], dim = c(200,200,3))
 
 plot(raster::brick(b1))
 am <- array(as.numeric(as.matrix(cu)), dim = c(200,200,13))
-
 ```
 
 
