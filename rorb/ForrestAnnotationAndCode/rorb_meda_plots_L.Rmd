@@ -123,7 +123,9 @@ qdaL <-
 rfL <- 
   lapply(1:12, 
          function(x){
-           rftmp <- randomForest(as.factor(gaba) ~ pc1$scores[, 1:x])
+           tmpdat <- as.matrix(pc1$scores[, 1:x])
+           set.seed(x)
+           rftmp <- randomForest(x = tmpdat, y = as.factor(gaba))
            predict(rftmp)
          })
 
