@@ -4,8 +4,8 @@ date: '`r Sys.Date()`'
 output:
   html_document:
     fig_caption: yes
-    fig_height: 5
-    fig_width: 5
+    fig_height: 10
+    fig_width: 10
     highlight: pygments
     number_sections: yes
     theme: cerulean
@@ -37,6 +37,7 @@ require(doMC)
 require(foreach)
 require(scales)
 require(raster)
+require(mgc)
 registerDoMC(6)
 suppressMessages(require(meda))
 ```
@@ -101,8 +102,6 @@ u = np.unique(np.asarray(rid))
 
 def getSizeAnno(uniq):
     bb = rem.get_bounding_box(anno_res, 0, uniq, 'tight')
-    bb['id'] = uniq
-    sizeAnno = np.sum(rem.get_cutout(anno_res, 0, bb['x_range'], bb['y_range'], bb['z_range'], id_list = [bb['id']]) == bb['id'])
     out = [bb['id'], sizeAnno]
     return(out)
 
@@ -120,6 +119,7 @@ with open(OUTPUT, 'w') as f1:
 na <- read.csv("rorb_gaussianAvg_at.csv")
 cnames <- colnames(na)
 dat <- fread("rorb_gaussianAvg_at.csv")
+colnames(dat) <- cnames
 loc <- read.csv("rorb_avg_at_orderLocations.csv")
 
 ids <- read.csv("rorb_avg_at_orderIDS.csv")
@@ -154,24 +154,35 @@ for(i in ids[[1]]){
   ids[ids[[1]] == i,]$size <- 
   annoSizes[annoSizes$id == i,]$size
 }
+
+sdat <- data.table(scale(dat, center = TRUE, scale = TRUE))
 ```
 
 
 
 
 ```{r size, fig.height = 10, fig.width = 10}
-dat$shaft <- shaft
-dat$size <- ids$size
-dat$um3 <- dat$size * 3*3*50 / 1000^3
+sdat$shaft <- shaft
+sdat$size <- ids$size
+sdat$um3 <- sdat$size * 3*3*50 / 1000^3
 
-df1 <- dat[, .(shaft, size, um3, PSD95)]
+df1 <- sdat[, .(shaft =as.factor(shaft), size, um3, PSD95)]
 
-p <- ggplot(df1, aes(x = um3, y = PSD95, color = um3, shape = as.factor(shaft))) + geom_point() + xlab(expression(paste(mu, "m^3"))) # 
+p <- ggplot(df1, aes(x = um3, y = PSD95, color = shaft)) +
+     geom_point(alpha = 0.4) + 
+     scale_color_manual(values = c("red", "black")) +
+     xlab(expression(paste(mu, "m^3"))) +
+     ggtitle("PSD95 versus size colored by shaft")
 
-p + facet_grid(shaft ~ .)
+p
 ```
 
-
+# MGC
+```{r mgc}
+Dx <- as.matrix(dist(sdat[, .(shaft, size)]))
+mgc.plot.plot_matrix(Dx) + ggtitle("MGC on (shaft,size)")
+discr.stat(Dx, sort(sdat$shaft))
+```
 
 
 
