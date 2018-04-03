@@ -43,9 +43,11 @@ dat <- as.data.frame(gs_read_csv(ss = tmp, ws = 1, skip = 1))
 dat <- as.data.table(gs_read_csv(ss = tmp, ws = 1, skip = 1))
 
 inIDS <- as.numeric(read.csv("rorb_avg_at_orderLocations.csv")[[1]])
+IDS123 <- as.numeric(read.csv("rorb_avg_at_IDS123.csv")[[1]])
 
 
-L <- foreach(i = inIDS, .combine = 'rbind') %do% {
+#L <- foreach(i = inIDS, .combine = 'rbind') %do% {
+L <- foreach(i = IDS123, .combine = 'rbind') %do% {
   dat[id == i,]
 }
 
@@ -66,4 +68,6 @@ write.csv(shaftIDS, file = "rorb_shaft.csv", row.names = FALSE)
 TdTom <- L$TdTom
 TdIDS <- data.table(id = inIDS, TdTom = as.numeric(TdTom))
 write.csv(TdIDS, file = "rorb_TdTom.csv", row.names = FALSE)
+
+write.csv(L, file = "rorb_id123subset.csv", row.names = FALSE)
 ```
