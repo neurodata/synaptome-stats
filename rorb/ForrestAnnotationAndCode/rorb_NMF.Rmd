@@ -37,7 +37,7 @@ require(doMC)
 require(foreach)
 require(scales)
 require(raster)
-registerDoMC(6)
+registerDoMC(4)
 suppressMessages(require(meda))
 ```
 
