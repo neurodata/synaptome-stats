@@ -177,12 +177,25 @@ p <- ggplot(df1, aes(x = um3, y = PSD95, color = shaft)) +
 p
 ```
 
-# MGC
-```{r mgc}
-Dx <- as.matrix(dist(sdat[, .(shaft, size)]))
-mgc.plot.plot_matrix(Dx) + ggtitle("MGC on (shaft,size)")
-discr.stat(Dx, sort(sdat$shaft))
+
+
+
+# KDE's 
+
+```{r hist}
+p2 <- ggplot(sdat, aes(group = shaft))
+
+p2 + geom_density(aes(x = PSD95, y = ..density.., col = as.factor(shaft))) + 
+  ggtitle("PSD95 | shaft")
+
+p2 + geom_density(aes(x = size, y = ..density.., col = as.factor(shaft))) + 
+  ggtitle("size | shaft")
+
+p2 + geom_density(aes(x = size, y = ..density.., col = as.factor(shaft))) + scale_x_log10() + 
+  ggtitle("size | shaft, x-axis on log10 scale")
 ```
+
+
 
 
 
