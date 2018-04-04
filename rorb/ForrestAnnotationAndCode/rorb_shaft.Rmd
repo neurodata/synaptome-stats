@@ -163,12 +163,13 @@ sdat <- data.table(scale(dat, center = TRUE, scale = TRUE))
 
 ```{r size, fig.height = 10, fig.width = 10}
 sdat$shaft <- shaft
+sdat$gaba <- gaba
 sdat$size <- ids$size
 sdat$microm3 <- sdat$size * 3*3*50 / 1000^3
 
 df1 <- sdat[, .(shaft =as.factor(shaft), size, microm3, PSD95)]
 
-p <- ggplot(df1, aes(x = microm3, y = PSD95, color = shaft)) +
+p <- ggplot(df1, aes(x = microm3, y = PSD95, color = shaft, shape = as.factor(gaba))) +
      geom_point(alpha = 0.4) + 
      scale_color_manual(values = c("red", "black")) +
      xlab(expression(paste(mu, "m^3"))) +
@@ -182,24 +183,23 @@ p
 
 # KDE's 
 
-```{r hist, fig.height = 6, fig.width = 8}
+```{r hist, fig.height = 4, fig.width = 8}
 p2 <- ggplot(sdat, aes(group = shaft))
 
-p2 + geom_density(aes(x = PSD95, y = ..density.., col = as.factor(shaft))) + 
-  ggtitle("PSD95 | shaft")
+p2 + geom_density(aes(x = PSD95, y = ..density.., col = as.factor(shaft))) + ggtitle("PSD95 | shaft") + facet_grid(. ~ gaba, labeller = label_both)
 
-p2 + geom_density(aes(x = microm3, y = ..density.., col = as.factor(shaft))) + 
-  ggtitle("size | shaft")
+p2 + geom_density(aes(x = PSD95, y = ..density.., col = as.factor(shaft))) + ggtitle("PSD95 | shaft") + facet_grid(. ~ gaba, labeller = label_both)
 
-p2 + geom_density(aes(x = microm3, y = ..density.., col = as.factor(shaft))) + scale_x_log10() + 
-  ggtitle("size | shaft, x-axis on log10 scale")
+p2 + geom_density(aes(x = microm3, y = ..density.., col = as.factor(shaft))) + ggtitle("size | shaft") + facet_grid(. ~ gaba, labeller = label_both)
+
+p2 + geom_density(aes(x = microm3, y = ..density.., col = as.factor(shaft))) + scale_x_log10() + ggtitle("size | shaft, x-axis on log10 scale") + facet_grid(. ~ gaba, labeller = label_both)
 
 
-p2 + geom_violin(aes(x = as.factor(shaft), y = PSD95)) + geom_jitter(aes(x = as.factor(shaft), y = PSD95), alpha = 0.7)
-p2 + geom_violin(aes(x = as.factor(shaft), y = microm3)) + geom_jitter(aes(x = as.factor(shaft), y = microm3), alpha = 0.7)
+p2 + geom_violin(aes(x = as.factor(shaft), y = PSD95)) + geom_jitter(aes(x = as.factor(shaft), y = PSD95), alpha = 0.7) + facet_grid(. ~ gaba, labeller = label_both)
+p2 + geom_violin(aes(x = as.factor(shaft), y = microm3)) + geom_jitter(aes(x = as.factor(shaft), y = microm3), alpha = 0.7) + facet_grid(. ~ gaba, labeller = label_both)
 
-p2 + geom_boxplot(aes(x = as.factor(shaft), y = PSD95), notch = TRUE)
-p2 + geom_boxplot(aes(x = as.factor(shaft), y = microm3), notch = TRUE)
+p2 + geom_boxplot(aes(x = as.factor(shaft), y = PSD95), notch = TRUE) + facet_grid(. ~ gaba, labeller = label_both)
+p2 + geom_boxplot(aes(x = as.factor(shaft), y = microm3), notch = TRUE) + facet_grid(. ~ gaba, labeller = label_both)
 ```
 
 
