@@ -175,7 +175,7 @@ p <- ggplot(df1, aes(x = microm3, y = PSD95, color = shaft, shape = as.factor(ga
      xlab(expression(paste(mu, "m^3"))) +
      ggtitle("PSD95 versus size colored by shaft")
 
-p
+p + geom_smooth(method = "lm")
 ```
 
 
