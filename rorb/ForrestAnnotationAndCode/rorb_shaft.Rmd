@@ -188,7 +188,15 @@ p2 + geom_density(aes(x = microm3, y = ..density.., col = as.factor(shaft))) + s
 
 
 p2 + geom_violin(aes(x = as.factor(shaft), y = PSD95)) + geom_jitter(aes(x = as.factor(shaft), y = PSD95), alpha = 0.7) + facet_grid(. ~ gaba, labeller = label_both)
+
 p2 + geom_violin(aes(x = as.factor(shaft), y = microm3)) + geom_jitter(aes(x = as.factor(shaft), y = microm3), alpha = 0.7) + facet_grid(. ~ gaba, labeller = label_both)
+
+p3 <- ggplot(sdat[gaba == 1,], aes(group = shaft))
+p3 + 
+  geom_violin(aes(x = as.factor(shaft), y = microm3)) + 
+  geom_jitter(aes(x = as.factor(shaft), y = microm3, color = microm3> 0.01), alpha = 0.7) + 
+  facet_grid(. ~ gaba, labeller = label_both) + 
+  scale_color_manual(values = c('black', 'red'))
 
 #p2 + geom_boxplot(aes(x = as.factor(shaft), y = PSD95), notch = TRUE) + facet_grid(. ~ gaba, labeller = label_both)
 #p2 + geom_boxplot(aes(x = as.factor(shaft), y = microm3), notch = TRUE) + facet_grid(. ~ gaba, labeller = label_both)
@@ -199,7 +207,7 @@ p2 + geom_violin(aes(x = as.factor(shaft), y = microm3)) + geom_jitter(aes(x = a
 ```{r ndviz, include = FALSE, eval = FALSE}
 tmp <- cbind(sdat, loc)
 roiloc <- loc[tmp$microm3 > 0.01 & tmp$shaft == 1 & tmp$gaba == 1,]
-#roiloc <- loc
+roiloc <- loc
 
 pointsURL <- "https://viz.boss.neurodata.io/#!{'layers':{'bounding_boxes':{'type':'pointAnnotation'_'points':%s}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[%s_%s_%s]}}_'zoomFactor':1}}"
 
@@ -219,7 +227,7 @@ locPrint <- function(x){
   do.call(sprintf,l)
 }
 
-boundingPoints <- foreach(i = 1:nrow(roiloc)) %do% {
+boundingPoints <- foreach(i = 1:nrow(roiloc)) %dopar% {
   tmp <- c(
 		lapply(-5:5, function(x) roiloc[i,] + c(-5,-5,x)),
 		lapply(-5:5, function(x) roiloc[i,] + c(-5,0,x)),
@@ -238,7 +246,7 @@ boundingPoints <- foreach(i = 1:nrow(roiloc)) %do% {
 
 
 links <- 
-foreach(i = 1:dim(roiloc)[1]) %do% {
+foreach(i = 1:dim(roiloc)[1]) %dopar% {
   sprintf(base, boundingPoints[[i]],  roiloc[i,1], roiloc[i,2],	roiloc[i,3])
   #sprintf(pointsURL, boundingPoints[[i]],  roiloc[i,1], roiloc[i,2],	roiloc[i,3])
 }
