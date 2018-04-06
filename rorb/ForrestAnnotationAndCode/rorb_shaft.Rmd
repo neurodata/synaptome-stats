@@ -38,6 +38,7 @@ require(foreach)
 require(scales)
 require(raster)
 require(mgc)
+require(googlesheets)
 registerDoMC(6)
 suppressMessages(require(meda))
 ```
@@ -97,7 +98,6 @@ rid = []
 for b in blocks:
     rid = rid + rem.get_ids_in_region(anno_res, 0, b[0], b[1], b[2], [0,1])
 
-
 u = np.unique(np.asarray(rid))
 
 def getSizeAnno(uniq):
@@ -118,56 +118,41 @@ with open(OUTPUT, 'w') as f1:
 ```{r start, eval = TRUE}
 na <- read.csv("rorb_gaussianAvg_at.csv")
 cnames <- colnames(na)
-dat <- fread("rorb_gaussianAvg_at.csv")
+dat <- fread("rorb_gaussianAvg_at_GoogleDoc.csv")
 colnames(dat) <- cnames
-loc <- read.csv("rorb_avg_at_orderLocations.csv")
+meta <- fread("GoogleDocData.csv")
+loc <- fread("GoogleDocData.csv")[, 1:3]
+ids <- as.data.frame(read.csv("GoogleDocData.csv")[, 4])
+colnames(ids) <- 'id'
 
-ids <- read.csv("rorb_avg_at_orderIDS.csv")
-colnames(ids) <- 'ids'
-gabaID <- read.csv("rorb_gaba.csv")
-truth <- gaba <- gabaID$gaba
-truth <- as.factor(truth)
-
+fdat <- cbind(dat, meta)
 ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
 ind <- order(ccol)
 ccol <- sort(ccol)
 
-gabaID <- read.csv("rorb_gaba.csv")
-shaftID <- read.csv("rorb_shaft.csv")
-TdID <- read.csv("rorb_TdTom.csv")
-
-TdTom <- TdID$TdTom
-TdTom[TdTom %in% 3] <- 2 ## ASK ABOUT THIS
-shaft <- shaftID$shaft
-gaba <- truth <- gabaID$gaba
-
-ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'green', 'black', 'green', 'green', 'black', 'green')
-ind <- order(ccol)
-ccol <- sort(ccol)
 
 ## annotation ids in the BOSS are +1 from the ids in Forrest's gsheet.
 annoSizes <- read.csv('annotation_sizes_pixels.csv')
 annoSizes$id <- annoSizes$id - 1
 
-ids$size <- -1
-for(i in ids[[1]]){
-  ids[ids[[1]] == i,]$size <- 
-  annoSizes[annoSizes$id == i,]$size
-}
+tmp <- merge(ids, annoSizes, by = "id", all.x = TRUE)
 
-sdat <- data.table(scale(dat, center = TRUE, scale = TRUE))
+dat <- merge(fdat, tmp, by = 'id')
+dat <- dat[!is.na(size), ]
+loc <- dat[, .(atx, aty, atz)]
 ```
 
 
 
 
 ```{r size, fig.height = 10, fig.width = 10}
-sdat$shaft <- shaft
-sdat$gaba <- gaba
-sdat$size <- ids$size
+sdat <- data.table(scale(dat[, cnames, with = FALSE], center = TRUE, scale = TRUE))
+sdat$shaft <- dat$shaft
+sdat$gaba <- dat$gabal
+sdat$size <- dat$size
 sdat$microm3 <- sdat$size * 3*3*50 / 1000^3
 
-df1 <- sdat[, .(shaft =as.factor(shaft), size, microm3, PSD95)]
+df1 <- sdat[, .(shaft =as.factor(shaft), size, microm3, PSD95, gaba)]
 
 p <- ggplot(df1, aes(x = microm3, y = PSD95, color = shaft, shape = as.factor(gaba))) +
      geom_point(alpha = 0.4) + 
@@ -175,18 +160,25 @@ p <- ggplot(df1, aes(x = microm3, y = PSD95, color = shaft, shape = as.factor(ga
      xlab(expression(paste(mu, "m^3"))) +
      ggtitle("PSD95 versus size colored by shaft")
 
-p + geom_smooth(method = "lm")
+p + geom_smooth(method = 'lm') + facet_grid(. ~ gaba, labeller = label_both) 
 ```
 
 
+```{r lm, eval = FALSE, include = FALSE}
+su <- df1$gaba == 1
+f1 <- lm(df1$microm3[su] ~ df1$PSD95[su])
+plot(df1$PSD95[su] ~ df1$microm3[su])
 
+xs <- seq(min(df1$microm3), max(df1$microm3), length = 100)
+ys <- f1$coef[1] + f1$coef[2] * xs
+
+points(xs,ys, type = 'l')
+```
 
 # KDE's 
 
 ```{r hist, fig.height = 4, fig.width = 8}
 p2 <- ggplot(sdat, aes(group = shaft))
-
-p2 + geom_density(aes(x = PSD95, y = ..density.., col = as.factor(shaft))) + ggtitle("PSD95 | shaft") + facet_grid(. ~ gaba, labeller = label_both)
 
 p2 + geom_density(aes(x = PSD95, y = ..density.., col = as.factor(shaft))) + ggtitle("PSD95 | shaft") + facet_grid(. ~ gaba, labeller = label_both)
 
@@ -198,12 +190,102 @@ p2 + geom_density(aes(x = microm3, y = ..density.., col = as.factor(shaft))) + s
 p2 + geom_violin(aes(x = as.factor(shaft), y = PSD95)) + geom_jitter(aes(x = as.factor(shaft), y = PSD95), alpha = 0.7) + facet_grid(. ~ gaba, labeller = label_both)
 p2 + geom_violin(aes(x = as.factor(shaft), y = microm3)) + geom_jitter(aes(x = as.factor(shaft), y = microm3), alpha = 0.7) + facet_grid(. ~ gaba, labeller = label_both)
 
-p2 + geom_boxplot(aes(x = as.factor(shaft), y = PSD95), notch = TRUE) + facet_grid(. ~ gaba, labeller = label_both)
-p2 + geom_boxplot(aes(x = as.factor(shaft), y = microm3), notch = TRUE) + facet_grid(. ~ gaba, labeller = label_both)
+#p2 + geom_boxplot(aes(x = as.factor(shaft), y = PSD95), notch = TRUE) + facet_grid(. ~ gaba, labeller = label_both)
+#p2 + geom_boxplot(aes(x = as.factor(shaft), y = microm3), notch = TRUE) + facet_grid(. ~ gaba, labeller = label_both)
 ```
 
 
 
+```{r ndviz, include = FALSE, eval = FALSE}
+tmp <- cbind(sdat, loc)
+roiloc <- loc[tmp$microm3 > 0.01 & tmp$shaft == 1 & tmp$gaba == 1,]
+#roiloc <- loc
+
+pointsURL <- "https://viz.boss.neurodata.io/#!{'layers':{'bounding_boxes':{'type':'pointAnnotation'_'points':%s}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[%s_%s_%s]}}_'zoomFactor':1}}"
+
+base <- 
+"https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':%s}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[%s.5_%s.5_%s]}}_'zoomFactor':1.5}}"
+
+a <- function(x){
+   w <- "[%d_%d_%d]" 
+   b <- rep(w, x - 1)
+   out <- paste0("[", paste0(b, collapse = "", sep = "_"), w, "]")
+   return(out)
+}
+
+locPrint <- function(x){
+  w <- "[%d_%d_%d]" 
+  l <- c(list(w),x)
+  do.call(sprintf,l)
+}
+
+boundingPoints <- foreach(i = 1:nrow(roiloc)) %do% {
+  tmp <- c(
+		lapply(-5:5, function(x) roiloc[i,] + c(-5,-5,x)),
+		lapply(-5:5, function(x) roiloc[i,] + c(-5,0,x)),
+		lapply(-5:5, function(x) roiloc[i,] + c(-5,6,x)),
+    lapply(-5:5, function(x) roiloc[i,] + c(0,-5,x)),
+		lapply(-5:5, function(x) roiloc[i,] + c(0,6,x)),
+    lapply(-5:5, function(x) roiloc[i,] + c(6,-5,x)),
+		lapply(-5:5, function(x) roiloc[i,] + c(6,0,x)),
+		lapply(-5:5, function(x) roiloc[i,] + c(6,6,x))
+    )
+
+  xyz <- lapply(tmp, locPrint)
+  paste0("[", paste0(xyz[1:(length(xyz)-1)], sep = "_", collapse= ""),
+    xyz[length(xyz)],"]")
+}
+
+
+links <- 
+foreach(i = 1:dim(roiloc)[1]) %do% {
+  sprintf(base, boundingPoints[[i]],  roiloc[i,1], roiloc[i,2],	roiloc[i,3])
+  #sprintf(pointsURL, boundingPoints[[i]],  roiloc[i,1], roiloc[i,2],	roiloc[i,3])
+}
+
+clip <- pipe("pbcopy", "w")
+writeLines(links[[1]], clip)
+close(clip)
+```
+
+
+```{r ndviz-table, eval = FALSE, include = FALSE}
+f <- file('shaft_links.txt', 'w')
+writeLines("## Synapses labeled as shaft gabergic and >0.01 micrometers^3\n",f)
+writeLines("| links |",f)
+writeLines("|---------------|",f)
+w <- "| [%d %d %d](%s) |"
+
+for(i in 1:length(links)){
+  l <- c(list(w), roiloc[i,], links[[i]])  
+  tmp <- do.call(sprintf, l)
+  writeLines(tmp,f)
+}
+
+writeLines("\n\n\n",f)
+close(f)
+
+system('cat shaft_links.txt >> rorb_shaft.Rmd')
+system('echo "---" >> rorb_meda_plots_urf.Rmd')
+
+file.remove('shaft_links.txt')
+```
+
+
+
+
+
+
+
+## Synapses labeled as shaft gabergic and >0.01 micrometers^3
+
+| links |
+|---------------|
+| [197 170 36](https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':[[192_165_31]_[192_165_32]_[192_165_33]_[192_165_34]_[192_165_35]_[192_165_36]_[192_165_37]_[192_165_38]_[192_165_39]_[192_165_40]_[192_165_41]_[192_170_31]_[192_170_32]_[192_170_33]_[192_170_34]_[192_170_35]_[192_170_36]_[192_170_37]_[192_170_38]_[192_170_39]_[192_170_40]_[192_170_41]_[192_176_31]_[192_176_32]_[192_176_33]_[192_176_34]_[192_176_35]_[192_176_36]_[192_176_37]_[192_176_38]_[192_176_39]_[192_176_40]_[192_176_41]_[197_165_31]_[197_165_32]_[197_165_33]_[197_165_34]_[197_165_35]_[197_165_36]_[197_165_37]_[197_165_38]_[197_165_39]_[197_165_40]_[197_165_41]_[197_176_31]_[197_176_32]_[197_176_33]_[197_176_34]_[197_176_35]_[197_176_36]_[197_176_37]_[197_176_38]_[197_176_39]_[197_176_40]_[197_176_41]_[203_165_31]_[203_165_32]_[203_165_33]_[203_165_34]_[203_165_35]_[203_165_36]_[203_165_37]_[203_165_38]_[203_165_39]_[203_165_40]_[203_165_41]_[203_170_31]_[203_170_32]_[203_170_33]_[203_170_34]_[203_170_35]_[203_170_36]_[203_170_37]_[203_170_38]_[203_170_39]_[203_170_40]_[203_170_41]_[203_176_31]_[203_176_32]_[203_176_33]_[203_176_34]_[203_176_35]_[203_176_36]_[203_176_37]_[203_176_38]_[203_176_39]_[203_176_40]_[203_176_41]]}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[197.5_170.5_36]}}_'zoomFactor':1.5}}) |
+| [298 225 28](https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':[[293_220_23]_[293_220_24]_[293_220_25]_[293_220_26]_[293_220_27]_[293_220_28]_[293_220_29]_[293_220_30]_[293_220_31]_[293_220_32]_[293_220_33]_[293_225_23]_[293_225_24]_[293_225_25]_[293_225_26]_[293_225_27]_[293_225_28]_[293_225_29]_[293_225_30]_[293_225_31]_[293_225_32]_[293_225_33]_[293_231_23]_[293_231_24]_[293_231_25]_[293_231_26]_[293_231_27]_[293_231_28]_[293_231_29]_[293_231_30]_[293_231_31]_[293_231_32]_[293_231_33]_[298_220_23]_[298_220_24]_[298_220_25]_[298_220_26]_[298_220_27]_[298_220_28]_[298_220_29]_[298_220_30]_[298_220_31]_[298_220_32]_[298_220_33]_[298_231_23]_[298_231_24]_[298_231_25]_[298_231_26]_[298_231_27]_[298_231_28]_[298_231_29]_[298_231_30]_[298_231_31]_[298_231_32]_[298_231_33]_[304_220_23]_[304_220_24]_[304_220_25]_[304_220_26]_[304_220_27]_[304_220_28]_[304_220_29]_[304_220_30]_[304_220_31]_[304_220_32]_[304_220_33]_[304_225_23]_[304_225_24]_[304_225_25]_[304_225_26]_[304_225_27]_[304_225_28]_[304_225_29]_[304_225_30]_[304_225_31]_[304_225_32]_[304_225_33]_[304_231_23]_[304_231_24]_[304_231_25]_[304_231_26]_[304_231_27]_[304_231_28]_[304_231_29]_[304_231_30]_[304_231_31]_[304_231_32]_[304_231_33]]}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[298.5_225.5_28]}}_'zoomFactor':1.5}}) |
+| [293 166 36](https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':[[288_161_31]_[288_161_32]_[288_161_33]_[288_161_34]_[288_161_35]_[288_161_36]_[288_161_37]_[288_161_38]_[288_161_39]_[288_161_40]_[288_161_41]_[288_166_31]_[288_166_32]_[288_166_33]_[288_166_34]_[288_166_35]_[288_166_36]_[288_166_37]_[288_166_38]_[288_166_39]_[288_166_40]_[288_166_41]_[288_172_31]_[288_172_32]_[288_172_33]_[288_172_34]_[288_172_35]_[288_172_36]_[288_172_37]_[288_172_38]_[288_172_39]_[288_172_40]_[288_172_41]_[293_161_31]_[293_161_32]_[293_161_33]_[293_161_34]_[293_161_35]_[293_161_36]_[293_161_37]_[293_161_38]_[293_161_39]_[293_161_40]_[293_161_41]_[293_172_31]_[293_172_32]_[293_172_33]_[293_172_34]_[293_172_35]_[293_172_36]_[293_172_37]_[293_172_38]_[293_172_39]_[293_172_40]_[293_172_41]_[299_161_31]_[299_161_32]_[299_161_33]_[299_161_34]_[299_161_35]_[299_161_36]_[299_161_37]_[299_161_38]_[299_161_39]_[299_161_40]_[299_161_41]_[299_166_31]_[299_166_32]_[299_166_33]_[299_166_34]_[299_166_35]_[299_166_36]_[299_166_37]_[299_166_38]_[299_166_39]_[299_166_40]_[299_166_41]_[299_172_31]_[299_172_32]_[299_172_33]_[299_172_34]_[299_172_35]_[299_172_36]_[299_172_37]_[299_172_38]_[299_172_39]_[299_172_40]_[299_172_41]]}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[293.5_166.5_36]}}_'zoomFactor':1.5}}) |
+| [293 193 30](https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':[[288_188_25]_[288_188_26]_[288_188_27]_[288_188_28]_[288_188_29]_[288_188_30]_[288_188_31]_[288_188_32]_[288_188_33]_[288_188_34]_[288_188_35]_[288_193_25]_[288_193_26]_[288_193_27]_[288_193_28]_[288_193_29]_[288_193_30]_[288_193_31]_[288_193_32]_[288_193_33]_[288_193_34]_[288_193_35]_[288_199_25]_[288_199_26]_[288_199_27]_[288_199_28]_[288_199_29]_[288_199_30]_[288_199_31]_[288_199_32]_[288_199_33]_[288_199_34]_[288_199_35]_[293_188_25]_[293_188_26]_[293_188_27]_[293_188_28]_[293_188_29]_[293_188_30]_[293_188_31]_[293_188_32]_[293_188_33]_[293_188_34]_[293_188_35]_[293_199_25]_[293_199_26]_[293_199_27]_[293_199_28]_[293_199_29]_[293_199_30]_[293_199_31]_[293_199_32]_[293_199_33]_[293_199_34]_[293_199_35]_[299_188_25]_[299_188_26]_[299_188_27]_[299_188_28]_[299_188_29]_[299_188_30]_[299_188_31]_[299_188_32]_[299_188_33]_[299_188_34]_[299_188_35]_[299_193_25]_[299_193_26]_[299_193_27]_[299_193_28]_[299_193_29]_[299_193_30]_[299_193_31]_[299_193_32]_[299_193_33]_[299_193_34]_[299_193_35]_[299_199_25]_[299_199_26]_[299_199_27]_[299_199_28]_[299_199_29]_[299_199_30]_[299_199_31]_[299_199_32]_[299_199_33]_[299_199_34]_[299_199_35]]}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[293.5_193.5_30]}}_'zoomFactor':1.5}}) |
+| [306 181 32](https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':[[301_176_27]_[301_176_28]_[301_176_29]_[301_176_30]_[301_176_31]_[301_176_32]_[301_176_33]_[301_176_34]_[301_176_35]_[301_176_36]_[301_176_37]_[301_181_27]_[301_181_28]_[301_181_29]_[301_181_30]_[301_181_31]_[301_181_32]_[301_181_33]_[301_181_34]_[301_181_35]_[301_181_36]_[301_181_37]_[301_187_27]_[301_187_28]_[301_187_29]_[301_187_30]_[301_187_31]_[301_187_32]_[301_187_33]_[301_187_34]_[301_187_35]_[301_187_36]_[301_187_37]_[306_176_27]_[306_176_28]_[306_176_29]_[306_176_30]_[306_176_31]_[306_176_32]_[306_176_33]_[306_176_34]_[306_176_35]_[306_176_36]_[306_176_37]_[306_187_27]_[306_187_28]_[306_187_29]_[306_187_30]_[306_187_31]_[306_187_32]_[306_187_33]_[306_187_34]_[306_187_35]_[306_187_36]_[306_187_37]_[312_176_27]_[312_176_28]_[312_176_29]_[312_176_30]_[312_176_31]_[312_176_32]_[312_176_33]_[312_176_34]_[312_176_35]_[312_176_36]_[312_176_37]_[312_181_27]_[312_181_28]_[312_181_29]_[312_181_30]_[312_181_31]_[312_181_32]_[312_181_33]_[312_181_34]_[312_181_35]_[312_181_36]_[312_181_37]_[312_187_27]_[312_187_28]_[312_187_29]_[312_187_30]_[312_187_31]_[312_187_32]_[312_187_33]_[312_187_34]_[312_187_35]_[312_187_36]_[312_187_37]]}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[306.5_181.5_32]}}_'zoomFactor':1.5}}) |
 
 
 

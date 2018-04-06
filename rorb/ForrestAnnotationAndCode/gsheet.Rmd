@@ -36,11 +36,49 @@ suppressMessages(require(meda))
 
 
 ```{r, eval = FALSE}
+gs_auth(new_user = TRUE)
 gs_ls()
 
 tmp <- gs_title("MNSite3Synaptograms.csv")
-dat <- as.data.frame(gs_read_csv(ss = tmp, ws = 1, skip = 1))
+#dat <- as.data.frame(gs_read_csv(ss = tmp, ws = 1, skip = 1))
 dat <- as.data.table(gs_read_csv(ss = tmp, ws = 1, skip = 1))
+
+dat$cx <- 
+  (dat$maxX - dat$minX)/2 + dat$minX
+
+dat$cy <- 
+  (dat$maxY - dat$minY)/2 + dat$minY
+
+dat$cz <- 
+  (dat$maxZ - dat$minZ)/2 + dat$minZ
+
+dat$atx <- round((dat$cx * 3) / 96)
+dat$aty <- round((dat$cy * 3) / 96)
+dat$atz <- round(dat$cz)
+
+dat$nmx <- (dat$cx / 3)
+dat$nmy <- (dat$cy / 3)
+dat$nmz <- dat$cz/50
+
+dx <- 438
+dy <- 460
+dz <- 49
+
+ind <- 
+  (dat$atx - 5) >= 0  &
+  (dat$aty - 5) >= 0  &
+  (dat$atz - 5) >= 0  &
+  (dat$atx + 6) <= dx &
+  (dat$aty + 6) <= dy &
+  (dat$atz + 6) <= dz
+
+dat$buff <- as.numeric(ind)
+
+dat$gaba <- dat$GABA
+newDat <- dat[buff == 1, .(atx,aty,atz, id, gaba, shaft, TdTom, NotSynapse)]
+
+write.csv(newDat, file = "GoogleDocData.csv", row.names = FALSE)
+write.csv(newDat[, .(atx,aty,atx,id)], file = "GoogleDocData_loc.csv", row.names = FALSE)
 
 inIDS <- as.numeric(read.csv("rorb_avg_at_orderLocations.csv")[[1]])
 IDS123 <- as.numeric(read.csv("rorb_avg_at_IDS123.csv")[[1]])
