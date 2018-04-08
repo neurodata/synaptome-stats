@@ -131,17 +131,18 @@ rfL <-
 
 ll <- sapply(lapply(ldaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
 ql <- sapply(lapply(qdaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
-rl <- sapply(lapply(rfL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
+rl <- sapply(rfL, function(x) sum(x != gaba)/length(gaba))
 
 
 #png(file = "~/Desktop/supRes.png", 480,480)
-plot(x = 1:12, y = seq(0,0.13,length = 12), type = 'n', xlab = expression(hat(d)), ylab = "L")
+plot(x = 1:12, y = seq(0,0.16,length = 12), type = 'n', xlab = expression(hat(d)), ylab = "L")
 points(ll, type = 'b', col = 'blue')
 points(ql, type = 'b', col = 'orange')
 points(rl, type = 'b', col = 'darkgreen', lty = 2, pch = 3)
 abline(h = sum(gaba == 1)/length(gaba), col = 'magenta', lty=4)
 text(10,max(ql), label = "qda", col = 'orange')
 text(10, min(ll), label = "lda", col = 'blue', pos = 1)
+text(5, min(rl), label = "rf", col = 'darkgreen', pos = 1)
 text(5,sum(gaba == 1)/length(gaba), label = "chance", col = 'magenta', pos = 1)
 #dev.off()
 
@@ -167,13 +168,14 @@ qdaSHAFT <-
 rfSHAFT <- 
   lapply(1:12, 
          function(x){
-           rftmp <- randomForest(as.factor(shaft) ~ pc1$scores[, 1:x])
+          tmpdat <- data.frame(shaft = as.factor(shaft), pc1$scores[, 1:x])
+           rftmp <- randomForest(shaft ~ ., data = tmpdat)
            predict(rftmp)
          })
 
 llshaft <- sapply(lapply(ldaSHAFT, '[[', 1), function(x) sum(x != shaft)/length(shaft))
 qlshaft <- sapply(lapply(qdaSHAFT, '[[', 1), function(x) sum(x != shaft)/length(shaft))
-rfshaft <- sapply(lapply(rfSHAFT, '[[', 1), function(x) sum(x != shaft)/length(shaft))
+rfshaft <- sapply(rfSHAFT, function(x) sum(x != shaft)/length(shaft))
 
 #png(file = "~/Desktop/supRes.png", 480,480)
 plot(x = 1:12, y = seq(0,0.8,length = 12), type = 'n', xlab = expression(hat(d)), ylab = "L")
@@ -205,6 +207,14 @@ qdaTD <-
          function(x){
            qdatmp <- qda(TdTom ~ pc1$scores[, 1:x], CV = FALSE, na.action = 'na.omit')
            predict(qdatmp)
+         })
+
+rfTD <- 
+  lapply(1:12, 
+         function(x){
+           tmpdat <- data.frame(TdTom = as.factor(TdTom), pc1$scores[, 1:x])
+           rftmp <- randomForest(TdTom ~ ., data = tmpdat[complete.cases(tmpdat),])
+           predict(rftmp)
          })
 
 llTD <- sapply(lapply(ldaTD, '[[', 1), function(x) sum(x != TdTom, na.rm=TRUE)/length(TdTom))
@@ -329,7 +339,7 @@ pl <- ggplot(data = ltmp1, aes(x = L, y = value, fill = dim)) +
 ```
 
 
-```{r p1, fig.height = 8, fig.width = 12}
+```{r p1,eval = FALSE, fig.height = 8, fig.width = 12}
 coord <- coord_cartesian(ylim = c(0, 0.11))
 grid.arrange(pq + coord,pl +coord, nrow = 1)
 ```

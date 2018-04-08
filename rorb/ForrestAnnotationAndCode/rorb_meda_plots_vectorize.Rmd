@@ -31,6 +31,7 @@ require(doMC)
 require(foreach)
 require(scales)
 require(kernlab)
+require(raster)
 require(dimRed)
 registerDoMC(4)
 suppressMessages(require(meda))
@@ -81,13 +82,14 @@ spix <- scale(pix[-1], center = TRUE, scale = TRUE)
 # SVD
 
 ```{r pca}
-pc <- prcomp(sdat, retx = TRUE)
+pc <- prcomp(spix, retx = TRUE)
 getElbows(pc$sdev)
 
-plot(raster(pc$rot[, 1:10]), col = colorRampPalette(c('black', 'white', 'red'))(255))
+#plot(raster(pc$rot[, 1:10]), col = colorRampPalette(c('black', 'white', 'red'))(255))
 
 df1 <- data.table(gaba, pc$x)
 pairs(pc$x[, 1:3], col = scales::alpha(gaba + 1, 0.5), pch = 20)
+
 
 ld1 <- lda(as.factor(gaba) ~ pc$x[, 1:3])
 table(predict(ld1)$class, gaba)
@@ -122,14 +124,14 @@ rfL <- foreach(x = 1:ncol(pc$x)) %dopar% {
 
 ll <- sapply(lapply(ldaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
 ql <- sapply(lapply(qdaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
-rl <- sapply(lapply(rfL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
+rl <- sapply(rfL, function(x) sum(x != gaba)/length(gaba))
 
 
 #png(file = "~/Desktop/lda_qda_pcaOnPixels.png", 1080,720)
 plot(x = 1:ncol(pc$x), y = seq(0,max(ll,ql),length = ncol(pc$x)), type = 'n', xlab = expression(hat(d)), ylab = "L")
 points(ll, type = 'b', col = 'blue', pch = 20, cex = 0.8)
 points(ql, type = 'b', col = 'orange', pch = 15, cex = 0.8)
-#points(rl, type = 'b', col = 'darkgreen', lty = 2, pch = 3)
+points(rl, type = 'b', col = 'darkgreen', lty = 2, pch = 3)
 abline(h = sum(gaba == 1)/length(gaba), col = 'magenta', lty=4)
 text(10,max(ql), label = "qda", col = 'orange', pos = 4)
 text(10, min(ll), label = "lda", col = 'blue', pos = 1)
@@ -139,16 +141,6 @@ text(400,sum(gaba == 1)/length(gaba), label = "chance", col = 'magenta', pos = 1
 qmm <- sapply(1:12, function(x) sum((gaba - qdaL[[x]]$post[, 1])^2))
 lmm <- sapply(1:12, function(x) sum((gaba - ldaL[[x]]$post[, 1])^2))
 ```
-
-
-
-
-```{r pca-rotationally-invariant}
-
-
-
-```
-
 
 
 

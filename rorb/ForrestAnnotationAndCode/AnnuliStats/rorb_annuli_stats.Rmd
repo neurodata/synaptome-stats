@@ -1,5 +1,5 @@
 ---
-title: "Size and Shaft on RORB data"
+title: "Annuli Stats followed by PCA on RORB"
 date: '`r Sys.Date()`'
 output:
   html_document:
@@ -24,7 +24,7 @@ knitr::opts_chunk$set(engine.path =
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 require(knitr)
-rmarkdown::render("rorb_shaft.Rmd"); system("open rorb_shaft.html -a /Applications/Chrome.app")
+rmarkdown::render("rorb_annuli_stats.Rmd"); system("open rorb_annuli_stats.html -a /Applications/Chrome.app")
 ```
 
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
@@ -39,109 +39,81 @@ require(scales)
 require(raster)
 require(mgc)
 require(googlesheets)
-registerDoMC(6)
+registerDoMC(8)
 suppressMessages(require(meda))
 ```
 
-# Python code to download annotation sizes from the BOSS 
-
-```
-from intern.remote.boss import BossRemote
-from intern.resource.boss.resource import *
-from intern.utils.parallel import block_compute
-import configparser
-import requests
-import numpy as np
-from numpy import genfromtxt
-import shutil
-import blosc
-import sys
-import os
-import itertools
-from functools import partial
-from multiprocessing import Pool
-from multiprocessing.dummy import Pool as ThreadPool
-from multiprocessing import cpu_count
-import csv
-import argparse
-
-
-####
-CONFIG_FILE    = 'neurodata.conf'
-
-COLL_NAME      = 'collman' 
-EXP_NAME       = 'M247514_Rorb_1_Site3Align2_EM' 
-ANNO_NAME      = 'm247514_Site3Annotation_MN_global'
-COORD_FRAME    = 'M247514_Rorb_1_Site3Align2_EM_m247514_Site3Annotation_MN_global'
-OUTPUT         = 'annotation_sizes_pixels.csv'
-
-config = configparser.ConfigParser()
-config.read(CONFIG_FILE)
-TOKEN = config['Default']['token']
-boss_url = ''.join( ( config['Default']['protocol'],'://',config['Default']['host'],'/v1/' ) )
-#print(boss_url)
-#'https://api.boss.neurodata.io/v1/'
-
-#intern
-rem = BossRemote(CONFIG_FILE)
-
-cf = CoordinateFrameResource(str(COLL_NAME + '_' + EXP_NAME))
-cfr = rem.get_project(cf)
-anno_res = ChannelResource(ANNO_NAME, COLL_NAME, EXP_NAME, 'annotation', datatype='uint64')
-
-ex = {'x': cfr.x_stop, 'y': cfr.y_stop, 'z': cfr.z_stop}
-
-blocks = block_compute(0,ex['x'],0,ex['y'],0,ex['z'],
-           origin = (0,0,0), block_size = (512, 512, 16))
-
-rid = []
-for b in blocks:
-    rid = rid + rem.get_ids_in_region(anno_res, 0, b[0], b[1], b[2], [0,1])
-
-u = np.unique(np.asarray(rid))
-
-def getSizeAnno(uniq):
-    bb = rem.get_bounding_box(anno_res, 0, uniq, 'tight')
-    out = [bb['id'], sizeAnno]
-    return(out)
-
-with ThreadTool(4) as tp:
-    bbA  = np.asarray(tp.map(getSizeAnno, u))
-
-with open(OUTPUT, 'w') as f1:
-        wt = csv.writer(f1)
-        wt.writerow(['id', 'size'])
-        wt.writerows(bbA)
-
-```
 
 ```{r start, eval = TRUE}
-na <- read.csv("rorb_gaussianAvg_at.csv")
+na <- as.matrix(read.csv("rorb_annuli_stats_GoogleDoc.csv", header = FALSE))
 cnames <- colnames(na)
-dat <- fread("rorb_gaussianAvg_at_GoogleDoc.csv")
-colnames(dat) <- cnames
 meta <- fread("GoogleDocData.csv")
 loc <- fread("GoogleDocData.csv")[, 1:3]
 ids <- as.data.frame(read.csv("GoogleDocData.csv")[, 4])
 colnames(ids) <- 'id'
 
-fdat <- cbind(dat, meta)
 ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
 ind <- order(ccol)
 ccol <- sort(ccol)
 
 
 ## annotation ids in the BOSS are +1 from the ids in Forrest's gsheet.
-annoSizes <- read.csv('annotation_sizes_pixels.csv')
-annoSizes$id <- annoSizes$id - 1
+#annoSizes <- read.csv('annotation_sizes_pixels.csv')
+#annoSizes$id <- annoSizes$id - 1
+#
+#tmp <- merge(ids, annoSizes, by = "id", all.x = TRUE)
 
-tmp <- merge(ids, annoSizes, by = "id", all.x = TRUE)
-
-dat <- merge(fdat, tmp, by = 'id')
-dat <- dat[!is.na(size), ]
-loc <- dat[, .(atx, aty, atz)]
 ```
 
+
+
+```{r}
+sna <- scale(na, center = TRUE, scale = TRUE)
+pc1 <- princomp(sna)
+gaba <- as.factor(meta$gaba)
+```
+
+## LDA and QDA
+
+Next, applying LDA and QDA iterating on the number of PCA dimension
+included. 
+```{r lda-gaba}
+ldaL <- foreach(x = 1:ncol(sna)) %dopar% {
+           ldatmp <- lda(gaba ~ pc1$scores[, 1:x], CV = FALSE)
+           predict(ldatmp)
+}
+
+qdaL <- foreach(x = 1:86) %dopar% {
+           qdatmp <- qda(as.factor(gaba) ~ pc1$scores[, 1:x], CV = FALSE)
+           predict(qdatmp)
+}
+
+rfL <- foreach(x = 1:ncol(sna)) %dopar% {
+           tmpdat <- data.table(gaba = gaba, pc1$scores[, 1:x])
+           rftmp <- randomForest(gaba ~ ., data = tmpdat, ntree = 1e3)
+           predict(rftmp)
+}
+
+ll <- sapply(lapply(ldaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
+ql <- sapply(lapply(qdaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
+rl <- sapply(rfL, function(x) sum(x != gaba)/length(gaba))
+
+#png(file = "~/Desktop/lda_qda_pc1aOnPixels.png", 1080,720)
+plot(x = 1:ncol(pc1$scores), y = seq(0,max(ll,ql, rl),length = ncol(pc1$scores)), type = 'n', xlab = expression(hat(d)), ylab = "L")
+points(ll, type = 'b', col = 'blue', pch = 20, cex = 0.5)
+points(ql, type = 'b', col = 'orange', pch = 15, cex = 0.5)
+points(rl, type = 'b', col = 'darkgreen', lty = 2, pch = 24, cex = 0.2)
+abline(h = chance <- sum(gaba == 1)/length(gaba), col = 'magenta', lty=4)
+text(40,min(ql), label = "qda", col = 'orange', pos = 4)
+text(100, min(ll), label = "lda", col = 'blue', pos = 1)
+text(125, min(rl), label = "rf", col = 'darkgreen', pos = 1)
+text(75, chance, label = "chance", col = 'magenta', pos = 3)
+text(400,sum(gaba == 1)/length(gaba), label = "chance", col = 'magenta', pos = 1)
+#dev.off()
+
+qmm <- sapply(1:12, function(x) sum((gaba - qdaL[[x]]$post[, 1])^2))
+lmm <- sapply(1:12, function(x) sum((gaba - ldaL[[x]]$post[, 1])^2))
+```
 
 
 
