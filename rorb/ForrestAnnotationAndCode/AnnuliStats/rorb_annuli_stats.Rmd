@@ -54,8 +54,8 @@ loc <- fread("GoogleDocData.csv")[, 1:3]
 ids <- as.data.frame(read.csv("GoogleDocData.csv")[, 4])
 colnames(ids) <- 'id'
 
-ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
-ccol <-  rep(ccol, each = 15)
+ccolL1 <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
+ccolL1 <-  rep(ccolL1, each = 15)
 
 CHAN_NAMES <- rep(c('DAPI1', 'DAPI2', 'DAPI3', 'GABA', 'GAD2', 'Gephyrin', 'GluN1',
                 'MBP', 'PSD95', 'synapsin', 'TdTomato', 'VGlut1'), each = 15)
@@ -123,8 +123,8 @@ loc <- fread("GoogleDocData.csv")[, 1:3]
 ids <- as.data.frame(read.csv("GoogleDocData.csv")[, 4])
 colnames(ids) <- 'id'
 
-ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
-ccol <-  rep(ccol, each = 5)
+ccolLinf <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
+ccolLinf <-  rep(ccolLinf, each = 5)
 
 CHAN_NAMES <- rep(c('DAPI1', 'DAPI2', 'DAPI3', 'GABA', 'GAD2', 'Gephyrin', 'GluN1',
                 'MBP', 'PSD95', 'synapsin', 'TdTomato', 'VGlut1'), each = 5)
@@ -196,12 +196,12 @@ w = 720
 h = 720 
 
 png("d1heat_L1.png", width = w, height = h)
-p1 <- plot(d1heat(snaL1)) 
+p1 <- plot(d1heat(snaL1, ccol = ccolL1)) 
 p1
 dev.off()
 
 png("mlocation_L1.png", width = 720, height = 480)
-p1 <- plot(mlocation(naL1, ccol = ccol)) 
+p1 <- plot(mlocation(naL1, ccol = ccolL1)) 
 p1
 dev.off()
 
@@ -216,7 +216,7 @@ p1
 dev.off()
 
 png("cor_L1.png", width = w, height = h)
-plot(medacor(snaL1, ccol = ccol)) 
+plot(medacor(snaL1, ccol = ccolL1)) 
 dev.off()
 
 png("pairhex_L1.png", width = 2*w, height = 2*h)
@@ -225,7 +225,7 @@ pairhex(snaL1[,spair])
 dev.off()
 
 png("hmcClassifications_L1.png", width = 2*w, height = 2*h)
-hL1 <- hmc(snaL1, modelNames = c("VVI"), ccol = ccol)
+hL1 <- hmc(snaL1, modelNames = c("VVI"), ccol = ccolL1)
 
 cr <- viridis(max(hL1$dat$labels$col))
 pairs(hL1$dat$data[, spair], pch = 19, cex = 0.5, col = cr[hL1$dat$labels$col])
@@ -236,12 +236,12 @@ plotDend(hL1)
 dev.off()
 
 png("stackMeans_L1.png", width = w, height = 2*h)
-p1 <- stackM(hL1, ccol = ccol, depth = 3, centered = TRUE)
+p1 <- stackM(hL1, ccol = ccolL1, depth = 3, centered = TRUE)
 p1
 dev.off()
 
 png("clusterMeans_L1.png", width = w, height = 0.75*h)
-p1 <- clusterMeans(hL1, ccol = ccol)
+p1 <- clusterMeans(hL1, ccol = ccolL1)
 p1
 dev.off()
 ```
@@ -289,12 +289,12 @@ w = 720
 h = 720 
 
 png("d1heat_Linf.png", width = w, height = h)
-p1 <- plot(d1heat(snaLinf)) 
+p1 <- plot(d1heat(snaLinf, ccol = ccolLinf)) 
 p1
 dev.off()
 
 png("mlocation_Linf.png", width = 720, height = 480)
-p1 <- plot(mlocation(naInf)) 
+p1 <- plot(mlocation(naInf, ccol = ccolLinf)) 
 p1
 dev.off()
 
@@ -309,7 +309,7 @@ p1
 dev.off()
 
 png("cor_Linf.png", width = w, height = h)
-plot(medacor(snaLinf)) 
+plot(medacor(snaLinf, ccol = ccolLinf)) 
 dev.off()
 
 png("pairhex_Linf.png", width = 2*w, height = 2*h)
@@ -318,7 +318,7 @@ pairhex(snaLinf[,spairI])
 dev.off()
 
 png("hmcClassifications_Linf.png", width = 2*w, height = 2*h)
-hLinf <- hmc(snaLinf, modelNames = c("VVI"), ccol = ccol)
+hLinf <- hmc(snaLinf, modelNames = c("VVI"), ccol = ccolLinf)
 
 cr <- viridis(max(hLinf$dat$labels$col))
 pairs(hLinf$dat$data[, spairI], pch = 19, cex = 0.5, col = cr[hLinf$dat$labels$col])
@@ -329,12 +329,12 @@ plotDend(hLinf)
 dev.off()
 
 png("stackMeans_Linf.png", width = w, height = 2*h)
-p1 <- stackM(hLinf, ccol = ccol, depth = 3, centered = TRUE)
+p1 <- stackM(hLinf, ccol = ccolLinf, depth = 3, centered = TRUE)
 p1
 dev.off()
 
 png("clusterMeans_Linf.png", width = w, height = 0.75*h)
-p1 <- clusterMeans(hLinf, ccol = ccol)
+p1 <- clusterMeans(hLinf, ccol = ccolLinf)
 p1
 dev.off()
 ```
