@@ -39,23 +39,96 @@ require(scales)
 require(raster)
 require(mgc)
 require(googlesheets)
-registerDoMC(8)
+registerDoMC(4)
 suppressMessages(require(meda))
 ```
 
 
+## PCA on annuli stats using $L_1$ Norm
+
 ```{r start, eval = TRUE}
-na <- as.matrix(read.csv("rorb_annuli_stats_GoogleDoc.csv", header = FALSE))
-cnames <- colnames(na)
+naL1 <- fread("rorb_annuli_stats_GoogleDoc.csv", header = FALSE)
+cnames <- colnames(naL1)
 meta <- fread("GoogleDocData.csv")
 loc <- fread("GoogleDocData.csv")[, 1:3]
 ids <- as.data.frame(read.csv("GoogleDocData.csv")[, 4])
 colnames(ids) <- 'id'
 
 ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
-ind <- order(ccol)
-ccol <- sort(ccol)
+ccol <-  rep(ccol, each = 15)
 
+CHAN_NAMES <- rep(c('DAPI1', 'DAPI2', 'DAPI3', 'GABA', 'GAD2', 'Gephyrin', 'GluN1',
+                'MBP', 'PSD95', 'synapsin', 'TdTomato', 'VGlut1'), each = 15)
+colnames(naL1) <- paste0(CHAN_NAMES,"_", sprintf("%02d",1:15))
+```
+
+```{r}
+snaL1 <- scale(naL1, center = TRUE, scale = TRUE)
+pc1 <- princomp(snaL1)
+gaba <- as.factor(meta$gaba)
+```
+
+## LDA and QDA
+
+Next, applying LDA and QDA iterating on the number of PCA dimension
+included. 
+
+```{r lda-gabaL1}
+ldaL1 <- foreach(x = 1:ncol(snaL1)) %dopar% {
+           ldatmp <- lda(gaba ~ pc1$scores[, 1:x], CV = FALSE)
+           ldatmp
+}
+
+qdaL1 <- foreach(x = 1:ncol(snaL1)) %dopar% {
+           qdatmp <- 
+             tryCatch(qda(as.factor(gaba) ~ pc1$scores[, 1:x], CV = FALSE),
+                      error=function(err) NA)
+           qdatmp
+}
+
+rfL1 <- foreach(x = 1:ncol(snaL1)) %dopar% {
+           tmpdat <- data.table(gaba = gaba, pc1$scores[, 1:x])
+           rftmp <- randomForest(gaba ~ ., data = tmpdat, prox = TRUE)
+           rftmp
+}
+
+ll <- sapply(ldaL1, function(x) sum(predict(x)$class != gaba)/length(gaba))
+ql <- sapply(qdaL1[!is.na(qdaL1)], function(x) sum(predict(x)$class != gaba)/length(gaba))
+rl <- sapply(rfL1,   function(x) sum(predict(x) != gaba)/length(gaba))
+```
+
+```{r plot-itL1}
+plot(x = 1:ncol(pc1$scores), y = seq(0,max(ll,ql,rl),length = ncol(pc1$scores)), type = 'n', xlab = expression(hat(d)), ylab = "L")
+points(ll, type = 'b', col = 'blue', pch = 20, cex = 0.5)
+points(ql, type = 'b', col = 'orange', pch = 15, cex = 0.5)
+points(rl, type = 'b', col = 'darkgreen', lty = 2, pch = 24, cex = 0.2)
+abline(h = chance <- sum(gaba == 1)/length(gaba), col = 'magenta', lty=4)
+text(40,min(ql), label = paste("qda", min(round(ql, 3))), col = 'orange', pos = 4)
+text(ncol(snaL1)/2, min(ll), label = paste("lda", min(round(ll,3))), col = 'blue', pos = 1)
+text(ncol(snaL1)/3, min(rl), label = paste("rf", min(round(rl,3))), col = 'darkgreen')
+text(ncol(snaL1)/4, chance, label = "chance", col = 'magenta', pos = 3)
+```
+
+
+
+
+
+## PCA on annuli stats using $L_{\infty}$ Norm
+
+```{r startInf, eval = TRUE}
+naInf <- fread("rorb_annuli_stats_GoogleDocInf.csv", header = FALSE)
+cnames <- colnames(naInf)
+meta <- fread("GoogleDocData.csv")
+loc <- fread("GoogleDocData.csv")[, 1:3]
+ids <- as.data.frame(read.csv("GoogleDocData.csv")[, 4])
+colnames(ids) <- 'id'
+
+ccol <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
+ccol <-  rep(ccol, each = 5)
+
+CHAN_NAMES <- rep(c('DAPI1', 'DAPI2', 'DAPI3', 'GABA', 'GAD2', 'Gephyrin', 'GluN1',
+                'MBP', 'PSD95', 'synapsin', 'TdTomato', 'VGlut1'), each = 5)
+colnames(naInf) <- paste0(CHAN_NAMES,"_", sprintf("%d",1:5))
 
 ## annotation ids in the BOSS are +1 from the ids in Forrest's gsheet.
 #annoSizes <- read.csv('annotation_sizes_pixels.csv')
@@ -68,8 +141,8 @@ ccol <- sort(ccol)
 
 
 ```{r}
-sna <- scale(na, center = TRUE, scale = TRUE)
-pc1 <- princomp(sna)
+snaLinf <- scale(naInf, center = TRUE, scale = TRUE)
+pcInf <- princomp(snaLinf)
 gaba <- as.factor(meta$gaba)
 ```
 
@@ -77,196 +150,224 @@ gaba <- as.factor(meta$gaba)
 
 Next, applying LDA and QDA iterating on the number of PCA dimension
 included. 
-```{r lda-gaba}
-ldaL <- foreach(x = 1:ncol(sna)) %dopar% {
-           ldatmp <- lda(gaba ~ pc1$scores[, 1:x], CV = FALSE)
-           predict(ldatmp)
+```{r lda-gabaLinf}
+ldaLinf <- foreach(x = 1:ncol(snaLinf)) %dopar% {
+           ldatmp <- lda(gaba ~ pcInf$scores[, 1:x], CV = FALSE)
+           ldatmp
 }
 
-qdaL <- foreach(x = 1:86) %dopar% {
-           qdatmp <- qda(as.factor(gaba) ~ pc1$scores[, 1:x], CV = FALSE)
-           predict(qdatmp)
+qdaLinf <- foreach(x = 1:ncol(snaLinf)) %dopar% {
+           qdatmp <- 
+             tryCatch(qda(as.factor(gaba) ~ pcInf$scores[, 1:x], CV = FALSE),
+                      error=function(err) NA)
+           qdatmp
 }
 
-rfL <- foreach(x = 1:ncol(sna)) %dopar% {
-           tmpdat <- data.table(gaba = gaba, pc1$scores[, 1:x])
-           rftmp <- randomForest(gaba ~ ., data = tmpdat, ntree = 1e3)
-           predict(rftmp)
+rfLinf <- foreach(x = 1:ncol(snaLinf)) %dopar% {
+           tmpdat <- data.table(gaba = gaba, pcInf$scores[, 1:x])
+           rftmp <- randomForest(gaba ~ ., data = tmpdat, prox = TRUE)
+           rftmp
 }
 
-ll <- sapply(lapply(ldaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
-ql <- sapply(lapply(qdaL, '[[', 1), function(x) sum(x != gaba)/length(gaba))
-rl <- sapply(rfL, function(x) sum(x != gaba)/length(gaba))
+ll <- sapply(ldaLinf, function(x) sum(predict(x)$class != gaba)/length(gaba))
+ql <- sapply(qdaLinf, function(x) sum(predict(x)$class != gaba)/length(gaba))
+rl <- sapply(rfLinf,  function(x) sum(predict(x) != gaba)/length(gaba))
+```
 
-#png(file = "~/Desktop/lda_qda_pc1aOnPixels.png", 1080,720)
-plot(x = 1:ncol(pc1$scores), y = seq(0,max(ll,ql, rl),length = ncol(pc1$scores)), type = 'n', xlab = expression(hat(d)), ylab = "L")
+
+```{r plot-itLinf}
+plot(x = 1:ncol(pcInf$scores), y = seq(0,max(ll,ql,rl),length = ncol(pcInf$scores)), type = 'n', xlab = expression(hat(d)), ylab = "L")
 points(ll, type = 'b', col = 'blue', pch = 20, cex = 0.5)
 points(ql, type = 'b', col = 'orange', pch = 15, cex = 0.5)
 points(rl, type = 'b', col = 'darkgreen', lty = 2, pch = 24, cex = 0.2)
 abline(h = chance <- sum(gaba == 1)/length(gaba), col = 'magenta', lty=4)
-text(40,min(ql), label = "qda", col = 'orange', pos = 4)
-text(100, min(ll), label = "lda", col = 'blue', pos = 1)
-text(125, min(rl), label = "rf", col = 'darkgreen', pos = 1)
-text(75, chance, label = "chance", col = 'magenta', pos = 3)
-text(400,sum(gaba == 1)/length(gaba), label = "chance", col = 'magenta', pos = 1)
-#dev.off()
-
-qmm <- sapply(1:12, function(x) sum((gaba - qdaL[[x]]$post[, 1])^2))
-lmm <- sapply(1:12, function(x) sum((gaba - ldaL[[x]]$post[, 1])^2))
+text(40,min(ql), label = paste("qda", min(round(ql, 3))), col = 'orange', pos = 4)
+text(ncol(snaLinf)/2, min(ll), label = paste("lda", min(round(ll,3))), col = 'blue', pos = 1)
+text(ncol(snaLinf)/3, min(rl), label = paste("rf", min(round(rl,3))), col = 'darkgreen')
+text(ncol(snaLinf)/4, chance, label = "chance", col = 'magenta', pos = 3)
 ```
 
 
 
-```{r size, fig.height = 10, fig.width = 10}
-sdat <- data.table(scale(dat[, cnames, with = FALSE], center = TRUE, scale = TRUE))
-sdat$shaft <- dat$shaft
-sdat$gaba <- dat$gabal
-sdat$size <- dat$size
-sdat$microm3 <- sdat$size * 3*3*50 / 1000^3
+```{r runAll-L1, eval = TRUE, echo = FALSE, include = FALSE}
+set.seed(317)
 
-df1 <- sdat[, .(shaft =as.factor(shaft), size, microm3, PSD95, gaba)]
+w = 720
+h = 720 
 
-p <- ggplot(df1, aes(x = microm3, y = PSD95, color = shaft, shape = as.factor(gaba))) +
-     geom_point(alpha = 0.4) + 
-     scale_color_manual(values = c("red", "black")) +
-     xlab(expression(paste(mu, "m^3"))) +
-     ggtitle("PSD95 versus size colored by shaft")
+png("d1heat_L1.png", width = w, height = h)
+p1 <- plot(d1heat(snaL1)) 
+p1
+dev.off()
 
-p + geom_smooth(method = 'lm') + facet_grid(. ~ gaba, labeller = label_both) 
+png("mlocation_L1.png", width = 720, height = 480)
+p1 <- plot(mlocation(naL1, ccol = ccol)) 
+p1
+dev.off()
+
+png("cumulativeVariance_L1.png", width = w, height = h)
+p1 <- plot(cumvar(snaL1)) 
+p1
+dev.off()
+
+png("outliers_L1.png", width = w, height = h)
+p1 <- plot(outliers(snaL1)) 
+p1
+dev.off()
+
+png("cor_L1.png", width = w, height = h)
+plot(medacor(snaL1, ccol = ccol)) 
+dev.off()
+
+png("pairhex_L1.png", width = 2*w, height = 2*h)
+spair <- sample(ncol(snaL1), 15)
+pairhex(snaL1[,spair])
+dev.off()
+
+png("hmcClassifications_L1.png", width = 2*w, height = 2*h)
+hL1 <- hmc(snaL1, modelNames = c("VVI"), ccol = ccol)
+
+cr <- viridis(max(hL1$dat$labels$col))
+pairs(hL1$dat$data[, spair], pch = 19, cex = 0.5, col = cr[hL1$dat$labels$col])
+dev.off()
+
+png("dendrograms_L1.png", width = w, height = h)
+plotDend(hL1)
+dev.off()
+
+png("stackMeans_L1.png", width = w, height = 2*h)
+p1 <- stackM(hL1, ccol = ccol, depth = 3, centered = TRUE)
+p1
+dev.off()
+
+png("clusterMeans_L1.png", width = w, height = 0.75*h)
+p1 <- clusterMeans(hL1, ccol = ccol)
+p1
+dev.off()
+```
+
+# Results for $L_1$
+
+## 1-d Heatmap
+![](./d1heat_L1.png)
+
+## Location meda_plots
+![](./mlocation_L1.png)
+
+## Outliers as given by randomForest
+![](./outliers_L1.png)
+
+## Correlation Matrix
+![](./cor_L1.png)
+
+## Cumulative Variance with Elbows
+![](./cumulativeVariance_L1.png)
+
+## Paired Hex-binned plot
+![](./pairhex_L1.png)
+
+## Hierarchical GMM Classifications
+![](./hmcClassifications_L1.png)
+
+## Hierarchical GMM Dendrogram
+![](./dendrograms_L1.png)
+
+## Stacked Means
+![](./stackMeans_L1.png)
+
+## Cluster Means
+![](./clusterMeans_L1.png)
+
+
+
+
+## MEDA on Annuli stats using $L_{\infty}$ norm.
+```{r runAll-Linf, eval = TRUE, echo = FALSE, include = FALSE}
+set.seed(317)
+
+w = 720
+h = 720 
+
+png("d1heat_Linf.png", width = w, height = h)
+p1 <- plot(d1heat(snaLinf)) 
+p1
+dev.off()
+
+png("mlocation_Linf.png", width = 720, height = 480)
+p1 <- plot(mlocation(naInf)) 
+p1
+dev.off()
+
+png("cumulativeVariance_Linf.png", width = w, height = h)
+p1 <- plot(cumvar(snaLinf)) 
+p1
+dev.off()
+
+png("outliers_Linf.png", width = w, height = h)
+p1 <- plot(outliers(snaLinf)) 
+p1
+dev.off()
+
+png("cor_Linf.png", width = w, height = h)
+plot(medacor(snaLinf)) 
+dev.off()
+
+png("pairhex_Linf.png", width = 2*w, height = 2*h)
+spairI <- sample(ncol(snaLinf), 15)
+pairhex(snaLinf[,spairI])
+dev.off()
+
+png("hmcClassifications_Linf.png", width = 2*w, height = 2*h)
+hLinf <- hmc(snaLinf, modelNames = c("VVI"), ccol = ccol)
+
+cr <- viridis(max(hLinf$dat$labels$col))
+pairs(hLinf$dat$data[, spairI], pch = 19, cex = 0.5, col = cr[hLinf$dat$labels$col])
+dev.off()
+
+png("dendrograms_Linf.png", width = w, height = h)
+plotDend(hLinf)
+dev.off()
+
+png("stackMeans_Linf.png", width = w, height = 2*h)
+p1 <- stackM(hLinf, ccol = ccol, depth = 3, centered = TRUE)
+p1
+dev.off()
+
+png("clusterMeans_Linf.png", width = w, height = 0.75*h)
+p1 <- clusterMeans(hLinf, ccol = ccol)
+p1
+dev.off()
 ```
 
 
-```{r lm, eval = FALSE, include = FALSE}
-su <- df1$gaba == 1
-f1 <- lm(df1$microm3[su] ~ df1$PSD95[su])
-plot(df1$PSD95[su] ~ df1$microm3[su])
+# Results for $L_{\infty}$
 
-xs <- seq(min(df1$microm3), max(df1$microm3), length = 100)
-ys <- f1$coef[1] + f1$coef[2] * xs
+## 1-d Heatmap
+![](./d1heat_Linf.png)
 
-points(xs,ys, type = 'l')
-```
+## Location meda_plots
+![](./mlocation_Linf.png)
 
-# KDE's 
+## Outliers as given by randomForest
+![](./outliers_Linf.png)
 
-```{r hist, fig.height = 4, fig.width = 8}
-p2 <- ggplot(sdat, aes(group = shaft))
+## Correlation Matrix
+![](./cor_Linf.png)
 
-p2 + geom_density(aes(x = PSD95, y = ..density.., col = as.factor(shaft))) + ggtitle("PSD95 | shaft") + facet_grid(. ~ gaba, labeller = label_both)
+## Cumulative Variance with Elbows
+![](./cumulativeVariance_Linf.png)
 
-p2 + geom_density(aes(x = microm3, y = ..density.., col = as.factor(shaft))) + ggtitle("size | shaft") + facet_grid(. ~ gaba, labeller = label_both)
+## Paired Hex-binned plot
+![](./pairhex_Linf.png)
 
-p2 + geom_density(aes(x = microm3, y = ..density.., col = as.factor(shaft))) + scale_x_log10() + ggtitle("size | shaft, x-axis on log10 scale") + facet_grid(. ~ gaba, labeller = label_both)
+## Hierarchical GMM Classifications
+![](./hmcClassifications_Linf.png)
 
+## Hierarchical GMM Dendrogram
+![](./dendrograms_Linf.png)
 
-p2 + geom_violin(aes(x = as.factor(shaft), y = PSD95)) + geom_jitter(aes(x = as.factor(shaft), y = PSD95), alpha = 0.7) + facet_grid(. ~ gaba, labeller = label_both)
+## Stacked Means
+![](./stackMeans_Linf.png)
 
-p2 + geom_violin(aes(x = as.factor(shaft), y = microm3)) + geom_jitter(aes(x = as.factor(shaft), y = microm3), alpha = 0.7) + facet_grid(. ~ gaba, labeller = label_both)
-
-p3 <- ggplot(sdat[gaba == 1,], aes(group = shaft))
-p3 + 
-  geom_violin(aes(x = as.factor(shaft), y = microm3)) + 
-  geom_jitter(aes(x = as.factor(shaft), y = microm3, color = microm3> 0.01), alpha = 0.7) + 
-  facet_grid(. ~ gaba, labeller = label_both) + 
-  scale_color_manual(values = c('black', 'red'))
-
-#p2 + geom_boxplot(aes(x = as.factor(shaft), y = PSD95), notch = TRUE) + facet_grid(. ~ gaba, labeller = label_both)
-#p2 + geom_boxplot(aes(x = as.factor(shaft), y = microm3), notch = TRUE) + facet_grid(. ~ gaba, labeller = label_both)
-```
-
-
-
-```{r ndviz, include = FALSE, eval = FALSE}
-tmp <- cbind(sdat, loc)
-roiloc <- loc[tmp$microm3 > 0.01 & tmp$shaft == 1 & tmp$gaba == 1,]
-roiloc <- loc
-
-pointsURL <- "https://viz.boss.neurodata.io/#!{'layers':{'bounding_boxes':{'type':'pointAnnotation'_'points':%s}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[%s_%s_%s]}}_'zoomFactor':1}}"
-
-base <- 
-"https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':%s}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[%s.5_%s.5_%s]}}_'zoomFactor':1.5}}"
-
-a <- function(x){
-   w <- "[%d_%d_%d]" 
-   b <- rep(w, x - 1)
-   out <- paste0("[", paste0(b, collapse = "", sep = "_"), w, "]")
-   return(out)
-}
-
-locPrint <- function(x){
-  w <- "[%d_%d_%d]" 
-  l <- c(list(w),x)
-  do.call(sprintf,l)
-}
-
-boundingPoints <- foreach(i = 1:nrow(roiloc)) %dopar% {
-  tmp <- c(
-		lapply(-5:5, function(x) roiloc[i,] + c(-5,-5,x)),
-		lapply(-5:5, function(x) roiloc[i,] + c(-5,0,x)),
-		lapply(-5:5, function(x) roiloc[i,] + c(-5,6,x)),
-    lapply(-5:5, function(x) roiloc[i,] + c(0,-5,x)),
-		lapply(-5:5, function(x) roiloc[i,] + c(0,6,x)),
-    lapply(-5:5, function(x) roiloc[i,] + c(6,-5,x)),
-		lapply(-5:5, function(x) roiloc[i,] + c(6,0,x)),
-		lapply(-5:5, function(x) roiloc[i,] + c(6,6,x))
-    )
-
-  xyz <- lapply(tmp, locPrint)
-  paste0("[", paste0(xyz[1:(length(xyz)-1)], sep = "_", collapse= ""),
-    xyz[length(xyz)],"]")
-}
-
-
-links <- 
-foreach(i = 1:dim(roiloc)[1]) %dopar% {
-  sprintf(base, boundingPoints[[i]],  roiloc[i,1], roiloc[i,2],	roiloc[i,3])
-  #sprintf(pointsURL, boundingPoints[[i]],  roiloc[i,1], roiloc[i,2],	roiloc[i,3])
-}
-
-clip <- pipe("pbcopy", "w")
-writeLines(links[[1]], clip)
-close(clip)
-```
-
-
-```{r ndviz-table, eval = FALSE, include = FALSE}
-f <- file('shaft_links.txt', 'w')
-writeLines("## Synapses labeled as shaft gabergic and >0.01 micrometers^3\n",f)
-writeLines("| links |",f)
-writeLines("|---------------|",f)
-w <- "| [%d %d %d](%s) |"
-
-for(i in 1:length(links)){
-  l <- c(list(w), roiloc[i,], links[[i]])  
-  tmp <- do.call(sprintf, l)
-  writeLines(tmp,f)
-}
-
-writeLines("\n\n\n",f)
-close(f)
-
-system('cat shaft_links.txt >> rorb_shaft.Rmd')
-system('echo "---" >> rorb_meda_plots_urf.Rmd')
-
-file.remove('shaft_links.txt')
-```
-
-
-
-
-
-
-
-## Synapses labeled as shaft gabergic and >0.01 micrometers^3
-
-| links |
-|---------------|
-| [197 170 36](https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':[[192_165_31]_[192_165_32]_[192_165_33]_[192_165_34]_[192_165_35]_[192_165_36]_[192_165_37]_[192_165_38]_[192_165_39]_[192_165_40]_[192_165_41]_[192_170_31]_[192_170_32]_[192_170_33]_[192_170_34]_[192_170_35]_[192_170_36]_[192_170_37]_[192_170_38]_[192_170_39]_[192_170_40]_[192_170_41]_[192_176_31]_[192_176_32]_[192_176_33]_[192_176_34]_[192_176_35]_[192_176_36]_[192_176_37]_[192_176_38]_[192_176_39]_[192_176_40]_[192_176_41]_[197_165_31]_[197_165_32]_[197_165_33]_[197_165_34]_[197_165_35]_[197_165_36]_[197_165_37]_[197_165_38]_[197_165_39]_[197_165_40]_[197_165_41]_[197_176_31]_[197_176_32]_[197_176_33]_[197_176_34]_[197_176_35]_[197_176_36]_[197_176_37]_[197_176_38]_[197_176_39]_[197_176_40]_[197_176_41]_[203_165_31]_[203_165_32]_[203_165_33]_[203_165_34]_[203_165_35]_[203_165_36]_[203_165_37]_[203_165_38]_[203_165_39]_[203_165_40]_[203_165_41]_[203_170_31]_[203_170_32]_[203_170_33]_[203_170_34]_[203_170_35]_[203_170_36]_[203_170_37]_[203_170_38]_[203_170_39]_[203_170_40]_[203_170_41]_[203_176_31]_[203_176_32]_[203_176_33]_[203_176_34]_[203_176_35]_[203_176_36]_[203_176_37]_[203_176_38]_[203_176_39]_[203_176_40]_[203_176_41]]}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[197.5_170.5_36]}}_'zoomFactor':1.5}}) |
-| [298 225 28](https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':[[293_220_23]_[293_220_24]_[293_220_25]_[293_220_26]_[293_220_27]_[293_220_28]_[293_220_29]_[293_220_30]_[293_220_31]_[293_220_32]_[293_220_33]_[293_225_23]_[293_225_24]_[293_225_25]_[293_225_26]_[293_225_27]_[293_225_28]_[293_225_29]_[293_225_30]_[293_225_31]_[293_225_32]_[293_225_33]_[293_231_23]_[293_231_24]_[293_231_25]_[293_231_26]_[293_231_27]_[293_231_28]_[293_231_29]_[293_231_30]_[293_231_31]_[293_231_32]_[293_231_33]_[298_220_23]_[298_220_24]_[298_220_25]_[298_220_26]_[298_220_27]_[298_220_28]_[298_220_29]_[298_220_30]_[298_220_31]_[298_220_32]_[298_220_33]_[298_231_23]_[298_231_24]_[298_231_25]_[298_231_26]_[298_231_27]_[298_231_28]_[298_231_29]_[298_231_30]_[298_231_31]_[298_231_32]_[298_231_33]_[304_220_23]_[304_220_24]_[304_220_25]_[304_220_26]_[304_220_27]_[304_220_28]_[304_220_29]_[304_220_30]_[304_220_31]_[304_220_32]_[304_220_33]_[304_225_23]_[304_225_24]_[304_225_25]_[304_225_26]_[304_225_27]_[304_225_28]_[304_225_29]_[304_225_30]_[304_225_31]_[304_225_32]_[304_225_33]_[304_231_23]_[304_231_24]_[304_231_25]_[304_231_26]_[304_231_27]_[304_231_28]_[304_231_29]_[304_231_30]_[304_231_31]_[304_231_32]_[304_231_33]]}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[298.5_225.5_28]}}_'zoomFactor':1.5}}) |
-| [293 166 36](https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':[[288_161_31]_[288_161_32]_[288_161_33]_[288_161_34]_[288_161_35]_[288_161_36]_[288_161_37]_[288_161_38]_[288_161_39]_[288_161_40]_[288_161_41]_[288_166_31]_[288_166_32]_[288_166_33]_[288_166_34]_[288_166_35]_[288_166_36]_[288_166_37]_[288_166_38]_[288_166_39]_[288_166_40]_[288_166_41]_[288_172_31]_[288_172_32]_[288_172_33]_[288_172_34]_[288_172_35]_[288_172_36]_[288_172_37]_[288_172_38]_[288_172_39]_[288_172_40]_[288_172_41]_[293_161_31]_[293_161_32]_[293_161_33]_[293_161_34]_[293_161_35]_[293_161_36]_[293_161_37]_[293_161_38]_[293_161_39]_[293_161_40]_[293_161_41]_[293_172_31]_[293_172_32]_[293_172_33]_[293_172_34]_[293_172_35]_[293_172_36]_[293_172_37]_[293_172_38]_[293_172_39]_[293_172_40]_[293_172_41]_[299_161_31]_[299_161_32]_[299_161_33]_[299_161_34]_[299_161_35]_[299_161_36]_[299_161_37]_[299_161_38]_[299_161_39]_[299_161_40]_[299_161_41]_[299_166_31]_[299_166_32]_[299_166_33]_[299_166_34]_[299_166_35]_[299_166_36]_[299_166_37]_[299_166_38]_[299_166_39]_[299_166_40]_[299_166_41]_[299_172_31]_[299_172_32]_[299_172_33]_[299_172_34]_[299_172_35]_[299_172_36]_[299_172_37]_[299_172_38]_[299_172_39]_[299_172_40]_[299_172_41]]}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[293.5_166.5_36]}}_'zoomFactor':1.5}}) |
-| [293 193 30](https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':[[288_188_25]_[288_188_26]_[288_188_27]_[288_188_28]_[288_188_29]_[288_188_30]_[288_188_31]_[288_188_32]_[288_188_33]_[288_188_34]_[288_188_35]_[288_193_25]_[288_193_26]_[288_193_27]_[288_193_28]_[288_193_29]_[288_193_30]_[288_193_31]_[288_193_32]_[288_193_33]_[288_193_34]_[288_193_35]_[288_199_25]_[288_199_26]_[288_199_27]_[288_199_28]_[288_199_29]_[288_199_30]_[288_199_31]_[288_199_32]_[288_199_33]_[288_199_34]_[288_199_35]_[293_188_25]_[293_188_26]_[293_188_27]_[293_188_28]_[293_188_29]_[293_188_30]_[293_188_31]_[293_188_32]_[293_188_33]_[293_188_34]_[293_188_35]_[293_199_25]_[293_199_26]_[293_199_27]_[293_199_28]_[293_199_29]_[293_199_30]_[293_199_31]_[293_199_32]_[293_199_33]_[293_199_34]_[293_199_35]_[299_188_25]_[299_188_26]_[299_188_27]_[299_188_28]_[299_188_29]_[299_188_30]_[299_188_31]_[299_188_32]_[299_188_33]_[299_188_34]_[299_188_35]_[299_193_25]_[299_193_26]_[299_193_27]_[299_193_28]_[299_193_29]_[299_193_30]_[299_193_31]_[299_193_32]_[299_193_33]_[299_193_34]_[299_193_35]_[299_199_25]_[299_199_26]_[299_199_27]_[299_199_28]_[299_199_29]_[299_199_30]_[299_199_31]_[299_199_32]_[299_199_33]_[299_199_34]_[299_199_35]]}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[293.5_193.5_30]}}_'zoomFactor':1.5}}) |
-| [306 181 32](https://viz.boss.neurodata.io/#!{'layers':{'em_clahe':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/em_clahe'}_'m247514_Site3Annotation_MN_global':{'type':'segmentation'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_EM/m247514_Site3Annotation_MN_global'}_'DAPI1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI1?'_'blend':'additive'_'color':6}_'DAPI2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI2?'_'blend':'additive'_'color':1_'visible':false}_'DAPI3':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/DAPI3?'_'blend':'additive'_'color':2_'visible':false}_'GABA':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GABA?'_'blend':'additive'_'color':3}_'GAD2':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GAD2?'_'blend':'additive'_'color':4}_'Gephyrin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/Gephyrin?'_'blend':'additive'_'color':5}_'GluN1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/GluN1?'_'blend':'additive'_'color':6}_'MBP':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/MBP?'_'blend':'additive'}_'PSD95':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/PSD95?'_'blend':'additive'_'color':1}_'synapsin':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/synapsin?'_'blend':'additive'_'color':2}_'TdTomato':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato?'_'blend':'additive'_'color':3}_'TdTomato_16bit':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/TdTomato_16bit?window=0,10000'_'blend':'additive'_'color':4_'visible':false}_'VGlut1':{'type':'image'_'source':'boss://https://api.boss.neurodata.io/collman/M247514_Rorb_1_Site3Align2_LENS_Session1_CROP/VGlut1?'_'blend':'additive'_'color':5}_'bounding_boxes':{'type':'pointAnnotation'_'points':[[301_176_27]_[301_176_28]_[301_176_29]_[301_176_30]_[301_176_31]_[301_176_32]_[301_176_33]_[301_176_34]_[301_176_35]_[301_176_36]_[301_176_37]_[301_181_27]_[301_181_28]_[301_181_29]_[301_181_30]_[301_181_31]_[301_181_32]_[301_181_33]_[301_181_34]_[301_181_35]_[301_181_36]_[301_181_37]_[301_187_27]_[301_187_28]_[301_187_29]_[301_187_30]_[301_187_31]_[301_187_32]_[301_187_33]_[301_187_34]_[301_187_35]_[301_187_36]_[301_187_37]_[306_176_27]_[306_176_28]_[306_176_29]_[306_176_30]_[306_176_31]_[306_176_32]_[306_176_33]_[306_176_34]_[306_176_35]_[306_176_36]_[306_176_37]_[306_187_27]_[306_187_28]_[306_187_29]_[306_187_30]_[306_187_31]_[306_187_32]_[306_187_33]_[306_187_34]_[306_187_35]_[306_187_36]_[306_187_37]_[312_176_27]_[312_176_28]_[312_176_29]_[312_176_30]_[312_176_31]_[312_176_32]_[312_176_33]_[312_176_34]_[312_176_35]_[312_176_36]_[312_176_37]_[312_181_27]_[312_181_28]_[312_181_29]_[312_181_30]_[312_181_31]_[312_181_32]_[312_181_33]_[312_181_34]_[312_181_35]_[312_181_36]_[312_181_37]_[312_187_27]_[312_187_28]_[312_187_29]_[312_187_30]_[312_187_31]_[312_187_32]_[312_187_33]_[312_187_34]_[312_187_35]_[312_187_36]_[312_187_37]]}}_'navigation':{'pose':{'position':{'voxelSize':[96_96_50]_'voxelCoordinates':[306.5_181.5_32]}}_'zoomFactor':1.5}}) |
-
-
-
-
+## Cluster Means
+![](./clusterMeans_Linf.png)
