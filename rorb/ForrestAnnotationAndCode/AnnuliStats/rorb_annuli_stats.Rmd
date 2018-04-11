@@ -57,14 +57,15 @@ colnames(ids) <- 'id'
 ccolL1 <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
 ccolL1 <-  rep(ccolL1, each = 15)
 
-CHAN_NAMES <- rep(c('DAPI1', 'DAPI2', 'DAPI3', 'GABA', 'GAD2', 'Gephyrin', 'GluN1',
-                'MBP', 'PSD95', 'synapsin', 'TdTomato', 'VGlut1'), each = 15)
+CHAN_NAMES <- rep(c('DAPI1', 'DAPI2', 'DAPI3', 'GABA', 'GAD2', 'Gephyrin', 'GluN1', 'MBP', 'PSD95', 'synapsin', 'TdTomato', 'VGlut1'), each = 15)
+
 colnames(naL1) <- paste0(CHAN_NAMES,"_", sprintf("%02d",1:15))
 ```
 
 ```{r}
 snaL1 <- scale(naL1, center = TRUE, scale = TRUE)
 pc1 <- princomp(snaL1)
+saveRDS(pc1, file = "pca_loadings.rdat")
 gaba <- as.factor(meta$gaba)
 ```
 
@@ -74,23 +75,29 @@ Next, applying LDA and QDA iterating on the number of PCA dimension
 included. 
 
 ```{r lda-gabaL1}
-ldaL1 <- foreach(x = 1:ncol(snaL1)) %dopar% {
-           ldatmp <- lda(gaba ~ pc1$scores[, 1:x], CV = FALSE)
+y <- as.factor(gaba)
+
+ldaL1 <- foreach(di = 1:ncol(snaL1)) %dopar% {
+           x <- as.data.frame(pc1$scores[, 1:di])
+           ldatmp <- lda(y ~ ., data = x, CV = FALSE)
            ldatmp
 }
 
-qdaL1 <- foreach(x = 1:ncol(snaL1)) %dopar% {
+qdaL1 <- foreach(di = 1:ncol(snaL1)) %dopar% {
+           x <- as.data.frame(pc1$scores[, 1:di])
            qdatmp <- 
-             tryCatch(qda(as.factor(gaba) ~ pc1$scores[, 1:x], CV = FALSE),
+             tryCatch(qda(y ~ ., data = x, CV = FALSE),
                       error=function(err) NA)
            qdatmp
 }
 
-rfL1 <- foreach(x = 1:ncol(snaL1)) %dopar% {
-           tmpdat <- data.table(gaba = gaba, pc1$scores[, 1:x])
+rfL1 <- foreach(di = 1:ncol(snaL1)) %dopar% {
+           tmpdat <- data.table(gaba = gaba, pc1$scores[, 1:di])
            rftmp <- randomForest(gaba ~ ., data = tmpdat, prox = TRUE)
            rftmp
 }
+
+saveRDS(list(ldaL1, qdaL1, rfL1), file = "models_lda_qda_rf.rdat")
 
 ll <- sapply(ldaL1, function(x) sum(predict(x)$class != gaba)/length(gaba))
 ql <- sapply(qdaL1[!is.na(qdaL1)], function(x) sum(predict(x)$class != gaba)/length(gaba))
@@ -320,6 +327,7 @@ dev.off()
 png("hmcClassifications_Linf.png", width = 2*w, height = 2*h)
 hLinf <- hmc(snaLinf, modelNames = c("VVI"), ccol = ccolLinf)
 
+closestK(hLinf, K = 5, loc)
 cr <- viridis(max(hLinf$dat$labels$col))
 pairs(hLinf$dat$data[, spairI], pch = 19, cex = 0.5, col = cr[hLinf$dat$labels$col])
 dev.off()

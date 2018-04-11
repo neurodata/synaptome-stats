@@ -1,0 +1,139 @@
+---
+title: "Annuli Stats on a new cube followed by PCA"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_caption: yes
+    fig_height: 10
+    fig_width: 10
+    highlight: pygments
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+    toc_depth: 2
+---
+```{r knitOPTS, include=FALSE}
+knitr::opts_chunk$set(cache = FALSE, dev = "png")
+knitr::opts_chunk$set(engine.path = 
+  list( 
+      python = '/Library/Frameworks/Python.framework/Versions/3.6/bin/python3'
+      )
+)
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+require(knitr)
+rmarkdown::render("rorbTake2Site5_annuli_stats.Rmd"); system("open rorbTake2Site5_annuli_stats.html -a /Applications/Chrome.app")
+```
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
+# Library calls here.
+require(rmarkdown)
+require(NMF)
+require(knitr)
+require(MASS)
+require(doMC)
+require(foreach)
+require(scales)
+require(raster)
+require(mgc)
+require(googlesheets)
+registerDoMC(4)
+suppressMessages(require(meda))
+```
+
+
+## PCA on annuli stats using $L_1$ Norm
+
+```{r start, eval = TRUE}
+naL1 <- fread("rorbTake2Site5_annuli_stats_randomLocs.csv", header = FALSE)
+cnames <- colnames(naL1)
+loc <- fread("randomLocations.csv")
+
+meta <- fread("../GoogleDocData.csv")
+ccolL1 <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
+
+ccolL1 <-  rep(ccolL1, each = 15)
+
+CHAN_NAMES <- rep(c('DAPI1', 'DAPI2', 'DAPI3', 'GABA', 'GAD2', 'Gephyrin', 'GluN1', 'MBP', 'psd95', 'synapsin', 'TdTomato', 'VGlut1'), each = 15)
+
+colnames(naL1) <- paste0(CHAN_NAMES,"_", sprintf("%02d",1:15))
+```
+
+```{r}
+snaL1 <- cbind(naL1[, 1:15], scale(naL1[, -c(1:15)], center = TRUE, scale = TRUE))
+pcZ <- readRDS('../AnnuliStats/pca_loadings.rdat')
+
+newDat <- data.table(as.matrix(snaL1) %*% pcZ$loadings)
+#pc1 <- princomp(snaL1)
+#gaba <- as.factor(meta$gaba)
+set.seed(1030)
+gaba <- rbinom(nrow(newDat), size = 1, prob = 0.11)
+pc1 <- list()
+pc1$scores <- newDat 
+```
+
+## Apply LDA and QDA models from previous data
+
+```{r apply}
+modList <- readRDS('../AnnuliStats/models_lda_qda_rf.rdat')
+ldaL <- modList[[1]]
+qdaL <- modList[[2]]
+rfL  <- modList[[3]]
+```
+
+
+
+Next, applying LDA and QDA iterating on the number of PCA dimension
+included. 
+
+```{r lda-gabaL1}
+y <- as.factor(gaba)
+
+ldaseq <- seq(1,ncol(snaL1),length = 24)
+ldaL1 <- foreach(di = ldaseq) %dopar% {
+           x <- as.data.frame(pc1$scores[, 1:di])
+           ldatmp <- lda(y ~ ., data = x, CV = FALSE)
+           ldatmp
+}
+
+qdaseq <- seq(1,ncol(snaL1))
+qdaL1 <- foreach(di = qdaseq) %dopar% {
+           x <- as.data.frame(pc1$scores[, 1:di])
+           qdatmp <- 
+             tryCatch(qda(y ~ ., data = x, CV = FALSE),
+                      error=function(err) NA)
+           qdatmp
+}
+
+rfseq <- seq(1,ncol(snaL1),length = 24)
+rfL1 <- foreach(di = rfseq) %dopar% {
+           tmpdat <- data.table(gaba = y, pc1$scores[, 1:di])
+           rftmp <- randomForest(gaba ~ ., data = tmpdat, prox = TRUE)
+           rftmp
+}
+
+ll <- sapply(ldaL1, function(x) sum(predict(x)$class != gaba)/length(gaba))
+ql <- sapply(qdaL1[!is.na(qdaL1)], function(x) sum(predict(x)$class != gaba)/length(gaba))
+rl <- sapply(rfL1,   function(x) sum(predict(x) != gaba)/length(gaba))
+```
+
+
+```{r plot-itL1}
+plot(x = 1:ncol(pc1$scores), y = seq(0,max(ll,ql,rl),length = ncol(pc1$scores)), type = 'n', xlab = expression(hat(d)), ylab = "L")
+
+points(x = ldaseq, y = ll, type = 'b', col = 'blue', pch = 20, cex = 0.5)
+points(ql, type = 'b', col = 'orange', pch = 15, cex = 0.5)
+points(x = rfseq, y = rl, type = 'b', col = 'darkgreen', lty = 2, pch = 24, cex = 0.5)
+
+abline(h = chance <- sum(gaba == 1)/length(gaba), col = 'magenta', lty=4)
+text(40,min(ql), label = paste("qda", min(round(ql, 3))), col = 'orange', pos = 4)
+text(ncol(snaL1)/2, min(ll), label = paste("lda", min(round(ll,3))), col = 'blue', pos = 1)
+text(ncol(snaL1), min(rl), label = paste("rf", min(round(rl,3))), col = 'darkgreen', pos = 3)
+text(ncol(snaL1)/4, chance, label = "chance", col = 'magenta', pos = 3)
+```
+
+
+
+
