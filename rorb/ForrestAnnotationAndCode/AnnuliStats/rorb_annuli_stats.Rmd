@@ -24,7 +24,7 @@ knitr::opts_chunk$set(engine.path =
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 require(knitr)
-rmarkdown::render("rorb_annuli_stats.Rmd"); system("open rorb_annuli_stats.html -a /Applications/Chrome.app")
+markdown::render("rorb_annuli_stats.Rmd"); system("open rorb_annuli_stats.html -a /Applications/Chrome.app")
 ```
 
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
@@ -44,7 +44,7 @@ suppressMessages(require(meda))
 ```
 
 
-## PCA on annuli stats using $L_1$ Norm
+# PCA on annuli stats using $L_1$ Norm
 
 ```{r start, eval = TRUE}
 naL1 <- fread("rorb_annuli_stats_GoogleDoc.csv", header = FALSE)
@@ -65,7 +65,6 @@ colnames(naL1) <- paste0(CHAN_NAMES,"_", sprintf("%02d",1:15))
 ```{r}
 snaL1 <- scale(naL1, center = TRUE, scale = TRUE)
 pc1 <- princomp(snaL1)
-saveRDS(pc1, file = "pca_loadings.rdat")
 gaba <- as.factor(meta$gaba)
 ```
 
@@ -97,7 +96,7 @@ rfL1 <- foreach(di = 1:ncol(snaL1)) %dopar% {
            rftmp
 }
 
-saveRDS(list(ldaL1, qdaL1, rfL1), file = "models_lda_qda_rf.rdat")
+#saveRDS(list(ldaL1, qdaL1, rfL1), file = "models_lda_qda_rf.rdat")
 
 ll <- sapply(ldaL1, function(x) sum(predict(x)$class != gaba)/length(gaba))
 ql <- sapply(qdaL1[!is.na(qdaL1)], function(x) sum(predict(x)$class != gaba)/length(gaba))
@@ -110,11 +109,120 @@ points(ll, type = 'b', col = 'blue', pch = 20, cex = 0.5)
 points(ql, type = 'b', col = 'orange', pch = 15, cex = 0.5)
 points(rl, type = 'b', col = 'darkgreen', lty = 2, pch = 24, cex = 0.2)
 abline(h = chance <- sum(gaba == 1)/length(gaba), col = 'magenta', lty=4)
-text(40,min(ql), label = paste("qda", min(round(ql, 3))), col = 'orange', pos = 4)
-text(ncol(snaL1)/2, min(ll), label = paste("lda", min(round(ll,3))), col = 'blue', pos = 1)
-text(ncol(snaL1)/3, min(rl), label = paste("rf", min(round(rl,3))), col = 'darkgreen')
+text(which.min(ql),0, label = paste("qda", min(round(ql, 3))), col = 'orange')
+text(which.min(ll), 0, label = paste("lda", min(round(ll,3))), col = 'blue')
+text(which.min(rl), 0, label = paste("rf", min(round(rl,3))), col = 'darkgreen')
 text(ncol(snaL1)/4, chance, label = "chance", col = 'magenta', pos = 3)
 ```
+
+## On permutations of the labels
+
+```{r lda-gabaL1perm}
+set.seed(1030)
+yp <- sample(as.factor(gaba))
+
+ldaL1prem <- foreach(di = 1:ncol(snaL1)) %dopar% {
+           x <- as.data.frame(pc1$scores[, 1:di])
+           ldatmp <- lda(yp ~ ., data = x, CV = FALSE)
+           ldatmp
+}
+
+qdaL1prem <- foreach(di = 1:ncol(snaL1)) %dopar% {
+           x <- as.data.frame(pc1$scores[, 1:di])
+           qdatmp <- 
+             tryCatch(qda(yp ~ ., data = x, CV = FALSE),
+                      error=function(err) NA)
+           qdatmp
+}
+
+rfL1prem <- foreach(di = 1:ncol(snaL1)) %dopar% {
+           tmpdat <- data.table(yp = yp, pc1$scores[, 1:di])
+           rftmp <- randomForest(yp ~ ., data = tmpdat, prox = TRUE)
+           rftmp
+}
+
+#saveRDS(list(ldaL1prem, qdaL1prem, rfL1prem), file = "models_lda_qda_rf.rdat")
+
+llperm <- sapply(ldaL1prem, function(x) sum(predict(x)$class != yp)/length(yp))
+qlperm <- sapply(qdaL1prem[!is.na(qdaL1prem)], function(x) sum(predict(x)$class != yp)/length(yp))
+rlperm <- sapply(rfL1prem,   function(x) sum(predict(x) != yp)/length(yp))
+```
+
+```{r plot-itL1perm}
+plot(x = 1:ncol(pc1$scores), y = seq(0,max(llperm,qlperm,rlperm),length = ncol(pc1$scores)), type = 'n', xlab = expression(hat(d)), ylab = "L")
+points(llperm, type = 'b', col = 'blue', pch = 20, cex = 0.5)
+points(qlperm, type = 'b', col = 'orange', pch = 15, cex = 0.5)
+points(rlperm, type = 'b', col = 'darkgreen', lty = 2, pch = 24, cex = 0.2)
+abline(h = chance <- sum(yp == 1)/length(yp), col = 'magenta', lty=4)
+text(which.min(qlperm),0, label = paste("qda", min(round(qlperm, 3))), col = 'orange')
+text(which.min(llperm), 0, label = paste("lda",min(round(llperm,3))), col = 'blue')
+text(which.min(rlperm), 0, label = paste("rf", min(round(rlperm,3))), col = 'darkgreen')
+text(ncol(snaL1)/4, chance, label = "chance", col = 'magenta', pos = 3)
+title("On permuted labels")
+```
+
+
+# PCA on annuli stats using weighted $L_1$ Norm
+
+```{r startW, eval = TRUE}
+naL1W <- fread("rorb_annuli_stats_GoogleDocL1W.csv", header = FALSE)
+
+ccolL1 <- c('blue', 'blue', 'blue', 'red', 'red', 'red', 'black', 'black', 'green', 'green', 'black', 'green')
+ccolL1 <-  rep(ccolL1, each = 15)
+
+CHAN_NAMES <- rep(c('DAPI1', 'DAPI2', 'DAPI3', 'GABA', 'GAD2', 'Gephyrin', 'GluN1', 'MBP', 'PSD95', 'synapsin', 'TdTomato', 'VGlut1'), each = 15)
+
+colnames(naL1W) <- paste0(CHAN_NAMES,"_", sprintf("%02d",1:15))
+```
+
+```{r}
+snaL1W <- scale(naL1W, center = TRUE, scale = TRUE)
+pc1W <- princomp(snaL1W)
+```
+
+## LDA and QDA on weighted $L_1$
+
+```{r lda-gabaL1W}
+ldaL1W <- foreach(di = 1:ncol(snaL1W)) %dopar% {
+           x <- as.data.frame(pc1W$scores[, 1:di])
+           ldatmp <- lda(y ~ ., data = x, CV = FALSE)
+           ldatmp
+}
+
+qdaL1W <- foreach(di = 1:ncol(snaL1W)) %dopar% {
+           x <- as.data.frame(pc1W$scores[, 1:di])
+           qdatmp <- 
+             tryCatch(qda(y ~ ., data = x, CV = FALSE),
+                      error=function(err) NA)
+           qdatmp
+}
+
+rfL1W <- foreach(di = 1:ncol(snaL1W)) %dopar% {
+           tmpdat <- data.table(gaba = gaba, pc1W$scores[, 1:di])
+           rftmp <- randomForest(gaba ~ ., data = tmpdat, prox = TRUE)
+           rftmp
+}
+
+#saveRDS(list(ldaL1W, qdaL1W, rfL1W), file = "models_lda_qda_rf.rdat")
+
+llW <- sapply(ldaL1W, function(x) sum(predict(x)$class != gaba)/length(gaba))
+qlW <- sapply(qdaL1W[!is.na(qdaL1W)], function(x) sum(predict(x)$class != gaba)/length(gaba))
+rlW <- sapply(rfL1W,   function(x) sum(predict(x) != gaba)/length(gaba))
+```
+
+```{r plot-itL1W}
+plot(x = 1:ncol(pc1W$scores), y = seq(0,max(llW,qlW,rlW),length = ncol(pc1W$scores)), type = 'n', xlab = expression(hat(d)), ylab = "L")
+points(llW, type = 'b', col = 'blue', pch = 20, cex = 0.5)
+points(qlW, type = 'b', col = 'orange', pch = 15, cex = 0.5)
+points(rlW, type = 'b', col = 'darkgreen', lty = 2, pch = 24, cex = 0.2)
+abline(h = chance <- sum(gaba == 1)/length(gaba), col = 'magenta', lty=4)
+text(which.min(qlW),0, label = paste("qda", min(round(qlW, 3))), col = 'orange')
+text(which.min(llW), 0, label = paste("lda",min(round(llW,3))), col = 'blue')
+text(which.min(rlW), 0, label = paste("rf", min(round(rlW,3))), col = 'darkgreen')
+text(ncol(snaL1W)/4, chance, label = "chance", col = 'magenta', pos = 3)
+title("Run on weighted L_1 data")
+```
+
 
 
 
@@ -379,3 +487,63 @@ dev.off()
 
 ## Cluster Means
 ![](./clusterMeans_Linf.png)
+
+
+# Subset only the gaba dimensions
+
+
+```{r subGABA}
+namesSub <- grep("GABA", names(naL1))
+subGABA <- data.table(as.matrix(snaL1)[, namesSub])
+pc1sub <- princomp(subGABA)
+```
+
+## LDA and QDA on gaba dimensions
+
+
+```{r lda-qda-subGABA}
+y <- as.factor(gaba)
+
+ldaL1subGABA <- foreach(di = 1:ncol(subGABA)) %dopar% {
+           x <- as.data.frame(pc1sub$scores[, 1:di])
+           ldatmp <- lda(y ~ ., data = x, CV = FALSE)
+           ldatmp
+}
+
+qdaL1subGABA <- foreach(di = 1:ncol(subGABA)) %dopar% {
+           x <- as.data.frame(pc1sub$scores[, 1:di])
+           qdatmp <- 
+             tryCatch(qda(y ~ ., data = x, CV = FALSE),
+                      error=function(err) NA)
+           qdatmp
+}
+
+rfL1subGABA <- foreach(di = 1:ncol(subGABA)) %dopar% {
+           tmpdat <- data.table(gaba = gaba, pc1sub$scores[, 1:di])
+           rftmp <- randomForest(gaba ~ ., data = tmpdat, prox = TRUE)
+           rftmp
+}
+
+#saveRDS(list(ldaL1subGABA, qdaL1subGABA, rfL1subGABA), file = "models_lda_qda_rf.rdat")
+
+llsub <- sapply(ldaL1subGABA, function(x) sum(predict(x)$class != gaba)/length(gaba))
+qlsub <- sapply(qdaL1subGABA[!is.na(qdaL1subGABA)], function(x) sum(predict(x)$class != gaba)/length(gaba))
+rlsub <- sapply(rfL1subGABA,   function(x) sum(predict(x) != gaba)/length(gaba))
+```
+
+```{r plot-itL1subGABA}
+plot(x = 1:ncol(pc1sub$scores), y = seq(0,max(ll,ql,rl),length = ncol(pc1sub$scores)), type = 'n', xlab = expression(hat(d)), ylab = "L")
+points(llsub, type = 'b', col = 'blue', pch = 20, cex = 1)
+points(qlsub, type = 'b', col = 'orange', pch = 15, cex = 1)
+points(rlsub, type = 'b', col = 'darkgreen', lty = 2, pch = 24, cex = 1)
+abline(h = chance <- sum(gaba == 1)/length(gaba), col = 'magenta', lty=4)
+text(which.min(qlsub),min(qlsub), label = paste("qda", min(round(qlsub, 3))), col = 'orange', pos = 4)
+text(which.min(llsub), min(llsub), label = paste("lda", min(round(llsub,3))), col = 'blue', pos = 1)
+text(which.min(rlsub), min(rlsub), label = paste("rf", min(round(rlsub,3))), col = 'darkgreen', pos = 3)
+text(ncol(subGABA)/4, chance, label = "chance", col = 'magenta', pos = 3)
+title("resubstitution error on GABA only dimensions.")
+```
+
+
+
+
