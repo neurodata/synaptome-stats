@@ -47,7 +47,7 @@ We start with observations of 793 synapses with 12 measurments formatted as a 79
 matrix. The matrix is Z-scored column-wise and plotted in a pairs plot
 colored according to the labels given by the field expert. 
 
-```{r r1, eval = FALSE, echo = FALSE, include = FALSE, fig.height = 10, fig.width = 10}
+```{r r1, eval = TRUE, echo = FALSE, include = FALSE, fig.height = 10, fig.width = 10}
 dat <- read.csv("rorb_gaussianAvg_at.csv")
 loc <- read.csv("rorb_gaussianAvg_at_orderLocations.csv")
 gabaID <- read.csv("rorb_gaba.csv")
@@ -194,7 +194,7 @@ lmm <- sapply(1:12, function(x) sum((shaft - ldaSHAFT[[x]]$post[, 1])^2))
 ```
 
 
-```{r lda-TdTom, eval = FALSE, include = FALSE}
+```{r lda-TdTom, eval = TRUE, include = FALSE}
 ldaTD <- 
   lapply(1:12, 
          function(x){
@@ -264,7 +264,7 @@ for(i in 1:12){
 
 ## Sampling 
 
-```{r d-all, eval = FALSE}
+```{r d-all, eval = TRUE}
 mont <- 500
 truth  <- c(rep(0, n0), rep(1,n1))
 
@@ -339,14 +339,14 @@ pl <- ggplot(data = ltmp1, aes(x = L, y = value, fill = dim)) +
 ```
 
 
-```{r p1,eval = FALSE, fig.height = 8, fig.width = 12}
+```{r p1,eval = TRUE, fig.height = 8, fig.width = 12}
 coord <- coord_cartesian(ylim = c(0, 0.11))
 grid.arrange(pq + coord,pl +coord, nrow = 1)
 ```
 
 
 
-```{r lines, eval = FALSE}
+```{r lines, eval = TRUE}
 dLines <- 
 foreach(mi = 1:mont) %:%
 foreach(x = 1:12, .combine = 'rbind') %dopar% {
@@ -364,11 +364,11 @@ lineDat <- Reduce('rbind', dLines)
 pLines <- ggplot(as.data.frame(lineDat), aes(x = x, group = mi)) + geom_line(aes(y = Lr, color = mi)) 
 ```
 
-```{r pLines, fig.height = 8, fig.width = 8, eval = FALSE}
+```{r pLines, fig.height = 8, fig.width = 8, eval = TRUE}
 show(pLines)
 ```
 
-```{r 1sig, echo = FALSE, eval = FALSE, include = TRUE}
+```{r 1sig, echo = FALSE, eval = TRUE, include = TRUE}
 mdim <- 50
 mu1sig <- 1
 params1sig <- list()
@@ -445,7 +445,7 @@ lp1sig <- ggplot(data = ltmp1, aes(x = L, y = value, fill = dim)) +
 
 ```
 
-```{r p1sig, fig.width = 14, fig.height = 10, eval = FALSE}
+```{r p1sig, fig.width = 14, fig.height = 10, eval = TRUE}
 grid.arrange(p1sig, lp1sig, nrow = 2)
 ```
 
@@ -457,7 +457,7 @@ grid.arrange(p1sig, lp1sig, nrow = 2)
 
 # Model mis-specification
 
-```{r normCau, eval = FALSE}
+```{r normCau, eval = TRUE}
 mu1 <- 1/2
 ncDim <- 25
 montc <- 500
@@ -544,7 +544,7 @@ ggplot(m1, aes(x = as.factor(Var2), y = value)) +
 
 
 
-```{r L, eval = FALSE, include = FALSE}
+```{r L, eval = TRUE, include = FALSE}
 pi0 <- sum(gaba == 0)/length(gaba)
 pi1 <- sum(gaba == 1)/length(gaba)
 

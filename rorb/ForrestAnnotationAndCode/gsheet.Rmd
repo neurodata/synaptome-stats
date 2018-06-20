@@ -32,8 +32,6 @@ require(googlesheets)
 suppressMessages(require(meda))
 ```
 
-## Make plots
-
 
 ```{r, eval = FALSE}
 gs_auth(new_user = TRUE)
@@ -78,7 +76,7 @@ dat$gaba <- dat$GABA
 newDat <- dat[buff == 1, .(atx,aty,atz, id, gaba, shaft, TdTom, NotSynapse)]
 
 write.csv(newDat, file = "GoogleDocData.csv", row.names = FALSE)
-write.csv(newDat[, .(atx,aty,atx,id)], file = "GoogleDocData_loc.csv", row.names = FALSE)
+write.csv(newDat[, .(atx,aty,atz,id)], file = "GoogleDocData_loc.csv", row.names = FALSE)
 
 inIDS <- as.numeric(read.csv("rorb_avg_at_orderLocations.csv")[[1]])
 IDS123 <- as.numeric(read.csv("rorb_avg_at_IDS123.csv")[[1]])

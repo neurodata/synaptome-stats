@@ -24,7 +24,7 @@ knitr::opts_chunk$set(engine.path =
 ```{r render, eval=FALSE, echo=FALSE}
 require(rmarkdown)
 require(knitr)
-markdown::render("rorb_annuli_stats.Rmd"); system("open rorb_annuli_stats.html -a /Applications/Chrome.app")
+rmarkdown::render("rorb_annuli_stats.Rmd"); system("open rorb_annuli_stats.html -a /Applications/Chrome.app")
 ```
 
 ```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, echo = FALSE}
@@ -35,11 +35,13 @@ require(knitr)
 require(MASS)
 require(doMC)
 require(foreach)
+require(iterators)
 require(scales)
 require(raster)
 require(mgc)
+require(mvtnorm)
 require(googlesheets)
-registerDoMC(4)
+registerDoMC(8)
 suppressMessages(require(meda))
 ```
 
@@ -162,6 +164,134 @@ title("On permuted labels")
 ```
 
 
+# Synthetic data from the $L_1$ 
+
+```{r synL1}
+mu0 <- colMeans(naL1[gaba == 0,])
+mu1 <- colMeans(naL1[gaba == 1,])
+
+sigma0 <- cov(naL1[gaba == 0,])
+sigma1 <- cov(naL1[gaba == 1,])
+
+
+tind <- grep("GABA", names(naL1))
+dens12 <- densityMclust(naL1)
+
+plot(dens12)
+
+
+plot(medacor(naL1[gaba == 0,], ccol = ccolL1)); title("Correlation plot of gaba == 0")
+plot(medacor(naL1[gaba == 1,], ccol = ccolL1)); title("Correlation plot of gaba == 1")
+
+set.seed(317)
+simGaba <- sort(rbinom(1e3, size = 1, prob = sum(gaba == 1)/length(gaba)))
+
+simDat <- 
+  as.data.table(
+    rbind(rmvnorm(sum(simGaba == 0), mean = mu0, sigma = sigma0),
+          rmvnorm(sum(simGaba == 1), mean = mu1, sigma = sigma1))
+    )
+
+plot(naL1$GABA_01)
+plot(density(naL1$GABA_01))
+
+fit <- density(naL1$GABA_01)
+
+N <- 1e6
+mEst <- sample(naL1$GABA_01, size = N, replace = TRUE)
+
+x.new <- rnorm(N, mEst, fit$bw)
+
+plot(fit)
+lines(density(x.new), col = 'blue')
+x.new
+```
+
+```{r kde-samp}
+set.seed(3171)
+N <- 1e4
+
+kdeGaba <- sort(rbinom(N, size = 1, prob = sum(gaba == 1)/length(gaba)))
+N0 <- sum(kdeGaba == 0)
+N1 <- sum(kdeGaba == 1)
+
+kdeG0 <- 
+  foreach(ci = iter(as.matrix(naL1[gaba == 0,]), by = 'column'), .combine = 'cbind') %dopar% {
+    fit <- density(ci)
+    mest <- sample(ci, size = N0, replace = TRUE)
+    rnorm(N0, mest, sd = fit$bw)
+  }
+
+kdeG1 <- 
+  foreach(ci = iter(as.matrix(naL1[gaba == 1,]), by = 'column'), .combine = 'cbind') %dopar% {
+    fit <- density(ci)
+    mest <- sample(ci, size = N1, replace = TRUE)
+    rnorm(N1, mest, sd = fit$bw)
+  }
+
+kdeData <- data.table(rbind(kdeG0, kdeG1))
+plot(mlocation(kdeData))
+plot(mlocation(naL1))
+
+kdepc <- princomp(scale(kdeData, center = TRUE, scale = TRUE))
+```
+
+
+```{r synkdeLDA-QDA-RF}
+ykde <- as.factor(kdeGaba)
+
+seq1 <- seq(1, ncol(kdeData), length = 4)
+
+ldaL1kde <- foreach(di = seq1) %dopar% {
+           x <- as.data.frame(kdepc$scores[, 1:di])
+           ldatmp <- lda(ykde ~ ., data = x, CV = FALSE)
+           ldatmp
+}
+
+qdaL1kde <- foreach(di = seq1) %dopar% {
+           x <- as.data.frame(kdepc$scores[, 1:di])
+           qdatmp <- 
+             tryCatch(qda(ykde ~ ., data = x, CV = FALSE),
+                      error=function(err) NA)
+           qdatmp
+}
+
+rfL1kde <- foreach(di = seq1) %dopar% {
+           tmpdat <- data.table(ykde = ykde, kdepc$scores[, 1:di])
+           rftmp <- randomForest(ykde ~ ., data = tmpdat, prox = TRUE)
+           rftmp
+}
+
+#saveRDS(list(ldaL1prem, qdaL1prem, rfL1prem), file = "models_lda_qda_rf.rdat")
+
+llkde <- sapply(ldaL1kde, function(x) sum(predict(x)$class != ykde)/length(ykde))
+qlkde <- sapply(qdaL1kde[!is.na(qdaL1kde)], function(x) sum(predict(x)$class != ykde)/length(ykde))
+rlkde <- sapply(rfL1kde,   function(x) sum(predict(x) != ykde)/length(ykde))
+```
+
+```{r plot-itL1perm}
+plot(x = 1:ncol(kdepc$scores), y = seq(0,max(llkde,qlkde, chance),length = ncol(kdepc$scores)), type = 'n', xlab = expression(hat(d)), ylab = "L")
+points(seq1, y = llkde, type = 'b', col = 'blue', pch = 20, cex = 0.5)
+points(seq1, y = qlkde, type = 'b', col = 'orange', pch = 15, cex = 0.5)
+points(seq1, y = rlkde, type = 'b', col = 'darkgreen', lty = 2, pch = 24, cex = 0.2)
+abline(h = chance <- sum(ykde == 1)/length(ykde), col = 'magenta', lty=4)
+text(which.min(qlkde),0, label = paste("qda", min(round(qlkde, 3))), col = 'orange')
+text(which.min(llkde), 0, label = paste("lda",min(round(llkde,3))), col = 'blue')
+text(which.min(rlkde), 0, label = paste("rf", min(round(rlkde,3))), col = 'darkgreen')
+text(ncol(kdeData)/4, chance, label = "chance", col = 'magenta', pos = 3)
+title("On synthetic data from KDE")
+```
+
+```{r compare, eval = FALSE}
+plot(mlocation(naL1[gaba ==1,], ccol = ccolL1))
+dev.new()
+dev.set(dev.prev())
+dev.set(dev.next())
+plot(mlocation(kdeData[kdeGaba ==1,], ccol = ccolL1))
+```
+
+
+
 # PCA on annuli stats using weighted $L_1$ Norm
 
 ```{r startW, eval = TRUE}
@@ -222,6 +352,9 @@ text(which.min(rlW), 0, label = paste("rf", min(round(rlW,3))), col = 'darkgreen
 text(ncol(snaL1W)/4, chance, label = "chance", col = 'magenta', pos = 3)
 title("Run on weighted L_1 data")
 ```
+
+
+
 
 
 
@@ -300,9 +433,11 @@ text(40,min(ql), label = paste("qda", min(round(ql, 3))), col = 'orange', pos = 
 text(ncol(snaLinf)/2, min(ll), label = paste("lda", min(round(ll,3))), col = 'blue', pos = 1)
 text(ncol(snaLinf)/3, min(rl), label = paste("rf", min(round(rl,3))), col = 'darkgreen')
 text(ncol(snaLinf)/4, chance, label = "chance", col = 'magenta', pos = 3)
+title("Run on L_infty data")
 ```
 
 
+# MEDA run on $L_1$ data
 
 ```{r runAll-L1, eval = TRUE, echo = FALSE, include = FALSE}
 set.seed(317)
@@ -361,7 +496,6 @@ p1
 dev.off()
 ```
 
-# Results for $L_1$
 
 ## 1-d Heatmap
 ![](./d1heat_L1.png)
@@ -396,7 +530,8 @@ dev.off()
 
 
 
-## MEDA on Annuli stats using $L_{\infty}$ norm.
+# MEDA on Annuli stats using $L_{\infty}$ norm.
+
 ```{r runAll-Linf, eval = TRUE, echo = FALSE, include = FALSE}
 set.seed(317)
 
@@ -455,8 +590,6 @@ p1
 dev.off()
 ```
 
-
-# Results for $L_{\infty}$
 
 ## 1-d Heatmap
 ![](./d1heat_Linf.png)

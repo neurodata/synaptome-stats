@@ -39,6 +39,10 @@ require(scales)
 require(raster)
 registerDoMC(4)
 suppressMessages(require(meda))
+
+require("gsl")
+require(viridis)
+require(magick)
 ```
 
 # Python code to download a test area from the BOSS
@@ -167,6 +171,7 @@ nam <- cu[!ind,]
 tmp <- matrix(NA, nrow(cu), 3)
 tmp[ind,] <- 0
 
+
 N <- foreach(x = c(1:ncol(nam))) %dopar% {
     nmf(nam, rank = x)
 }
@@ -216,4 +221,38 @@ plot(raster::brick(b1,a))
 ```
 
 
+
+# Gaussian blurred 
+
+
+```{r gb}
+v <- lapply(cu, function(x) array(x/255, dim = c(200,200,13)))
+vv <- abind(v, along = 0)
+
+dimnames(vv)[1]
+dim(vv)
+
+plot(raster::brick(vv[12,,,1:13]))
+
+img <- lapply(v, function(x) image_read((x/255)))
+
+lapply(v, function(x) lapply(1:13, function(y) image_read(x[[y]])))
+si <- sample(length(img), 10)
+
+kern <- matrix(0, ncol = 3, nrow = 3)
+kern[1, 2] <- 0.25
+kern[2, c(1, 3)] <- 0.25
+kern[3, 2] <- 0.25
+kern
+
+imconv <- lapply(img, function(x) image_convolve(x, kernel = "Gaussian", iterations = 10))
+
+for(i in si){
+  show(plot(img[[i]]))
+  Sys.sleep(0.5)
+  show(plot(imconv[[i]]))
+}
+
+
+```
 
