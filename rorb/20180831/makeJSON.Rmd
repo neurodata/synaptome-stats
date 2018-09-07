@@ -1,0 +1,134 @@
+---
+title: "Blank RMarkdown file."
+author: "Jesse Leigh Patsolic"
+output: 
+  html_document:
+    keep_md: true
+---
+
+<!--
+### ### INITIAL COMMENTS HERE ###
+###
+### Jesse Leigh Patsolic 
+### 2018 <jpatsolic@jhu.edu>
+### S.D.G 
+#
+<style type="text/css">
+.table {
+    width: 40%;
+}
+tr:hover {background-color:#f5f5f5;}
+</style>
+-->
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+require(rjson)
+require(jsonlite)
+#rmarkdown::render("Blank.Rmd")
+#system('open Blank.html')
+```
+
+
+
+## Data Preparation 
+
+The data have been imported and set up in .... 
+
+```{r cc1}
+d1 <- read.csv("MnSite3Synaptograms.csv")
+
+
+cX <- apply(d1[, c('maxX', 'minX')], 1, mean)
+cY <- apply(d1[, c('maxY', 'minY')], 1, mean)
+cZ <- apply(d1[, c('maxZ', 'minZ')], 1, mean)
+
+centers <- data.frame(x = round(cX), y = round(cY), z = ceiling(cZ), id = d1$id)
+
+head(centers)
+
+centers$rx <- 50 / 3
+centers$ry <- 50 / 3
+centers$rz <- 50 / 50
+centers$id <- centers$id + 1
+head(centers)
+
+tmp <- apply(centers, 1, as.list)
+
+h <- rjson::fromJSON(file = 'stateEllipses.json')
+h$layers$centroids
+#h <- jsonlite::fromJSON(txt = 'stateN.json')
+```
+
+
+
+```{r}
+#clipy <- pipe("pbcopy", "w")
+#dput(h$layers$centroids$annotations[[2]], file = clipy)
+#close(clipy)
+
+
+makeEllipse <- function(x, y, z, rx, ry, rz, id, type = "ellipsoid"){
+  #list(center = c(6422.9521484375, 5225.69140625, 18.9999961853027), 
+  #     radii = c(46.8552055358887, 46.8552055358887, 2.8113124370575), 
+  #     id = "4", 
+  #     description = "4", 
+  #     segments = "30",
+  #     type = "ellipsolid")
+  
+  list(center = c(x, y, z), 
+       radii = c(rx, ry, rz), 
+       type = type, 
+       id = as.character(id), 
+       description = as.character(id))
+  # segments = list(as.character(id)))
+}
+
+makeAnno <- function(x, y, z, rx, ry, rz, id, type = "point"){
+  #list(center = c(6422.9521484375, 5225.69140625, 18.9999961853027), 
+  #     radii = c(46.8552055358887, 46.8552055358887, 2.8113124370575), 
+  #     id = "4", 
+  #     description = "4", 
+  #     segments = "30",
+  #     type = "ellipsolid")
+  
+  list(point = c(x, y, z), 
+       type = type, 
+       id = as.character(id),
+       description = as.character(id)
+       # segments = list(id)
+       )
+}
+
+
+out <- lapply(tmp, function(x) do.call(makeAnno, x))
+out <- lapply(tmp, function(x) do.call(makeEllipse, x))
+out[[1]]
+
+h$layers$centroids$annotations <- c(h$layers$centroids$annotations, out)
+
+h$layers$centroids$annotations
+
+
+clipy <- pipe('pbcopy', 'w')
+writeLines(rjson::toJSON(h, indent = 2), clipy) 
+close(clipy)
+
+#f1 <- file('stateEllipses_jlp.json', 'w')
+#writeLines(rjson::toJSON(h, indent = 2), f1) 
+#close(f1)
+#
+
+```
+
+
+
+
+
+<!--
+#   Time:
+##  Working status:
+### Comments:
+####Soli Deo Gloria
+--> 
+

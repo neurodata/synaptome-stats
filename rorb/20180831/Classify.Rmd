@@ -1,0 +1,179 @@
+---
+title: "Classification on RORB synapses"
+author: "Jesse Leigh Patsolic"
+output: 
+  html_document:
+    keep_md: true
+---
+
+<!--
+### ### INITIAL COMMENTS HERE ###
+###
+### Jesse Leigh Patsolic 
+### 2018 <Jesse.L.Patsolic@alumni.wfu.edu>
+### S.D.G 
+#
+
+-->
+
+<style type="text/css">
+.table {
+    width: 30%;
+}
+tr:hover {background-color:#f5f5f5;}
+</style>
+
+```{r setup,include=FALSE,results='asis',message=FALSE,warning=FALSE, include= FALSE}
+# Library calls here.
+require(rmarkdown)
+require(knitr)
+require(rhdf5)
+require(foreach)
+require(googlesheets)
+require(mclust)
+require(MASS)
+require(caret)
+suppressMessages(require(meda))
+```
+
+```{r render, eval=FALSE, echo=FALSE}
+require(rmarkdown)
+rmarkdown::render("Classify.Rmd")
+system('open Classify.html')
+```
+
+```{r google-sheet, eval = FALSE}
+#gs_auth(new_user = TRUE)
+gs_ls()
+
+tmp <- gs_title("MNSite3Synaptograms.csv")
+fdat <- as.data.table(gs_read_csv(ss = tmp, ws = 1, skip = 1))
+rm(tmp)
+
+fdat$cx <- 
+  (fdat$maxX - fdat$minX)/2 + fdat$minX
+
+fdat$cy <- 
+  (fdat$maxY - fdat$minY)/2 + fdat$minY
+
+fdat$cz <- 
+  (fdat$maxZ - fdat$minZ)/2 + fdat$minZ
+
+fdat$atx <- round((fdat$cx * 3) / 96)
+fdat$aty <- round((fdat$cy * 3) / 96)
+fdat$atz <- round(fdat$cz)
+
+fdat$nmx <- (fdat$cx / 3)
+fdat$nmy <- (fdat$cy / 3)
+fdat$nmz <- fdat$cz/50
+
+dx <- 438
+dy <- 460
+dz <- 49
+
+ind <- 
+  (dat$atx - 5) >= 0  &
+  (dat$aty - 5) >= 0  &
+  (dat$atz - 5) >= 0  &
+  (dat$atx + 6) <= dx &
+  (dat$aty + 6) <= dy &
+  (dat$atz + 6) <= dz
+
+fdat$buff <- as.numeric(ind)
+```
+
+# Merge data with labels by ID
+
+```{r cc1}
+avg <- read.csv("rorb_avg_at_123ids.csv")
+names(avg)[1] <- "DAPI1"
+loc <- read.csv("rorb_avg_at_123Locations.csv")
+names(loc)[1] <- 'x'
+loc$id <- loc$id + 1 #Adjust id
+
+dat <- cbind(loc, avg)
+
+Y <- fdat[, .(GABA, id)]
+Y[, ':=' (id = id + 1, Y = GABA, GABA = NULL)]
+
+subdat <- dat[dat$id %in% Y$id, ]
+
+m1 <- merge(Y, dat, by = 'id')
+
+X <- m1[, -c(1,3:5)]
+X[, Y := as.factor(Y)]
+```
+
+# Head
+
+```{r}
+ind <- c(which(X$Y == 0)[1:3], which(X$Y == 1)[1:3])
+X[ind, -c(2,3,4,12)]
+```
+
+
+# Classification
+
+## caret using LOOCV for various methods
+
+```{r caret, echo = TRUE, results = 'hide'}
+tc <- trainControl(method = "LOOCV")
+ldaFit <- train(Y ~ ., data = X, trControl = tc, method = "lda")
+bayesglmFit  <- train(Y ~ ., data = X, trControl = tc, method = "bayesglm")
+
+clda <- sum(predict(ldaFit) != X$Y)/length(X$Y)
+cbayes <- sum(predict(bayesglmFit) != X$Y)/length(X$Y)
+```
+
+## RF
+
+```{r rf, echo = TRUE, results = 'hide'}
+rfMod <- randomForest(Y ~ ., data = X, importance = TRUE)
+rfPred <- predict(rfMod)
+rfL <- sum(rfPred != X$Y)/length(X$Y)
+```
+
+## MclustDA
+```{r mclustDA, echo = TRUE, results = 'hide'}
+daMod <- MclustDA(X[, -1], X$Y)
+daPred <- predict(daMod)$classification
+daL <- sum(daPred != X$Y)/length(X$Y)
+```
+
+## LDA
+
+```{r lda, echo = TRUE, results = 'hide'}
+ldaMod <- lda(Y ~ ., data = X, CV = FALSE)
+ldaPred <- predict(ldaMod)$class
+ldaL <- sum(ldaPred != X$Y)/length(X$Y)
+```
+
+## LDA with LOOCV
+
+```{r ldacv, echo = TRUE, results = 'hide'}
+ldaModcv <- lda(Y ~ ., data = X, CV = TRUE)
+ldacvL <- sum(ldaModcv$class != X$Y)/length(X$Y)
+```
+
+| method | error |
+|------------|-------|
+| caret LDA w/LOOCV | `r clda`|
+| caret Bayes GLM w/LOOCV | `r cbayes `|
+| RF | `r rfL `|
+| MclustDA | `r daL `|
+| LDA | `r ldaL `|
+| LDA w/LOOCV | `r ldacvL `|
+
+# Spatial point pattern
+
+The Ripley's K function I found only takes 2d spatial data ...
+Will keep looking.
+
+
+<!--
+#   Time:
+##  Working status:
+### Comments:
+####Soli Deo Gloria
+--> 
+
