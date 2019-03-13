@@ -34,7 +34,7 @@ suppressMessages(require(meda))
 
 
 ```{r, eval = FALSE}
-gs_auth(new_user = TRUE)
+#gs_auth(new_user = TRUE)
 gs_ls()
 
 tmp <- gs_title("MNSite3Synaptograms.csv")
@@ -75,8 +75,8 @@ dat$buff <- as.numeric(ind)
 dat$gaba <- dat$GABA
 newDat <- dat[buff == 1, .(atx,aty,atz, id, gaba, shaft, TdTom, NotSynapse)]
 
-write.csv(newDat, file = "GoogleDocData.csv", row.names = FALSE)
-write.csv(newDat[, .(atx,aty,atz,id)], file = "GoogleDocData_loc.csv", row.names = FALSE)
+#write.csv(newDat, file = "GoogleDocData.csv", row.names = FALSE)
+#write.csv(newDat[, .(atx,aty,atz,id)], file = "GoogleDocData_loc.csv", row.names = FALSE)
 
 inIDS <- as.numeric(read.csv("rorb_avg_at_orderLocations.csv")[[1]])
 IDS123 <- as.numeric(read.csv("rorb_avg_at_IDS123.csv")[[1]])
@@ -89,21 +89,23 @@ L <- foreach(i = IDS123, .combine = 'rbind') %do% {
 
 glut <- L$glut
 glutIDS <- data.table(id = inIDS, glut = as.numeric(glut))
-write.csv(glutIDS, file = "rorb_glut.csv", row.names = FALSE)
+#write.csv(glutIDS, file = "rorb_glut.csv", row.names = FALSE)
 
 
 gaba <- L$gaba
 gabaIDS <- data.table(id = inIDS, gaba = as.numeric(gaba))
-write.csv(gabaIDS, file = "rorb_gaba.csv", row.names = FALSE)
+#write.csv(gabaIDS, file = "rorb_gaba.csv", row.names = FALSE)
 
 
 shaft <- L$shaft
 shaftIDS <- data.table(id = inIDS, shaft = as.numeric(shaft))
-write.csv(shaftIDS, file = "rorb_shaft.csv", row.names = FALSE)
+#write.csv(shaftIDS, file = "rorb_shaft.csv", row.names = FALSE)
 
 TdTom <- L$TdTom
 TdIDS <- data.table(id = inIDS, TdTom = as.numeric(TdTom))
-write.csv(TdIDS, file = "rorb_TdTom.csv", row.names = FALSE)
+#write.csv(TdIDS, file = "rorb_TdTom.csv", row.names = FALSE)
 
-write.csv(L, file = "rorb_id123subset.csv", row.names = FALSE)
+#write.csv(L, file = "rorb_id123subset.csv", row.names = FALSE)
+
+
 ```

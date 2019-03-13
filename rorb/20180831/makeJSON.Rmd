@@ -38,12 +38,11 @@ The data have been imported and set up in ....
 ```{r cc1}
 d1 <- read.csv("MnSite3Synaptograms.csv")
 
-
 cX <- apply(d1[, c('maxX', 'minX')], 1, mean)
 cY <- apply(d1[, c('maxY', 'minY')], 1, mean)
 cZ <- apply(d1[, c('maxZ', 'minZ')], 1, mean)
 
-centers <- data.frame(x = round(cX), y = round(cY), z = ceiling(cZ), id = d1$id)
+centers <- data.frame(x = round(cX), y = round(cY), z = ceiling(cZ), id = d1$id, gaba = d1$GABA)
 
 head(centers)
 
@@ -53,7 +52,8 @@ centers$rz <- 50 / 50
 centers$id <- centers$id + 1
 head(centers)
 
-tmp <- apply(centers, 1, as.list)
+tmp0 <- apply(centers[centers$gaba == 0, -c(5)], 1, as.list)
+tmp1 <- apply(centers[centers$gaba == 1, -c(5)], 1, as.list)
 
 h <- rjson::fromJSON(file = 'stateEllipses.json')
 h$layers$centroids
