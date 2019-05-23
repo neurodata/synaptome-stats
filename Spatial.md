@@ -1,0 +1,263 @@
+---
+title: "Spatial analysis on RORB synapse centroids: (20181107)"
+date: "23 May, 2019"
+output: 
+  html_document:
+    keep_md: true
+---
+
+<!--
+### ### INITIAL COMMENTS HERE ###
+###
+### Jesse Leigh Patsolic 
+### 2018 <JPatsolic@jhu.edu>
+### S.D.G 
+#
+
+-->
+
+<style type="text/css">
+.table {
+    width: 30%;
+}
+tr:hover {background-color:#f5f5f5;}
+</style>
+
+
+
+
+
+
+
+## Data Preparation 
+
+The data have been imported and set up in .... 
+
+
+```r
+d1 <- read.csv("MNSite3Synaptograms.csv")
+
+cX <- apply(d1[, c('maxX', 'minX')], 1, mean)
+cY <- apply(d1[, c('maxY', 'minY')], 1, mean)
+cZ <- apply(d1[, c('maxZ', 'minZ')], 1, mean)
+
+centers <- data.frame(x = round(cX), y = round(cY), z = ceiling(cZ), id = d1$id, gaba = d1$GABA)
+```
+
+
+# Spatial point pattern
+
+##  Ripley's K-function 
+
+\[
+\hat{K}(t) = \frac{a}{n(n-1)}\sum_{i \ne j}{I(d_{ij} < t)}e_{ij}
+\]
+
+Where $e_{ij}$ are the edge correction weights.
+
+
+```r
+RipleyK <- function(X, t, A) {
+ 
+  n <- nrow(X)
+  di <- as.matrix(dist(X)) 
+  truth <- di < t
+
+  truth[lower.tri(truth, diag = TRUE)] <- NA
+
+  Khat <- sum(truth, na.rm = TRUE)# * (A / n * (n - 1))
+  return(Khat)
+}
+```
+
+
+
+```r
+X <- centers
+X$z <- X$z
+
+v1 <- (max(X$x) - min(X$x)) 
+v2 <- (max(X$y) - min(X$y)) 
+v3 <- 50
+V <- (max(X$x) - min(X$x)) * (max(X$y) - min(X$y)) * 50
+```
+
+We have retrieved the centroids.
+
+The volume of the hyper-rectangle is 8.80413\times 10^{8}.
+
+
+## Synapses
+
+
+```r
+ya <- seq(1, 6e3, length = 100)
+khat <- list()
+
+khat$synapses <- 
+sapply(ya, 
+       FUN = function(x) {
+         RipleyK(X = X, t = x, A = V)
+       })
+```
+
+
+## Grid
+
+
+
+```r
+n1 <- nrow(X)^(1/3)
+
+x1 <- seq(1, v1, by = 400)
+y1 <- seq(1, v2, by = 400)
+z1 <- seq(1, v3, by = 5)
+
+sampGrid <- expand.grid(x1, y1, z1)[1:nrow(X), ]
+khat$sampGrid <- sapply(ya, function(x) RipleyK(sampGrid, x, V))
+```
+
+
+## Unif
+
+
+```r
+set.seed(22)
+xyz <- sample(1:V, nrow(X))
+
+#xyz <- 1:30
+#k <- (xyz - 1) %% 5 + 1
+#j <- (k - xyz) %% 3 + 1
+#i <- (k + j - xyz + 1) %% 2 + 1
+
+reconstruct <- function(a, x , y, z) {
+  k <- ((a - 1) %% z) + 1
+  j <- ((k - a) %% y) + 1
+  i <- ((k + j - a + 1) %% x) + 1
+
+  out <- cbind(i,j,k, deparse.level = 0)
+  return(out)
+}
+
+sampUnif <- reconstruct(xyz, v1, v2, v3)
+
+khat$sampUnif <- sapply(ya, function(x) RipleyK(sampUnif, x, V))
+```
+
+
+## MC
+
+
+```r
+mcn <- 1e3
+khat$mont <- list(
+                  matrix = matrix(NA, nrow = mcn, ncol = length(ya)),
+                  mean = c(),
+                  median = c()
+                  )
+
+set.seed(22)
+
+system.time({
+khat$mont$matrix <- 
+  foreach(mi = 1:mcn, .combine = 'rbind') %dopar% {
+    set.seed(mi)
+    mcSamp <- sample(1:V, nrow(X))
+    recon <- reconstruct(mcSamp, v1, v2, v3)
+    sapply(ya, function(x) RipleyK(recon, x, V))
+  }
+})
+
+write.csv(x = khat$mont$matrix, file = paste0("mcRun", format(Sys.time(), "%Y%m%dT%H%M"), ".csv"))
+saveRDS(khat, file = paste0('khat',format(Sys.time(), "%Y%m%dT%H%M"), '.rds'))
+```
+
+
+```r
+khat <- readRDS('khat20181106T1851.rds')
+
+khat$mont$mean <- colMeans(khat$mont$matrix)
+khat$mont$median <- apply(khat$mont$matrix, 2, median)
+
+khat$mont$lconf <- apply(khat$mont$matrix, 2, function(x) { mean(x) - qnorm(0.025) * sd(x)/sqrt(length(x))})
+khat$mont$uconf <- apply(khat$mont$matrix, 2, function(x) { mean(x) + qnorm(0.975) * sd(x)/sqrt(length(x))})
+khat$mont$blconf <- apply(khat$mont$matrix, 2, quantile, probs = c(0.025))
+khat$mont$buconf <- apply(khat$mont$matrix, 2, quantile, probs = c(0.975))
+
+#saveRDS(khat$mont, file = "khat_mont.rds")
+```
+
+
+
+```r
+radius <- rep(ya, 3)
+#pdf("tmp.pdf", width = 12, height = 10)
+Khat <- c(khat$synapses, khat$sampGrid, khat$sampUnif)
+plot(radius,  Khat, type = 'n')
+points(ya, (khat$synapses), type = 'l', col = 'red')
+points(ya, (khat$sampGrid), type = 'l', col = 'blue')
+#points(ya, (khat$randSamp), type = 'l', col = 'black')
+#points(ya, (khat$sampUnif), type = 'l', col = 'black')
+
+points(ya, (khat$mont$mean), type = 'l', col = 'orange')
+points(ya, (khat$mont$lconf), type = 'l', col = 'gray75')
+points(ya, (khat$mont$uconf), type = 'l', col = 'gray75')
+
+polygon(c(ya, rev(ya))
+        ,c(khat$mont$lconf, rev(khat$mont$uconf))
+        ,col = 'gray85'
+        ,border='gray75'
+        )
+
+text(5000, max(khat$synapses), label = "synapes", col = 'red', pos = 1)
+text(6000, max(khat$sampUnif), label = "Unif", col = 'black', pos = 1)
+text(4000, max(khat$sampGrid), label = "Grid", col = 'blue', pos = 1)
+```
+
+![](Spatial_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+
+```r
+#dev.off()
+#points(ya, (khat$mont$blconf), type = 'l', col = 'purple', lty = 2)
+#points(ya, (khat$mont$buconf), type = 'l', col = 'purple', lty = 2)
+```
+
+
+```r
+radius <- rep(ya, 3)
+#pdf("tmp-logscale", width = 12, height = 10)
+log1pKhat <- log1p(c(khat$synapses, khat$sampGrid, khat$sampUnif))
+plot(radius,  log1pKhat, type = 'n')
+points(ya, log1p(khat$synapses), type = 'l', col = 'red')
+points(ya, log1p(khat$sampGrid), type = 'l', col = 'blue')
+#points(ya, (khat$randSamp), type = 'l', col = 'black')
+#points(ya, (khat$sampUnif), type = 'l', col = 'black')
+
+polygon(c(ya, rev(ya))
+        ,log1p(c(khat$mont$lconf, rev(khat$mont$uconf)))
+        ,col = 'gray85'
+        ,border='gray75'
+        )
+
+points(ya, log1p(khat$mont$lconf), type = 'l', col = 'gray75')
+points(ya, log1p(khat$mont$uconf), type = 'l', col = 'gray75')
+points(ya, log1p(khat$mont$mean), type = 'p', col = 'orange', lty = 3, pch = 19, cex = 0.25)
+```
+
+![](Spatial_files/figure-html/log-scale-1.png)<!-- -->
+
+```r
+#text(5000, max(khat$synapses), label = "synapes", col = 'red', pos = 1)
+#text(6000, max(khat$sampUnif), label = "Unif", col = 'black', pos = 1)
+#text(7000, max(khat$sampGrid), label = "Grid", col = 'blue', pos = 1)
+#dev.off()
+#points(ya, (khat$mont$blconf), type = 'l', col = 'purple', lty = 2)
+#points(ya, (khat$mont$buconf), type = 'l', col = 'purple', lty = 2)
+```
+<!--
+#   Time:
+##  Working status:
+### Comments:
+####Soli Deo Gloria
+--> 
+
